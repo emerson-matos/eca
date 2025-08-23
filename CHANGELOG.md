@@ -5,6 +5,7 @@
 - Fix reasoning titles in thoughts blocks for openai-responses.
 - Fix hanging LSP diagnostics requests
 - Add `lspTimeoutSeconds` to config
+- Support `HTTP_PROXY` and `HTTPS_PROXY` env vars for LLM request via proxies. #73
 
 ## 0.32.4
 

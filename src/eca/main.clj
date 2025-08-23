@@ -7,7 +7,8 @@
    [clojure.string :as string]
    [eca.config :as config]
    [eca.logger :as logger]
-   [eca.server :as server]))
+   [eca.server :as server]
+   [eca.proxy :as proxy]))
 
 (set! *warn-on-reflection* true)
 
@@ -89,6 +90,7 @@
 
 (defn ^:private handle-action!
   [action options]
+  (proxy/load!)
   (when (= "server" action)
     (alter-var-root #'logger/*level* (constantly (keyword (:log-level options))))
     (let [finished @(server/run-io-server! (:verbose options))]
