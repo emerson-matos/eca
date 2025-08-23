@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.33.0
+
 - Fix reasoning titles in thoughts blocks for openai-responses.
 - Fix hanging LSP diagnostics requests
 - Add `lspTimeoutSeconds` to config
