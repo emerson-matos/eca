@@ -274,7 +274,7 @@
                   :required ["path" "original_content" "new_content"]}
     :handler #'edit-file
     :enabled-fn (fn [{:keys [behavior]}] (not= "plan" behavior))
-    :summary-fn (constantly "Editting file")}
+    :summary-fn (constantly "Editing file")}
    "eca_plan_edit_file"
    {:description  (str "Plan a file change where user needs to apply or reject the change. "
                        "Replace a specific string or content block in a file with new content. "
