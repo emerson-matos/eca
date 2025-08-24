@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.34.0
+
 - Support custom UX details/summary for MCP tools. #67
   - Support clojureMCP tools diff for file changes.
 
