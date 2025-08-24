@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix proxy exception. #73
+
 ## 0.34.0
 
 - Support custom UX details/summary for MCP tools. #67
