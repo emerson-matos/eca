@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Support custom UX details/summary for MCP tools. #67
+  - Support clojureMCP tools diff for file changes.
+
 ## 0.33.0
 
 - Fix reasoning titles in thoughts blocks for openai-responses.
