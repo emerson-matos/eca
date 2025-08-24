@@ -188,7 +188,7 @@
                          (let [calls (doall
                                       (for [{:keys [id name arguments] :as tool-call} tool-calls]
                                         (let [approved?* (promise)
-                                              details (f.tools/get-tool-call-details name arguments)
+                                              details (f.tools/tool-call-details-before-invocation name arguments)
                                               summary (f.tools/tool-call-summary all-tools name arguments)
                                               origin (tool-name->origin name all-tools)
                                               manual-approval? (f.tools/manual-approval? name config)]
@@ -216,7 +216,8 @@
                                             (if @approved?*
                                               (do
                                                 (assert-chat-not-stopped! chat-ctx)
-                                                (let [result (f.tools/call-tool! name arguments @db* config messenger)]
+                                                (let [result (f.tools/call-tool! name arguments @db* config messenger)
+                                                      details (f.tools/tool-call-details-after-invocation name arguments details result)]
                                                   (add-to-history! {:role "tool_call" :content (assoc tool-call
                                                                                                       :details details
                                                                                                       :summary summary
