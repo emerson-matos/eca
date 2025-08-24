@@ -4,6 +4,20 @@
    [clojure.string :as string]
    [eca.shared :as shared]))
 
+(defmulti tool-call-details-before-invocation
+  "Return the tool call details before invoking the tool."
+  (fn [name arguments] (keyword name)))
+
+(defmethod tool-call-details-before-invocation :default [name arguments]
+  nil)
+
+(defmulti tool-call-details-after-invocation
+  "Return the tool call details after invoking the tool."
+  (fn [name arguments details result] (keyword name)))
+
+(defmethod tool-call-details-after-invocation :default [name arguments details result]
+  details)
+
 (defn single-text-content [text & [error]]
   {:error (boolean error)
    :contents [{:type :text

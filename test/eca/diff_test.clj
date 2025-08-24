@@ -39,10 +39,22 @@
       (is (some #{"-c"} lines) "diff should include -c line")))
 
   (testing "new file"
-    (let [revised  (string/join "\n" ["a" "b" "c" "d"])
+    (let [revised (string/join "\n" ["a" "b" "c" "d"])
           {:keys [added removed diff]} (diff/diff "" revised "file.txt")
           lines (split-diff-lines diff)]
       (is (= 4 added) "two lines added")
       (is (= 0 removed) "no lines removed")
       (is (some #{"+c"} lines) "diff should include +c line")
       (is (some #{"+d"} lines) "diff should include +d line"))))
+
+(deftest unified-diff-counts-test
+  (testing "counts added and removed lines from unified diff"
+    (let [example-diff (string/join "\n" ["--- original.txt"
+                                          "+++ revised.txt"
+                                          "@@ -1,1 +1,2 @@"
+                                          "-a"
+                                          "+b"
+                                          "+c"])
+          {:keys [added removed]} (diff/unified-diff-counts example-diff)]
+      (is (= 2 added) "one line added in the diff body")
+      (is (= 1 removed) "one line removed in the diff body"))))

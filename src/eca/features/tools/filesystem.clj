@@ -4,6 +4,7 @@
    [clojure.java.io :as io]
    [clojure.java.shell :as shell]
    [clojure.string :as string]
+   [eca.diff :as diff]
    [eca.features.tools.util :as tools.util]
    [eca.shared :as shared]))
 
@@ -330,3 +331,32 @@
                   :required ["path" "pattern"]}
     :handler #'grep
     :summary-fn #'grep-summary}})
+
+(defmethod tools.util/tool-call-details-before-invocation :eca_edit_file [name arguments]
+  (let [path (get arguments "path")
+        original-content (get arguments "original_content")
+        new-content (get arguments "new_content")
+        all? (get arguments "all_occurrences")]
+    (when-let [{:keys [original-full-content
+                       new-full-content]} (and path (fs/exists? path) original-content new-content
+                                               (file-change-full-content path original-content new-content all?))]
+      (let [{:keys [added removed diff]} (diff/diff original-full-content new-full-content path)]
+        {:type :fileChange
+         :path path
+         :linesAdded added
+         :linesRemoved removed
+         :diff diff}))))
+
+(defmethod tools.util/tool-call-details-before-invocation :eca_plan_edit_file [name arguments]
+  (tools.util/tool-call-details-before-invocation :eca_edit_file name arguments))
+
+(defmethod tools.util/tool-call-details-before-invocation :eca_write_file [name arguments]
+  (let [path (get arguments "path")
+        content (get arguments "content")]
+    (when (and path content)
+      (let [{:keys [added removed diff]} (diff/diff "" content path)]
+        {:type :fileChange
+         :path path
+         :linesAdded added
+         :linesRemoved removed
+         :diff diff}))))

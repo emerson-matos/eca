@@ -2,12 +2,11 @@
   "This ns centralizes all available tools for LLMs including
    eca native tools and MCP servers."
   (:require
-   [babashka.fs :as fs]
    [clojure.string :as string]
-   [eca.diff :as diff]
    [eca.features.tools.editor :as f.tools.editor]
    [eca.features.tools.filesystem :as f.tools.filesystem]
    [eca.features.tools.mcp :as f.mcp]
+   [eca.features.tools.mcp.clojure-mcp]
    [eca.features.tools.shell :as f.tools.shell]
    [eca.features.tools.util :as tools.util]
    [eca.logger :as logger]
@@ -133,29 +132,12 @@
         (logger/error (format "Error in tool call summary fn %s: %s" name (.getMessage e)))
         nil))))
 
-(defn get-tool-call-details [name arguments]
-  (case name
-    "eca_write_file" (let [path (get arguments "path")
-                           content (get arguments "content")]
-                       (when (and path content)
-                         (let [{:keys [added removed diff]} (diff/diff "" content path)]
-                           {:type :fileChange
-                            :path path
-                            :linesAdded added
-                            :linesRemoved removed
-                            :diff diff})))
-    ("eca_plan_edit_file"
-     "eca_edit_file") (let [path (get arguments "path")
-                            original-content (get arguments "original_content")
-                            new-content (get arguments "new_content")
-                            all? (get arguments "all_occurrences")]
-                        (when-let [{:keys [original-full-content
-                                           new-full-content]} (and path (fs/exists? path) original-content new-content
-                                                                   (f.tools.filesystem/file-change-full-content path original-content new-content all?))]
-                          (let [{:keys [added removed diff]} (diff/diff original-full-content new-full-content path)]
-                            {:type :fileChange
-                             :path path
-                             :linesAdded added
-                             :linesRemoved removed
-                             :diff diff})))
-    nil))
+(defn tool-call-details-before-invocation
+  "Return the tool call details before invoking the tool."
+  [name arguments]
+  (tools.util/tool-call-details-before-invocation name arguments))
+
+(defn tool-call-details-after-invocation
+  "Return the tool call details after invoking the tool."
+  [name arguments details result]
+  (tools.util/tool-call-details-after-invocation name arguments details result))

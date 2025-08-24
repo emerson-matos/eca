@@ -55,3 +55,28 @@
       (->> (DiffUtils/generateUnifiedDiff file file original-lines patch 3)
            (drop 2) ;; removes file header
            unlines)})))
+
+(defn unified-diff-counts
+  "Given a unified diff string, return a map with counts of added and removed lines.
+
+  It ignores diff headers (---, +++), hunk markers (@@), and metadata lines starting with \\."
+  [diff-text]
+  (let [lines (string/split-lines diff-text)]
+    (reduce (fn [{:keys [added removed] :as acc} line]
+              (cond
+                (or (string/starts-with? line "---")
+                    (string/starts-with? line "+++")
+                    (string/starts-with? line "@@")
+                    (string/starts-with? line "\\")
+                    (string/blank? line))
+                acc
+
+                (string/starts-with? line "+")
+                (update acc :added inc)
+
+                (string/starts-with? line "-")
+                (update acc :removed inc)
+
+                :else acc))
+            {:added 0 :removed 0}
+            lines)))
