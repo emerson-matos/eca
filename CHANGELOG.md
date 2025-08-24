@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.34.1
+
 - Fix proxy exception. #73
 
 ## 0.34.0
