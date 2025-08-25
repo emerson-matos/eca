@@ -47,12 +47,12 @@
     (throw (ex-info "Chat prompt stopped" {:silent? true
                                            :chat-id chat-id}))))
 
+;;; Helper functions for tool call state management
+
 (defn ^:private merge-in
   "Like assoc-in but merges the value with existing map at the path"
   [m path value]
   (update-in m path merge value))
-
-;; Helper functions for tool call state management
 
 (defn ^:private init-tool-call-state!
   "Initialize the state tracking for a new tool call.
@@ -104,10 +104,12 @@
 (defn ^:private should-send-notification?
   "Check if a notification type should be sent for a tool call.
 
-  Returns false if the notification was already sent (prevents duplicates)."
+  Returns false if the notification was already sent (prevents duplicates).
+  Exception: toolCallPrepare notifications are always allowed (can send multiple)."
   [db chat-id tool-call-id notification-type]
-  (not (contains? (get-in db [:chats chat-id :tool-calls tool-call-id :notifications-sent] #{})
-                  notification-type)))
+  (or (= notification-type :toolCallPrepare)
+      (not (contains? (get-in db [:chats chat-id :tool-calls tool-call-id :notifications-sent] #{})
+                      notification-type))))
 
 (defn ^:private get-tool-call-state
   "Get the complete state map for a specific tool call."
