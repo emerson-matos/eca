@@ -42,7 +42,7 @@
                              :role "system"
                              :content {:type :progress
                                        :state :finished}}))))
-    (db/update-workspaces-cache! @db*)))
+    (db/update-global-cache! @db*)))
 
 (defn renew-auth! [provider db*]
   (case provider

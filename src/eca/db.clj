@@ -14,17 +14,19 @@
 
 (def ^:private logger-tag "[DB]")
 
-(def version 1)
+(def version 2)
 
 (defonce initial-db
   {:client-info {}
    :workspace-folders []
    :client-capabilities {}
-   :chats {}
    :chat-behaviors ["agent" "plan"]
    :models {}
-   :auth {}
-   :mcp-clients {}})
+   :mcp-clients {}
+
+   ;; cacheable, bump cache when changing
+   :chats {}
+   :auth {}})
 
 (defonce db* (atom initial-db))
 
@@ -57,8 +59,11 @@
         key (.encodeToString encoder digest)]
     (subs key 0 (min 8 (count key)))))
 
-(defn ^:private transit-global-db-file [workspaces]
+(defn ^:private transit-global-by-workspaces-db-file [workspaces]
   (io/file (global-cache-dir) (workspaces-hash workspaces)  "db.transit.json"))
+
+(defn ^:private transit-global-db-file []
+  (io/file (global-cache-dir) "db.transit.json"))
 
 (defn ^:private read-cache [cache-file]
   (try
@@ -85,26 +90,39 @@
     (catch Throwable e
       (logger/error logger-tag (str "Could not upsert db cache to " cache-file) e))))
 
-(defn ^:private read-workspaces-cache [workspaces]
-  (let [cache (read-cache (transit-global-db-file workspaces))]
+(defn ^:private read-global-cache []
+  (let [cache (read-cache (transit-global-db-file))]
+    (when (= version (:version cache))
+      cache)))
+
+(defn ^:private read-global-by-workspaces-cache [workspaces]
+  (let [cache (read-cache (transit-global-by-workspaces-db-file workspaces))]
     (when (= version (:version cache))
       cache)))
 
 (defn load-db-from-cache! [db*]
-  (when-let [global-cache (read-workspaces-cache (:workspace-folders @db*))]
-    (swap! db* (fn [state-db]
-                 (merge state-db
-                        (select-keys global-cache [:chats :auth]))))))
+  (when-let [global-cache (read-global-cache)]
+    (swap! db* shared/deep-merge global-cache))
+  (when-let [global-by-workspace-cache (read-global-by-workspaces-cache (:workspace-folders @db*))]
+    (swap! db* shared/deep-merge global-by-workspace-cache)))
 
-(defn ^:private normalize-db-for-write [db]
-  (-> (select-keys db [:chats :auth])
+(defn ^:private normalize-db-for-workspace-write [db]
+  (-> (select-keys db [:chats])
       (update :chats (fn [chats]
                        (into {}
                              (map (fn [[k v]]
                                     [k (dissoc v :tool-calls)]))
                              chats)))))
 
+(defn ^:private normalize-db-for-global-write [db]
+  (select-keys db [:auth]))
+
 (defn update-workspaces-cache! [db]
-  (-> (normalize-db-for-write db)
+  (-> (normalize-db-for-workspace-write db)
       (assoc :version version)
-      (upsert-cache! (transit-global-db-file (:workspace-folders db)))))
+      (upsert-cache! (transit-global-by-workspaces-db-file (:workspace-folders db)))))
+
+(defn update-global-cache! [db]
+  (-> (normalize-db-for-global-write db)
+      (assoc :version version)
+      (upsert-cache! (transit-global-db-file))))

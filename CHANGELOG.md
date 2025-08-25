@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix copilot requiring login in different workspaces.
+
 ## 0.34.1
 
 - Fix proxy exception. #73
