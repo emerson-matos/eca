@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.34.2
+
 - Fix copilot requiring login in different workspaces.
 
 ## 0.34.1
