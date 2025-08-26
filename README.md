@@ -8,12 +8,12 @@ src="https://img.shields.io/github/stars/editor-code-assistant/eca?style=flat-sq
 
 # ECA (Editor Code Assistant)
 
-| Editor                                                                | Demo                                                                                                           |
-|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| [eca-emacs](https://github.com/editor-code-assistant/eca-emacs)       | <img src="https://raw.githubusercontent.com/editor-code-assistant/eca-emacs/master/demo.gif" width="640" />    |
-| [eca-vscode](https://github.com/editor-code-assistant/eca-vscode)     | <img src="https://raw.githubusercontent.com/editor-code-assistant/eca-vscode/master/demo.gif" width="640" />   |
-| [eca-intellij](https://github.com/editor-code-assistant/eca-intellij) | <img src="https://raw.githubusercontent.com/editor-code-assistant/eca-intellij/master/demo.gif" width="640" /> |
-
+| Demo                                                                                                                             |
+|:----------------------------------------------------------------------------------------------------------------------------------:|
+| [eca-emacs](https://github.com/editor-code-assistant/eca-emacs)<br/><img src="https://raw.githubusercontent.com/editor-code-assistant/eca-emacs/master/demo.gif" width="640" /> |
+| [eca-vscode](https://github.com/editor-code-assistant/eca-vscode)<br/><img src="https://raw.githubusercontent.com/editor-code-assistant/eca-vscode/master/demo.gif" width="640" /> |
+| [eca-intellij](https://github.com/editor-code-assistant/eca-intellij)<br/><img src="https://raw.githubusercontent.com/editor-code-assistant/eca-intellij/master/demo.gif" width="640" /> |
+ 
 <hr>
 <p align="center">
   <a href="https://eca.dev/installation"><strong>installation</strong></a> •
