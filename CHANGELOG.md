@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.36.0
+
 - Support relative contexts additions via `~`, `./` `../` and `/`. #61
 
 ## 0.35.0
