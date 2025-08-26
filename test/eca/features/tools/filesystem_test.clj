@@ -38,12 +38,19 @@
     (is (match?
          {:error false
           :contents [{:type :text
-                      :text (str "[DIR] "  (h/file-path "/foo/bar/baz/qux") "\n"
-                                 "[FILE] " (h/file-path "/foo/bar/baz/some.clj") "\n")}]}
+                      :text (str "├── qux\n"
+                                 "└── some.clj\n\n"
+                                 "1 directories, 1 files")}]}
          (with-redefs [fs/exists? (constantly true)
                        fs/starts-with? (constantly true)
-                       fs/list-dir (constantly [(fs/path (h/file-path "/foo/bar/baz/some.clj"))
-                                                (fs/path (h/file-path "/foo/bar/baz/qux"))])
+                       fs/list-dir (fn [path]
+                                     (let [p (str path)]
+                                       (cond
+                                         (= p (h/file-path "/foo/bar/baz"))
+                                         [(fs/path (h/file-path "/foo/bar/baz/some.clj"))
+                                          (fs/path (h/file-path "/foo/bar/baz/qux"))]
+                                         (= p (h/file-path "/foo/bar/baz/qux"))
+                                         []))) ; make "qux" an empty directory
                        fs/directory? (fn [path] (not (string/ends-with? (str path) ".clj")))
                        fs/canonicalize (constantly (h/file-path "/foo/bar/baz"))]
            ((get-in f.tools.filesystem/definitions ["eca_directory_tree" :handler])
