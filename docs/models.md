@@ -6,12 +6,12 @@ Models capabilities and configurations are retrieved from [models.dev](https://m
 
 ## Built-in providers and capabilities
 
-| model               | tools (MCP) | reasoning / thinking | prompt caching | web_search |
-|---------------------|-------------|----------------------|----------------|------------|
-| OpenAI              | √           | √                    | √              | √          |
-| Anthropic           | √           | √                    | √              | √          |
-| Github Copilot      | √           | √                    | √              | X          |
-| Ollama local models | √           | √                    | X              | X          |
+| model                         | tools (MCP) | reasoning / thinking | prompt caching | web_search |
+|-------------------------------|-------------|----------------------|----------------|------------|
+| OpenAI                        | √           | √                    | √              | √          |
+| Anthropic (Also subscription) | √           | √                    | √              | √          |
+| Github Copilot                | √           | √                    | √              | X          |
+| Ollama local models           | √           | √                    | X              | X          |
 
 
 ### Config
@@ -106,6 +106,13 @@ When configuring custom providers, choose the appropriate API type:
 Most third-party providers use the `openai-chat` API for compatibility with existing tools and libraries.
 
 ## Providers examples
+
+=== "Anthropic"
+    
+    1. Login to Anthropic via the chat command `/login anthropic`.
+    2. Type the chosen method
+    3. Authenticate in your browser, copy the code.
+    4. Paste and send the code and done!
 
 === "Github Copilot"
     
