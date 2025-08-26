@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Support relative contexts additions via `~`, `./` `../` and `/`. #61
+
 ## 0.35.0
 
 - Anthropic subscription support, via `/login anthropic` command. #57
