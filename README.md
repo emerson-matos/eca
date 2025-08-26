@@ -49,7 +49,9 @@ The protocol makes easier for other editors integrate and having a server in the
 
 With the LLMs models race, the differences between them tend to be irrelevant in the future, but UX on how to edit code or plan changes is something that will exist, ECA helps editors focus on that.
 
-## Getting started
+**How it works**: Editors spawn the server via `eca server` and communicate via stdin/stdout, similar to LSPs. Supported editors already download latest server on start and require no extra configuration.
+
+## Quickstart
 
 ### 1. Install the editor plugin
 
@@ -62,19 +64,19 @@ Install the plugin for your editor and ECA server will be downloaded and started
 
 ### 2. Set up your first model
 
-To use ECA, you need to configure at least one model with your API key. See the [Models documentation](https://eca.dev/models#adding-and-configuring-models) for detailed instructions on:
+To use ECA, you need to configure at least one model with your API key (_tip: Github Copilot offer free models!_). See the [Models documentation](https://eca.dev/models#adding-and-configuring-models) for detailed instructions on:
 
-- Setting up API keys for OpenAI, Anthropic, or Ollama
+- Setting up API keys for OpenAI, Anthropic, Copilot or Ollama
 - Adding and customizing models
 - Configuring custom providers
 
-**Quick start**: Create a `.eca/config.json` file in your project root with your API key:
+**Quick start**: Create a `~/.config/eca/config.json` file with your API key:
 
-```json
+```javascript
 {
   "providers": {
-      "openai": {"key": "your-openai-api-key-here"},
-      "anthropic": {"key": "your-anthropic-api-key-here"}
+    "openai": {"key": "your-openai-api-key-here"},
+    "anthropic": {"key": "your-anthropic-api-key-here"}
   }
 }
 ```
@@ -85,11 +87,7 @@ To use ECA, you need to configure at least one model with your API key. See the 
 
 Once your model is configured, you can start using ECA's chat interface in your editor to ask questions, review code, and work together on your project.
 
-Type `/init` to ask ECA to create a [AGENTS.md](http://agents.md) file which will help ECA on next iterations have good context about your project standards.
-
-## How it works
-
-Editors spawn the server via `eca server` and communicate via stdin/stdout, similar to LSPs. Supported editors already download latest server on start and require no extra configuration.
+Type `/init` to ask ECA to create/update a [AGENTS.md](http://agents.md) file which will help ECA on next iterations have good context about your project standards.
 
 ## Roadmap
 
@@ -98,7 +96,7 @@ Check the planned work [here](https://github.com/orgs/editor-code-assistant/proj
 ## Contributing
 
 Contributions are very welcome, please open an issue for discussion or a pull request.
-For developer details, check [this doc](https://eca.dev/development).
+For developer details, check [development docs](https://eca.dev/development).
 
 ## Support the project 💖
 
