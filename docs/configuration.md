@@ -74,6 +74,10 @@ For MCP servers configuration, use the `mcpServers` config, example:
 }
 ```
 
+### Manual approval
+
+By default, ECA auto approve any tool call from LLM, to configure that or for which tools, check `toolCall manualApproval` config or try the `plan` behavior before.
+
 ## Custom command prompts
 
 You can configure custom command prompts for project, global or via `commands` config pointing to the path of the commands.
