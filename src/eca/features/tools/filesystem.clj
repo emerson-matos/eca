@@ -6,7 +6,7 @@
    [clojure.string :as string]
    [eca.diff :as diff]
    [eca.features.tools.util :as tools.util]
-   [eca.shared :as shared :refer [multi-str]]))
+   [eca.shared :as shared]))
 
 (set! *warn-on-reflection* true)
 
@@ -251,9 +251,7 @@
 
 (def definitions
   {"eca_directory_tree"
-   {:description (str "Returns a recursive tree view of files and directories starting from the specified path. "
-                      "The path parameter must be an absolute path, not a relative path. "
-                      "**Only works within the directories: $workspaceRoots.**")
+   {:description (tools.util/read-tool-description "eca_directory_tree")
     :parameters {:type "object"
                  :properties {"path" {:type "string"
                                       :description "The absolute path to the directory."}
@@ -265,12 +263,7 @@
     :handler #'directory-tree
     :summary-fn (constantly "Listing file tree")}
    "eca_read_file"
-   {:description (str "Read the contents of a file from the file system. "
-                      "Use this tool when you need to examine "
-                      "the contents of a single file. Optionally use the 'line_offset' and/or 'limit' "
-                      "parameters to read specific contents of the file when you know the range. "
-                      "Prefer call once this tool over multiple calls passing small offsets. "
-                      "**Only works within the directories: $workspaceRoots.**")
+   {:description (tools.util/read-tool-description "eca_read_file")
     :parameters {:type "object"
                  :properties {"path" {:type "string"
                                       :description "The absolute path to the file to read."}
@@ -282,12 +275,7 @@
     :handler #'read-file
     :summary-fn #'read-file-summary}
    "eca_write_file"
-   {:description (str "Create a new file or completely overwrite an existing file with new content. "
-                      "This tool will automatically create any necessary parent directories if they don't exist. "
-                      "Use this tool when you want to create a new file from scratch or completely replace "
-                      "the entire content of an existing file. For partial edits or content replacement within "
-                      "existing files, use eca_edit_file instead. "
-                      "**Only works within the directories: $workspaceRoots.**")
+   {:description (tools.util/read-tool-description "eca_write_file")
     :parameters {:type "object"
                  :properties {"path" {:type "string"
                                       :description "The absolute path to the file to create or overwrite"}
@@ -295,14 +283,11 @@
                                          :description "The complete content to write to the file"}}
                  :required ["path" "content"]}
     :handler #'write-file
+    ;; TODO - add behaviors to config and define disabled tools there!
+    :enabled-fn (fn [{:keys [behavior]}] (not= "plan" behavior))
     :summary-fn #'write-file-summary}
    "eca_edit_file"
-   {:description  (multi-str "You must use your `eca_read_file` tool to get the file’s exact contents before attempting an edit."
-                             "This tool will error if you attempt an edit without reading the file.When crafting the `orginal_content`, you must match the original content from the `eca_read_file` tool output exactly, including all indentation (spaces/tabs) and newlines."
-                             "Never include any part of the line number prefix in the `original_content` or `new_content`.The edit will FAIL if the `original_content` is not unique in the file. To resolve this, you must expand the `new_content` to include more surrounding lines of code or context to make it a unique block."
-                             "ALWAYS prefer making small, targeted edits to existing files. Avoid replacing entire functions or large blocks of code in a single step unless absolutely necessary. You can always call this tool multiple times for multiple edits."
-                             "To delete content, provide the content to be removed as the `original_content` and an empty string as the `new_content`."
-                             "To prepend or append content, the `new_content` must contain both the new content and the original content from `old_string`.")
+   {:description (tools.util/read-tool-description "eca_edit_file")
     :parameters  {:type "object"
                   :properties {"path" {:type "string"
                                        :description "The absolute file path to do the replace."}
@@ -339,11 +324,7 @@
     :enabled-fn (constantly false) #_(fn [{:keys [behavior]}] (= "plan" behavior))
     :summary-fn (constantly "Planning edit")}
    "eca_move_file"
-   {:description (str "Move or rename files and directories. Can move files between directories "
-                      "and rename them in a single operation. If the destination exists, the "
-                      "operation will fail. Works across different directories and can be used "
-                      "for simple renaming within the same directory. "
-                      "Both source and destination must be within the directories: $workspaceRoots.")
+   {:description (tools.util/read-tool-description "eca_move_file")
     :parameters  {:type "object"
                   :properties {"source" {:type "string"
                                          :description "The absolute origin file path to move."}
@@ -351,14 +332,10 @@
                                               :description "The new absolute file path to move to."}}
                   :required ["source" "destination"]}
     :handler #'move-file
+    :enabled-fn (fn [{:keys [behavior]}] (not= "plan" behavior))
     :summary-fn (constantly "Moving file")}
    "eca_grep"
-   {:description (str "Fast content search tool that works with any codebase size. "
-                      "Finds the paths to files that have matching contents using regular expressions. "
-                      "Supports full regex syntax (eg. \"log.*Error\", \"function\\s+\\w+\", etc.). "
-                      "Filter files by pattern with the include parameter (eg. \"*.js\", \"*.{ts,tsx}\"). "
-                      "Returns matching file paths sorted by modification time. "
-                      "Use this tool when you need to find files containing specific patterns.")
+   {:description (tools.util/read-tool-description "eca_grep")
     :parameters  {:type "object"
                   :properties {"path" {:type "string"
                                        :description "The absolute path to search in."}

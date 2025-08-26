@@ -1,5 +1,6 @@
 (ns eca.features.tools.util
   (:require
+   [clojure.java.io :as io]
    [clojure.java.shell :as shell]
    [clojure.string :as string]
    [eca.shared :as shared]))
@@ -40,3 +41,9 @@
                      (single-text-content (string/replace error-msg (str "$" key) (str value))
                                           :error))))
                validator)))
+
+(defn read-tool-description
+  "Read tool description from prompts/tools/<tool-name>.txt file"
+  [tool-name]
+  (-> (io/resource (str "prompts/tools/" tool-name ".txt"))
+      (slurp)))
