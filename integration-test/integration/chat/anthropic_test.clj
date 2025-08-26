@@ -274,8 +274,9 @@
                                                    :arguments {:path (h/project-path->canon-path "resources")}
                                                    :summary "Listing file tree"
                                                    :error false
-                                                   :outputs [{:type "text" :text (str "[FILE] " (h/project-path->canon-path "resources/file1.md\n")
-                                                                                      "[FILE] " (h/project-path->canon-path "resources/file2.md\n"))}]})
+                                                   :outputs [{:type "text" :text (str "├── file1.md\n"
+                                                                                      "└── file2.md\n\n"
+                                                                                      "0 directories, 2 files")}]})
         (match-content chat-id req-id "assistant" {:type "text" :text "The files I see:\n"})
         (match-content chat-id req-id "assistant" {:type "text" :text "file1\nfile2\n"})
         (match-content chat-id req-id "system" {:type "usage"
@@ -300,8 +301,9 @@
                         {:role "user"
                          :content [{:type "tool_result"
                                     :tool_use_id "tool-1"
-                                    :content (str "[FILE] " (h/project-path->canon-path "resources/file1.md\n")
-                                                  "[FILE] " (h/project-path->canon-path "resources/file2.md\n\n"))}]}]
+                                    :content (str "├── file1.md\n"
+                                                  "└── file2.md\n\n"
+                                                  "0 directories, 2 files\n")}]}]
               :tools (m/embeds
                       [{:name "eca_directory_tree"}])
               :system (m/pred vector?)}
