@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Anthropic subscription support, via `/login anthropic` command.
+- Anthropic subscription support, via `/login anthropic` command. #57
 
 ## 0.34.2
 
