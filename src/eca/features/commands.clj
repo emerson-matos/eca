@@ -152,7 +152,7 @@
                                      (if error
                                        [error true]
                                        [message]))
-                                   ["Inform the provider-id (Ex: github-copilot)" true])]
+                                   ["Inform the provider-id (Ex: anthropic, github-copilot)" true])]
                 {:type :chat-messages
                  :status (when-not error? :login)
                  :skip-finish? true

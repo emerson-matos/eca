@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Anthropic subscription support, via `/login anthropic` command.
+
 ## 0.34.2
 
 - Fix copilot requiring login in different workspaces.

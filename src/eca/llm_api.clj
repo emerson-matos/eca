@@ -31,8 +31,9 @@
           (string/join "\n" (subvec lines start end)))
         content))))
 
-(defn ^:private provider-api-key [provider config]
+(defn ^:private provider-api-key [provider provider-auth config]
   (or (get-in config [:providers (name provider) :key])
+      (:api-token provider-auth)
       (some-> (get-in config [:providers (name provider) :keyEnv]) config/get-env)))
 
 (defn ^:private provider-api-url [provider config]
@@ -61,9 +62,9 @@
   (let [[decision model]
         (or (when-let [config-default-model (:defaultModel config)]
               [:config-default-model config-default-model])
-            (when (provider-api-key "anthropic" config)
+            (when (provider-api-key "anthropic" (get-in db [:auth "anthropic"]) config)
               [:api-key-found "anthropic/claude-sonnet-4-20250514"])
-            (when (provider-api-key "openai" config)
+            (when (provider-api-key "openai" (get-in db [:auth "openai"]) config)
               [:api-key-found "openai/gpt-5"])
             (when (get-in db [:auth "github-copilot" :api-key])
               [:api-key-found "github-copilot/gpt-4.1"])
@@ -107,7 +108,7 @@
         provider-config (get-in config [:providers provider])
         model-config (get-in provider-config [:models model])
         extra-payload (:extraPayload model-config)
-        provider-api-key (provider-api-key provider config)
+        provider-api-key (provider-api-key provider provider-auth config)
         provider-api-url (provider-api-url provider config)
         callbacks {:on-message-received on-message-received-wrapper
                    :on-error on-error-wrapper
@@ -158,7 +159,7 @@
            :tools tools
            :extra-payload extra-payload
            :api-url provider-api-url
-           :api-key (:api-token provider-auth)
+           :api-key provider-api-key
            :extra-headers {"openai-intent" "conversation-panel"
                            "x-request-id" (str (random-uuid))
                            "vscode-sessionid" ""
