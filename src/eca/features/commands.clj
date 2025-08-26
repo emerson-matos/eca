@@ -148,7 +148,7 @@
               :clear-history-after-finished? true
               :prompt (f.prompt/build-init-prompt db)}
       "login" (let [[msg error?] (if-let [provider (first args)]
-                                   (let [{:keys [message error]} (f.login/start-login chat-id provider db*)]
+                                   (let [{:keys [message error]} (f.login/start chat-id provider db*)]
                                      (if error
                                        [error true]
                                        [message]))

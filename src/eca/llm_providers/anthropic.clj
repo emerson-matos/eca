@@ -3,9 +3,10 @@
    [cheshire.core :as json]
    [clojure.java.io :as io]
    [clojure.string :as string]
+   [eca.features.login :as f.login]
    [eca.llm-util :as llm-util]
    [eca.logger :as logger]
-   [eca.shared :as shared :refer [assoc-some]]
+   [eca.shared :as shared :refer [assoc-some multi-str]]
    [hato.client :as http]
    [ring.util.codec :as ring.util]))
 
@@ -25,15 +26,20 @@
                       :max_uses 10
                       :cache_control {:type "ephemeral"}})))
 
-(defn ^:private base-request! [{:keys [rid body api-url api-key url-relative-path content-block* on-error on-response]}]
+(defn ^:private base-request! [{:keys [rid body api-url api-key auth-type url-relative-path content-block* on-error on-response]}]
   (let [url (str api-url (or url-relative-path messages-path))
-        reason-id (str (random-uuid))]
+        reason-id (str (random-uuid))
+        oauth? (= :auth/oauth auth-type)]
     (llm-util/log-request logger-tag rid url body)
     (http/post
      url
-     {:headers {"x-api-key" api-key
-                "anthropic-version" "2023-06-01"
-                "Content-Type" "application/json"}
+     {:headers (assoc-some
+                {"x-api-key" api-key
+                 "anthropic-version" "2023-06-01"
+                 "Content-Type" "application/json"}
+                "x-api-key" (when-not oauth? api-key)
+                "Authrozation" (when oauth? (str "Bearer " api-key))
+                "anthropic-beta" (when oauth? "oauth-2025-04-20"))
       :body (json/generate-string body)
       :throw-exceptions? false
       :async? true
@@ -95,7 +101,8 @@
 
 (defn completion!
   [{:keys [model user-messages temperature instructions max-output-tokens
-           api-url api-key url-relative-path reason? past-messages tools web-search extra-payload]
+           api-url api-key auth-type url-relative-path reason? past-messages
+           tools web-search extra-payload]
     :or {temperature 1.0}}
    {:keys [on-message-received on-error on-reason on-prepare-tool-call on-tools-called on-usage-updated]}]
   (let [messages (concat (normalize-messages past-messages)
@@ -175,6 +182,7 @@
                                                :body (assoc body :messages messages)
                                                :api-url api-url
                                                :api-key api-key
+                                               :auth-type auth-type
                                                :url-relative-path url-relative-path
                                                :content-block* (atom nil)
                                                :on-error on-error
@@ -192,14 +200,15 @@
       :body body
       :api-url api-url
       :api-key api-key
+      :auth-type auth-type
       :url-relative-path url-relative-path
       :content-block* (atom nil)
       :on-error on-error
       :on-response on-response-fn})))
 
-(def client-id "9d1c250a-e61b-44d9-88ed-5944d1962f5e")
+(def ^:private client-id "9d1c250a-e61b-44d9-88ed-5944d1962f5e")
 
-(defn oauth-url [mode]
+(defn ^:private oauth-url [mode]
   (let [url (str (if (= :console mode) "https://console.anthropic.com" "https://claude.ai") "/oauth/authorize")
         {:keys [challenge verifier]} (llm-util/generate-pkce)]
     {:verifier verifier
@@ -212,7 +221,7 @@
                                                :code_challenge_method "S256"
                                                :state verifier}))}))
 
-(defn oauth-credentials [code verifier]
+(defn ^:private oauth-authorize [code verifier]
   (let [[code state] (string/split code #"#")
         url "https://console.anthropic.com/v1/oauth/token"
         body {:grant_type "authorization_code"
@@ -234,7 +243,25 @@
                       {:status status
                        :body body})))))
 
-(defn create-api-key [access-token]
+(defn ^:private oauth-refresh [refresh-token]
+  (let [url "https://console.anthropic.com/v1/oauth/token"
+        body {:grant_type "refresh_token"
+              :refresh_token refresh-token
+              :client_id client-id}
+        {:keys [status body]} (http/post
+                               url
+                               {:headers {"Content-Type" "application/json"}
+                                :body (json/generate-string body)
+                                :as :json})]
+    (if (= 200 status)
+      {:refresh-token (:refresh_token body)
+       :access-token (:access_token body)
+       :expires-at (+ (System/currentTimeMillis) (* 1000 (:expires_in body)))}
+      (throw (ex-info (format "Anthropic refresh token failed: %s" (pr-str body))
+                      {:status status
+                       :body body})))))
+
+(defn ^:private create-api-key [access-token]
   (let [url "https://api.anthropic.com/api/oauth/claude_cli/create_api_key"
         {:keys [status body]} (http/post
                                url
@@ -249,3 +276,76 @@
       (throw (ex-info (format "Anthropic create API token failed: %s" (pr-str body))
                       {:status status
                        :body body})))))
+
+(defmethod f.login/login-step ["anthropic" :login/start] [{:keys [db* chat-id provider]}]
+  (swap! db* assoc-in [:chats chat-id :login-provider] provider)
+  (swap! db* assoc-in [:auth provider] {:step :login/waiting-login-method})
+  {:message (multi-str "Now, inform the login method:"
+                       ""
+                       "max: Claude Pro/Max"
+                       "console: Create API Key"
+                       "manual: Manually enter API Key")})
+
+(defmethod f.login/login-step ["anthropic" :login/waiting-login-method] [{:keys [db* input provider send-msg!]}]
+  (case input
+    "max"
+    (let [{:keys [verifier url]} (oauth-url :max)]
+      (swap! db* assoc-in [:auth provider] {:step :login/waiting-provider-code
+                                            :mode :max
+                                            :verifier verifier})
+      (send-msg! (format "Open your browser at `%s` and authenticate at Anthropic.\nThen paste the code generated in the chat and send it to continue the authentication."
+                         url)))
+    "console"
+    (let [{:keys [verifier url]} (oauth-url :console)]
+      (swap! db* assoc-in [:auth provider] {:step :login/waiting-provider-code
+                                            :mode :console
+                                            :verifier verifier})
+      (send-msg! (format "Open your browser at `%s` and authenticate at Anthropic.\nThen paste the code generated in the chat and send it to continue the authentication."
+                         url)))
+    "manual"
+    (do
+      (swap! db* assoc-in [:auth provider] {:step :login/waiting-api-key
+                                            :mode :manual})
+      (send-msg! "Paste your Anthropic API Key"))
+    (send-msg! (format "Unknown login method '%s'. Inform one of the options: max, console, manual" input))))
+
+(defmethod f.login/login-step ["anthropic" :login/waiting-provider-code] [{:keys [db* input chat-id provider send-msg!]}]
+  (let [provider-code input
+        {:keys [mode verifier]} (get-in @db* [:auth provider])]
+    (case mode
+      :console
+      (let [{:keys [access-token]} (oauth-authorize provider-code verifier)
+            api-key (create-api-key access-token)]
+        (swap! db* update-in [:auth provider] merge {:step :login/done
+                                                     :type :auth/token
+                                                     :api-key api-key})
+        (swap! db* update-in [:chats chat-id :status] :idle)
+        (send-msg! "Login successful! You can now use the 'anthropic' models."))
+      :max
+      (let [{:keys [access-token refresh-token expires-at]} (oauth-authorize provider-code verifier)]
+        (swap! db* update-in [:auth provider] merge {:step :login/done
+                                                     :type :auth/oauth
+                                                     :refresh-token refresh-token
+                                                     :api-key access-token
+                                                     :expires-at expires-at})
+        (swap! db* update-in [:chats chat-id :status] :idle)
+        (send-msg! "Login successful! You can now use the 'anthropic' models.")))))
+
+(defmethod f.login/login-step ["anthropic" :login/waiting-api-key] [{:keys [db* input chat-id provider send-msg!]}]
+  (if (string/starts-with? input "sk-")
+    (do (swap! db* assoc-in [:auth provider] {:step :login/done
+                                              :type :auth/token
+                                              :mode :manual
+                                              :api-key input})
+        (swap! db* update-in [:chats chat-id :status] :idle)
+        (send-msg! (format "Login successful! You can now use the '%s' models." provider)))
+    (send-msg! (format "Invalid API key '%s'" input))))
+
+(defmethod f.login/login-step ["anthropic" :login/renew-token] [{:keys [db* provider]}]
+  (let [{:keys [access-token refresh-token expires-at]} (get-in @db* [:auth provider])
+        {:keys []} (oauth-refresh refresh-token)]
+    (swap! db* update-in [:auth provider] merge {:step :login/done
+                                                 :type :auth/oauth
+                                                 :refresh-token refresh-token
+                                                 :api-key access-token
+                                                 :expires-at expires-at})))

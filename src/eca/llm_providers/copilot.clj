@@ -2,6 +2,7 @@
   (:require
    [cheshire.core :as json]
    [eca.config :as config]
+   [eca.features.login :as f.login]
    [hato.client :as http]))
 
 (def ^:private client-id "Iv1.b507a08c87ecfe98")
@@ -12,7 +13,7 @@
    "editor-plugin-version" "eca/*"
    "editor-version" (str "eca/" (config/eca-version))})
 
-(defn oauth-url []
+(defn ^:private oauth-url []
   (let [{:keys [body]} (http/post
                         "https://github.com/login/device/code"
                         {:headers (auth-headers)
@@ -23,7 +24,7 @@
      :device-code (:device_code body)
      :url (:verification_uri body)}))
 
-(defn oauth-access-token [device-code]
+(defn ^:private oauth-access-token [device-code]
   (let [{:keys [status body]} (http/post
                                "https://github.com/login/oauth/access_token"
                                {:headers (auth-headers)
@@ -38,7 +39,7 @@
                       {:status status
                        :body body})))))
 
-(defn oauth-renew-token [access-token]
+(defn ^:private oauth-renew-token [access-token]
   (let [{:keys [status body]} (http/get
                                "https://api.github.com/copilot_internal/v2/token"
                                {:headers (merge (auth-headers)
@@ -46,21 +47,33 @@
                                 :throw-exceptions? false
                                 :as :json})]
     (if-let [token (:token body)]
-      {:api-token token
+      {:api-key token
        :expires-at (:expires_at body)}
       (throw (ex-info (format "Error on copilot login: %s" body)
                       {:status status
                        :body body})))))
 
-(comment
-  (def a (oauth-url))
-  (:user-code a)
-  (:device-code a)
-  (:url a)
+(defmethod f.login/login-step ["github-copilot" :login/start] [{:keys [db* chat-id provider]}]
+  (let [{:keys [user-code device-code url]} (oauth-url)]
+    (swap! db* assoc-in [:chats chat-id :login-provider] provider)
+    (swap! db* assoc-in [:auth provider] {:step :login/waiting-user-confirmation
+                                          :device-code device-code})
+    {:message (format "Open your browser at `%s` and authenticate using the code: `%s`\nThen type anything in the chat and send it to continue the authentication."
+                      url
+                      user-code)}))
 
-  (def access-token (oauth-access-token (:device-code a)))
+(defmethod f.login/login-step ["github-copilot" :login/waiting-user-confirmation] [{:keys [db* chat-id provider send-msg!]}]
+  (let [access-token (oauth-access-token (get-in @db* [:auth provider :device-code]))
+        {:keys [api-key expires-at]} (oauth-renew-token access-token)]
+    (swap! db* update-in [:auth provider] merge {:step :login/done
+                                                 :access-token access-token
+                                                 :api-key api-key
+                                                 :expires-at expires-at})
+    (swap! db* update-in [:chats chat-id :status] :idle)
+    (send-msg! "Login successful! You can now use the 'github-copilot' models.")))
 
-  (def credentials (oauth-renew-token access-token))
-
-  (:api-token credentials)
-  (:expires-at credentials))
+(defmethod f.login/login-step ["github-copilot" :login/renew-token] [{:keys [db* provider]}]
+  (let [access-token (get-in @db* [:auth provider :access-token])
+        {:keys [api-key expires-at]} (oauth-renew-token access-token)]
+    (swap! db* update-in [:auth provider] merge {:api-key api-key
+                                                 :expires-at expires-at})))
