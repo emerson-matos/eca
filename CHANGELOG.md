@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Improved the `eca_directory_tree` tool
+
 - Anthropic subscription support, via `/login anthropic` command.
 
 ## 0.34.2
