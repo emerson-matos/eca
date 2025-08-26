@@ -2,9 +2,17 @@
 
 ## Unreleased
 
-- Improved the `eca_directory_tree` tool
 
-- Anthropic subscription support, via `/login anthropic` command.
+- Improved the `eca_directory_tree` tool #82
+
+=======
+## 0.36.0
+
+- Support relative contexts additions via `~`, `./` `../` and `/`. #61
+
+## 0.35.0
+
+- Anthropic subscription support, via `/login anthropic` command. #57
 
 ## 0.34.2
 

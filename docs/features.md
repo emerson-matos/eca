@@ -79,7 +79,7 @@ Eca supports commands that usually are triggered via shash (`/`) in the chat, co
 The built-in commands are:
 
 `/init`: Create/update the AGENTS.md file with details about the workspace for best LLM output quality.
-`/login`: Log into a provider. Ex: `/login github-copilot`
+`/login`: Log into a provider. Ex: `/login github-copilot`, `/login anthropic`
 `/costs`: Show costs about current session.
 `/resume`: Resume a chat from previous session of this workspace folder.
 `/config`: Show ECA config for troubleshooting.

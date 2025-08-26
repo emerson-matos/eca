@@ -6,16 +6,16 @@
 
 (defmulti tool-call-details-before-invocation
   "Return the tool call details before invoking the tool."
-  (fn [name arguments] (keyword name)))
+  (fn [name _arguments] (keyword name)))
 
-(defmethod tool-call-details-before-invocation :default [name arguments]
+(defmethod tool-call-details-before-invocation :default [_name _arguments]
   nil)
 
 (defmulti tool-call-details-after-invocation
   "Return the tool call details after invoking the tool."
-  (fn [name arguments details result] (keyword name)))
+  (fn [name _arguments _details _result] (keyword name)))
 
-(defmethod tool-call-details-after-invocation :default [name arguments details result]
+(defmethod tool-call-details-after-invocation :default [_name _arguments details _result]
   details)
 
 (defn single-text-content [text & [error]]

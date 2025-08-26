@@ -100,3 +100,78 @@
               results (f.context/all-contexts "readme" db* config)
               file-paths (->> results (filter #(= "file" (:type %))) (map :path) set)]
           (is (contains? file-paths readme)))))))
+
+(deftest relative-path-query-test
+  (testing "./relative path lists entries in that directory (no glob)"
+    (let [root (h/file-path "/fake/repo")
+          rel (str root "/./src")
+          entries [(str rel "/a.clj") (str rel "/pkg")]
+          db* (atom {:workspace-folders [{:uri (h/file-uri "file:///fake/repo")}]})]
+      (with-redefs [fs/glob (fn [& _] (throw (ex-info "glob should not be called for relative paths" {})))
+                    fs/file (fn [& parts] (string/join "/" parts))
+                    fs/exists? (fn [p] (= p rel))
+                    fs/list-dir (fn [p]
+                                  (is (= p rel))
+                                  entries)
+                    fs/parent (fn [_] (throw (ex-info "parent should not be used when path exists" {})))
+                    fs/directory? (fn [p] (string/ends-with? (str p) "/pkg"))
+                    fs/canonicalize identity
+                    f.index/filter-allowed (fn [file-paths _root _config] file-paths)
+                    f.mcp/all-resources (fn [_] [])]
+        (let [result (f.context/all-contexts "./src" db* {})]
+          ;; Root directory present
+          (is (some #(= {:type "directory" :path root} %) result))
+          ;; Entries mapped from the relative listing
+          (is (some #(= {:type "file" :path (str rel "/a.clj")} %) result))
+          (is (some #(= {:type "directory" :path (str rel "/pkg")} %) result))))))
+
+  (testing "./relative path falls back to parent directory when non-existent"
+    (let [root (h/file-path "/fake/repo")
+          rel (str root "/./missing/file")
+          parent (str root "/./missing")
+          entries [(str parent "/x.txt") (str parent "/subdir")]
+          db* (atom {:workspace-folders [{:uri (h/file-uri "file:///fake/repo")}]})]
+      (with-redefs [fs/glob (fn [& _] (throw (ex-info "glob should not be called for relative paths" {})))
+                    fs/file (fn [& parts] (string/join "/" parts))
+                    fs/exists? (fn [p] (= p "exists-nowhere")) ;; ensure rel does not exist
+                    fs/list-dir (fn [p]
+                                  (is (= p parent))
+                                  entries)
+                    fs/parent (fn [p]
+                                (is (= p rel))
+                                parent)
+                    fs/directory? (fn [p] (string/ends-with? (str p) "/subdir"))
+                    fs/canonicalize identity
+                    f.index/filter-allowed (fn [file-paths _root _config] file-paths)
+                    f.mcp/all-resources (fn [_] [])]
+        (let [result (f.context/all-contexts "./missing/file" db* {})]
+          ;; Root directory present
+          (is (some #(= {:type "directory" :path root} %) result))
+          ;; Entries mapped from the parent listing
+          (is (some #(= {:type "file" :path (str parent "/x.txt")} %) result))
+          (is (some #(= {:type "directory" :path (str parent "/subdir")} %) result))))))
+
+  (testing "~ expands to home and lists entries"
+    (let [root (h/file-path "/fake/repo")
+          home "/home/tester"
+          entries [(str home "/.bashrc") (str home "/projects")]
+          db* (atom {:workspace-folders [{:uri (h/file-uri "file:///fake/repo")}]})]
+      (with-redefs [fs/glob (fn [& _] (throw (ex-info "glob should not be called for ~ paths" {})))
+                    fs/file (fn [& parts] (string/join "/" parts))
+                    fs/expand-home (fn [p]
+                                     (is (= p "~"))
+                                     home)
+                    fs/exists? (fn [p] (= p home))
+                    fs/list-dir (fn [p]
+                                  (is (= p home))
+                                  entries)
+                    fs/directory? (fn [p] (string/ends-with? (str p) "/projects"))
+                    fs/canonicalize identity
+                    f.index/filter-allowed (fn [file-paths _root _config] file-paths)
+                    f.mcp/all-resources (fn [_] [])]
+        (let [result (f.context/all-contexts "~" db* {})]
+          ;; Root directory present
+          (is (some #(= {:type "directory" :path root} %) result))
+          ;; Entries from home listing
+          (is (some #(= {:type "file" :path (str home "/.bashrc")} %) result))
+          (is (some #(= {:type "directory" :path (str home "/projects")} %) result)))))))

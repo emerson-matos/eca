@@ -62,7 +62,6 @@
 
 (defn ^:private contexts-for [root-filename query config]
   (let [all-paths (fs/glob root-filename "**")
-        query (some-> query string/trim)
         filtered (if (or (nil? query) (string/blank? query))
                    all-paths
                    (filter (fn [p]
@@ -73,23 +72,48 @@
     allowed-files))
 
 (defn all-contexts [query db* config]
-  (let [all-subfiles-and-dirs (into []
-                                    (comp
-                                     (map :uri)
-                                     (map shared/uri->filename)
-                                     (mapcat #(contexts-for % query config))
-                                     (take 200) ;; for performance, user can always make query specific for better results.
-                                     (map (fn [file-or-dir]
-                                            {:type (if (fs/directory? file-or-dir)
-                                                     "directory"
-                                                     "file")
-                                             :path (str (fs/canonicalize file-or-dir))})))
-                                    (:workspace-folders @db*))
+  (let [query (or (some-> query string/trim) "")
+        first-project-path (shared/uri->filename (:uri (first (:workspace-folders @db*))))
+        relative-path (and query
+                           (or
+                            (when (string/starts-with? query "~")
+                              (fs/expand-home (fs/file query)))
+                            (when (string/starts-with? query "/")
+                              (fs/file query))
+                            (when (or (string/starts-with? query "./")
+                                      (string/starts-with? query "../"))
+                              (fs/file first-project-path query))))
+        relative-files (when relative-path
+                         (mapv
+                          (fn [file-or-dir]
+                            {:type (if (fs/directory? file-or-dir)
+                                     "directory"
+                                     "file")
+                             :path (str (fs/canonicalize file-or-dir))})
+                          (try
+                            (if (fs/exists? relative-path)
+                              (fs/list-dir relative-path)
+                              (fs/list-dir (fs/parent relative-path)))
+                            (catch Exception _ nil))))
+        workspace-files (when-not relative-path
+                          (into []
+                                (comp
+                                 (map :uri)
+                                 (map shared/uri->filename)
+                                 (mapcat #(contexts-for % query config))
+                                 (take 200) ;; for performance, user can always make query specific for better results.
+                                 (map (fn [file-or-dir]
+                                        {:type (if (fs/directory? file-or-dir)
+                                                 "directory"
+                                                 "file")
+                                         :path (str (fs/canonicalize file-or-dir))})))
+                                (:workspace-folders @db*)))
         root-dirs (mapv (fn [{:keys [uri]}] {:type "directory"
                                              :path (shared/uri->filename uri)})
                         (:workspace-folders @db*))
         mcp-resources (mapv #(assoc % :type "mcpResource") (f.mcp/all-resources @db*))]
     (concat [{:type "repoMap"}]
             root-dirs
-            all-subfiles-and-dirs
+            relative-files
+            workspace-files
             mcp-resources)))

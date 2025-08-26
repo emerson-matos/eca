@@ -372,7 +372,7 @@
     :handler #'grep
     :summary-fn #'grep-summary}})
 
-(defmethod tools.util/tool-call-details-before-invocation :eca_edit_file [name arguments]
+(defmethod tools.util/tool-call-details-before-invocation :eca_edit_file [_name arguments]
   (let [path (get arguments "path")
         original-content (get arguments "original_content")
         new-content (get arguments "new_content")
@@ -390,7 +390,7 @@
 (defmethod tools.util/tool-call-details-before-invocation :eca_plan_edit_file [name arguments]
   (tools.util/tool-call-details-before-invocation :eca_edit_file name arguments))
 
-(defmethod tools.util/tool-call-details-before-invocation :eca_write_file [name arguments]
+(defmethod tools.util/tool-call-details-before-invocation :eca_write_file [_name arguments]
   (let [path (get arguments "path")
         content (get arguments "content")]
     (when (and path content)
