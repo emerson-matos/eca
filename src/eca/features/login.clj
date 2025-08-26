@@ -6,14 +6,13 @@
 
 (defmulti login-step (fn [ctx] [(:provider ctx) (:step ctx)]))
 
-(defmethod login-step :default [_] "Unkown provider-id")
+(defmethod login-step :default [_] {:error "Unkown provider-id"})
 
 (defn start [chat-id provider db*]
-  (let [result (login-step {:chat-id chat-id
-                            :step :login/start
-                            :provider provider
-                            :db* db*})]
-    result))
+  (login-step {:chat-id chat-id
+               :step :login/start
+               :provider provider
+               :db* db*}))
 
 (defn continue [{:keys [message chat-id request-id]} db* messenger]
   (let [provider (get-in @db* [:chats chat-id :login-provider])

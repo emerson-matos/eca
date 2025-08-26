@@ -62,7 +62,7 @@
   It ignores diff headers (---, +++), hunk markers (@@), and metadata lines starting with \\."
   [diff-text]
   (let [lines (string/split-lines diff-text)]
-    (reduce (fn [{:keys [added removed] :as acc} line]
+    (reduce (fn [acc line]
               (cond
                 (or (string/starts-with? line "---")
                     (string/starts-with? line "+++")
