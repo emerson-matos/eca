@@ -38,7 +38,7 @@
                  "anthropic-version" "2023-06-01"
                  "Content-Type" "application/json"}
                 "x-api-key" (when-not oauth? api-key)
-                "Authrozation" (when oauth? (str "Bearer " api-key))
+                "Authorization" (when oauth? (str "Bearer " api-key))
                 "anthropic-beta" (when oauth? "oauth-2025-04-20"))
       :body (json/generate-string body)
       :throw-exceptions? false
