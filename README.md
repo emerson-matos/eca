@@ -8,11 +8,11 @@ src="https://img.shields.io/github/stars/editor-code-assistant/eca?style=flat-sq
 
 # ECA (Editor Code Assistant)
 
-_Demo using [eca-emacs](https://github.com/editor-code-assistant/eca-emacs)_
-![demo](https://raw.githubusercontent.com/editor-code-assistant/eca-emacs/master/demo.gif)
-
-_Demo using [eca-vscode](https://github.com/editor-code-assistant/eca-vscode)_
-![demo](https://raw.githubusercontent.com/editor-code-assistant/eca-vscode/master/demo.gif)
+| Editor                                                                | demo                                                                                                           |
+|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| [eca-emacs](https://github.com/editor-code-assistant/eca-emacs)       | <img src="https://raw.githubusercontent.com/editor-code-assistant/eca-emacs/master/demo.gif" width="600" />    |
+| [eca-vscode](https://github.com/editor-code-assistant/eca-vscode)     | <img src="https://raw.githubusercontent.com/editor-code-assistant/eca-vscode/master/demo.gif" width="600" />   |
+| [eca-intellij](https://github.com/editor-code-assistant/eca-intellij) | <img src="https://raw.githubusercontent.com/editor-code-assistant/eca-intellij/master/demo.gif" width="600" /> |
 
 <hr>
 <p align="center">
