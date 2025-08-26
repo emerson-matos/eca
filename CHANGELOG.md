@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+
+- Improved the `eca_directory_tree` tool #82
+
 ## 0.36.0
 
 - Support relative contexts additions via `~`, `./` `../` and `/`. #61

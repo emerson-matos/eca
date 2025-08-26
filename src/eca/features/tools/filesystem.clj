@@ -18,18 +18,58 @@
   [["path" fs/exists? "$path is not a valid path"]
    ["path" (partial allowed-path? db) (str "Access denied - path $path outside allowed directories: " (tools.util/workspace-roots-strs db))]])
 
+(defn ^:private tree-walk
+  "Recursively walks a directory tree, building a visual tree representation with counts."
+  ([directory stats]
+   (tree-walk directory "" stats 1 0))
+  ([directory stats max-depth]
+   (tree-walk directory "" stats max-depth 0))
+  ([directory prefix stats max-depth current-depth]
+   (let [filepaths (->> (fs/list-dir directory)
+                        (map fs/file-name)
+                        (remove #(string/starts-with? % "."))
+                        sort
+                        vec)]
+     (loop [index 0
+            output ""]
+       (if (>= index (count filepaths))
+         output
+         (let [filename (nth filepaths index)
+               absolute (fs/path directory filename)
+               is-last? (= index (dec (count filepaths)))
+               current-prefix (if is-last? "└── " "├── ")
+               next-prefix (if is-last? "    " "│   ")]
+           
+           ;; Register file/directory in stats
+           (if (fs/directory? absolute)
+             (swap! (:dir-count stats) inc)
+             (swap! (:file-count stats) inc))
+           
+           (let [current-line (str prefix current-prefix filename "\n")
+                 ;; Only recurse if we haven't reached max depth
+                 subtree-output (if (and (fs/directory? absolute) 
+                                          (< current-depth max-depth))
+                                  (tree-walk absolute 
+                                             (str prefix next-prefix) 
+                                             stats 
+                                             max-depth 
+                                             (inc current-depth))
+                                  "")]
+             (recur (inc index)
+                    (str output current-line subtree-output)))))))))
+
 (defn ^:private directory-tree [arguments {:keys [db]}]
   (let [path (delay (fs/canonicalize (get arguments "path")))]
     (or (tools.util/invalid-arguments arguments (path-validations db))
-        (tools.util/single-text-content
-         (reduce
-          (fn [out path]
-            (str out
-                 (format "[%s] %s\n"
-                         (if (fs/directory? path) "DIR" "FILE")
-                         path)))
-          ""
-          (sort (fs/list-dir @path)))))))
+        (let [max-depth (or (get arguments "max_depth") Integer/MAX_VALUE)
+              stats {:dir-count (atom 0)
+                     :file-count (atom 0)}
+              tree-output (tree-walk @path stats max-depth)
+              summary (format "%d directories, %d files"
+                              @(:dir-count stats)
+                              @(:file-count stats))]
+          (tools.util/single-text-content
+           (str tree-output "\n" summary))))))
 
 (def ^:private read-file-max-lines 2000)
 

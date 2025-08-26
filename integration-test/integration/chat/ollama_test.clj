@@ -241,8 +241,9 @@
                                                    :arguments {:path (h/project-path->canon-path "resources")}
                                                    :summary "Listing file tree"
                                                    :error false
-                                                   :outputs [{:type "text" :text (str "[FILE] " (h/project-path->canon-path "resources/file1.md\n")
-                                                                                      "[FILE] " (h/project-path->canon-path "resources/file2.md\n"))}]})
+                                                   :outputs [{:type "text" :text (str "├── file1.md\n"
+                                                                                      "└── file2.md\n\n"
+                                                                                      "0 directories, 2 files")}]})
         (match-content chat-id req-id "assistant" {:type "text" :text "The files I see:\n"})
         (match-content chat-id req-id "assistant" {:type "text" :text "file1\nfile2\n"})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
@@ -256,7 +257,8 @@
                                                                      :arguments {:path (h/project-path->canon-path "resources")}
                                                                      :summary "Listing file tree"
                                                                      :origin "native"}}]}
-                         {:role "tool" :content (str "[FILE] " (h/project-path->canon-path "resources/file1.md\n")
-                                                     "[FILE] " (h/project-path->canon-path "resources/file2.md\n\n"))}]
+                         {:role "tool" :content (str "├── file1.md\n" 
+                                                     "└── file2.md\n\n" 
+                                                     "0 directories, 2 files\n")}]
               :tools (m/embeds [{:type "function" :function {:name "eca_directory_tree"}}])}
              llm.mocks/*last-req-body*))))))
