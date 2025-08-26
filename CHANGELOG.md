@@ -2,8 +2,7 @@
 
 ## Unreleased
 
-
-- Improved the `eca_directory_tree` tool #82
+- Improved the `eca_directory_tree` tool. #82
 
 ## 0.36.0
 
