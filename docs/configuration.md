@@ -56,7 +56,7 @@ There are multiples ways to configure ECA:
 
 ## Providers / Models
 
-For providers and models configuration check the [dedicated models section](./models.md#adding-and-configuring-models).
+For providers and models configuration check the [dedicated models section](./models.md#custom-providers).
 
 ## MCP
 

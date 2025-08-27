@@ -89,7 +89,7 @@ The built-in commands are:
 
 #### Custom commands
 
-It's possible to configure custom command prompts, for more details check [its configuration](./configuration.md#custom-commands)
+It's possible to configure custom command prompts, for more details check [its configuration](./configuration.md#custom-command-prompts)
 
 ### Login
 

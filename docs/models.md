@@ -18,7 +18,7 @@ Models capabilities and configurations are retrieved from [models.dev](https://m
 
 Built-in providers have already base initial `providers` configs, so you can change to add models or set its key/url.
 
-For more details, check the [config schema](./configuration.md#schema).
+For more details, check the [config schema](./configuration.md#all-configs).
 
 Example:
 
