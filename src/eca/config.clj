@@ -36,7 +36,7 @@
                             :models {"claude-sonnet-4-20250514" {:extraPayload {:thinking {:type "enabled" :budget_tokens 2048}}}
                                      "claude-opus-4-1-20250805" {:extraPayload {:thinking {:type "enabled" :budget_tokens 2048}}}
                                      "claude-opus-4-20250514" {:extraPayload {:thinking {:type "enabled" :budget_tokens 2048}}}
-                                     "claude-3-5-haiku-20241022" {:extraPayload {:thinking {:type "enabled" :budget_tokens 2048}}}}}
+                                     "claude-3-5-haiku-20241022" {}}}
                "github-copilot" {:api "openai-chat"
                                  :url "https://api.githubcopilot.com"
                                  :key nil ;; not supported, requires login auth

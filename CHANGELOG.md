@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix `anthropic/claude-3-5-haiku-20241022` model.
+
 ## 0.36.2
 
 - Add login providers and server command to `/doctor`.
