@@ -173,9 +173,9 @@ Most third-party providers use the `openai-chat` API for compatibility with exis
           "url": "https://api.deepseek.com", // or "urlEnv"
           "key": "your-api-key", // or "keyEnv"
           "models": {
-            "deepseek-chat": {},
-            "deepseek-coder": {},
-            "deepseek-reasoner": {}
+            "deepseek-chat": {"extraPayload": {"max_tokens": 8192}},
+            "deepseek-coder": {"extraPayload": {"max_tokens": 8192}},
+            "deepseek-reasoner": {"extraPayload": {"max_tokens": 8192}}
            }
         }
       }
