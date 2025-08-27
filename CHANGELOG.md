@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.36.4
+
 - Improve api url error message when not configured.
 
 ## 0.36.3
