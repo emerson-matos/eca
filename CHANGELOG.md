@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add login providers to `/doctor`.
+
 ## 0.36.1
 
 - Improved the `eca_directory_tree` tool. #82

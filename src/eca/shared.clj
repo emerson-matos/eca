@@ -60,6 +60,17 @@
                  "assoc-some expects even number of arguments after map/vector, found odd number")))
        ret))))
 
+(defn update-some
+  "Update if the value if not nil."
+  ([m k f]
+   (if-let [v (get m k)]
+     (assoc m k (f v))
+     m))
+  ([m k f & args]
+   (if-let [v (get m k)]
+     (assoc m k (apply f v args))
+     m)))
+
 (defn multi-str [& strings] (string/join "\n" (remove nil? strings)))
 
 (defn tokens->cost [input-tokens input-cache-creation-tokens input-cache-read-tokens output-tokens full-model db]
@@ -86,3 +97,17 @@
                        (into {} (map f x))
                        x))
                    m)))
+
+(defn obfuscate
+  "Obfuscate all but first 3 and last 3 characters of a string, minimum 5 characters.
+   If the string is 4 characters or less, obfuscate all characters.
+   Replace the middle part with asterisks, but always at least 5 asterisks."
+  [s]
+  (when s
+    (string/replace
+      (if (<= (count s) 4)
+        (apply str (repeat (count s) "*"))
+        (str (subs s 0 3)
+             (apply str (repeat (- (count s) 4) "*"))
+             (subs s (- (count s) 3))))
+      (string/join "" (repeat (- (count s) 4) "*")) "*****")))

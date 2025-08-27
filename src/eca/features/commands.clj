@@ -10,7 +10,7 @@
    [eca.features.prompt :as f.prompt]
    [eca.features.tools.mcp :as f.mcp]
    [eca.llm-api :as llm-api]
-   [eca.shared :as shared :refer [multi-str]]))
+   [eca.shared :as shared :refer [multi-str update-some]]))
 
 (set! *warn-on-reflection* true)
 
@@ -105,19 +105,19 @@
                        :type :native
                        :description "Prompt sent to LLM as system instructions."
                        :arguments []}]
-        custom-commands (map (fn [custom]
-                               {:name (:name custom)
-                                :type :custom-prompt
-                                :description (:path custom)
-                                :arguments []})
-                             (custom-commands config (:workspace-folders db)))]
+        custom-cmds (map (fn [custom]
+                           {:name (:name custom)
+                            :type :custom-prompt
+                            :description (:path custom)
+                            :arguments []})
+                         (custom-commands config (:workspace-folders db)))]
     (concat mcp-prompts
             eca-commands
-            custom-commands)))
+            custom-cmds)))
 
-(defn ^:private get-custom-command [command args custom-commands]
+(defn ^:private get-custom-command [command args custom-cmds]
   (when-let [raw-content (:content (first (filter #(= command (:name %))
-                                                  custom-commands)))]
+                                                  custom-cmds)))]
     (let [raw-content (string/replace raw-content "$ARGS" (string/join " " args))]
       (reduce (fn [content [i arg]]
                 (string/replace content (str "$ARG" (inc i)) arg))
@@ -130,6 +130,15 @@
                ""
                (str "Default model: " model)
                ""
+               (str "Login providers: " (reduce
+                                         (fn [s [provider auth]]
+                                           (str s provider ": " (-> auth
+                                                                    (update-some :verifier shared/obfuscate)
+                                                                    (update-some :device-code shared/obfuscate)
+                                                                    (update-some :access-token shared/obfuscate)
+                                                                    (update-some :api-key shared/obfuscate)) "\n"))
+                                         "\n"
+                                         (:auth db)))
                (str "Relevant env vars: " (reduce (fn [s [key val]]
                                                     (if (or (string/includes? key "KEY")
                                                             (string/includes? key "API")
@@ -142,7 +151,7 @@
 
 (defn handle-command! [command args {:keys [chat-id db* config full-model instructions]}]
   (let [db @db*
-        custom-commands (custom-commands config (:workspace-folders db))]
+        custom-cmds (custom-commands config (:workspace-folders db))]
     (case command
       "init" {:type :send-prompt
               :clear-history-after-finished? true
@@ -188,7 +197,7 @@
                      :chats {chat-id [{:role "system" :content [{:type :text :text instructions}]}]}}
 
       ;; else check if a custom command
-      (if-let [custom-command-prompt (get-custom-command command args custom-commands)]
+      (if-let [custom-command-prompt (get-custom-command command args custom-cmds)]
         {:type :send-prompt
          :clear-history-after-finished? false
          :prompt custom-command-prompt}
