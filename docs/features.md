@@ -91,6 +91,14 @@ The built-in commands are:
 
 It's possible to configure custom command prompts, for more details check [its configuration](./configuration.md#custom-commands)
 
+### Login
+
+It's possible to login to some providers using `/login <provider>`, ECA will ask and give instructions on how to authenticate in that provider and save the login info globally in its cache `~/.cache/eca/db.transit.json`.
+
+Current supported providers with login:
+- `anthropic`: with options to login to Claude Max/Pro or create API keys.
+- `github-copilot`: via Github oauth.
+
 ##  Completion
 
 Soon
