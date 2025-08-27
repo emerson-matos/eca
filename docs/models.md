@@ -181,3 +181,21 @@ Most third-party providers use the `openai-chat` API for compatibility with exis
       }
     }
     ```
+
+=== "Azure OpenAI"
+
+    ```javascript
+    {
+      "providers": {
+        "azure": {
+          "api": "openai-responses",
+          "url": "https://your-resource-name.openai.azure.com", // or "urlEnv"
+          "key": "your-api-key", // or "keyEnv"
+          "completionUrlRelativePath": "/openai/responses?api-version=2025-04-01-preview",
+          "models": {
+            "gpt-5": {},
+           }
+        }
+      }
+    }
+    ```
