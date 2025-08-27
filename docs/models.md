@@ -193,9 +193,28 @@ Most third-party providers use the `openai-chat` API for compatibility with exis
           "key": "your-api-key", // or "keyEnv"
           "completionUrlRelativePath": "/openai/responses?api-version=2025-04-01-preview",
           "models": {
-            "gpt-5": {},
+            "gpt-5": {}
            }
         }
       }
     }
     ```
+
+=== "Z.ai"
+
+    ```javascript
+    {
+      "providers": {
+        "z-ai": {
+          "api": "anthropic",
+          "url": "https://api.z.ai/api/anthropic",
+          "key": "your-api-key", // or "keyEnv"
+          "models": {
+            "GLM-4.5": {"extraPayload": {"max_tokens": 8192}},
+            "GLM-4.5-Air": {"extraPayload": {"max_tokens": 8192}}
+           }
+        }
+      }
+    }
+    ```
+
