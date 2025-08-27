@@ -7,7 +7,9 @@
    [eca.messenger :as messenger]
    [eca.shared :as shared]))
 
-(defn ^:private diagnostics [arguments {:keys [messenger config]}]
+(defn ^:private diagnostics
+  "Return editor diagnostics (e.g., LSP findings)."
+  [arguments {:keys [messenger config]}]
   (or (tools.util/invalid-arguments arguments [["path" #(or (nil? %)
                                                             (string/blank? %)
                                                             (not (fs/directory? %))) "Path needs to be a file, not a directory."]])

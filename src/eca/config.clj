@@ -12,6 +12,7 @@
    [clojure.core.memoize :as memoize]
    [clojure.java.io :as io]
    [clojure.string :as string]
+   [eca.logger :as logger]
    [eca.shared :as shared])
   (:import
    [java.io File]))
@@ -75,8 +76,8 @@
     (binding [json.factory/*json-factory* (json.factory/make-json-factory
                                            {:allow-comments true})]
       (json/parse-string raw-string true))
-    (catch Exception _
-      nil)))
+    (catch Exception e
+      (logger/warn "Error parsing config json:" (.getMessage e)))))
 
 (defn ^:private config-from-envvar* []
   (some-> (System/getenv "ECA_CONFIG")
