@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix pricing for models being case insensitive on its name when checking capabilities.
+
 ## 0.36.4
 
 - Improve api url error message when not configured.

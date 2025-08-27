@@ -105,9 +105,15 @@
   [s]
   (when s
     (string/replace
-      (if (<= (count s) 4)
-        (apply str (repeat (count s) "*"))
-        (str (subs s 0 3)
-             (apply str (repeat (- (count s) 4) "*"))
-             (subs s (- (count s) 3))))
-      (string/join "" (repeat (- (count s) 4) "*")) "*****")))
+     (if (<= (count s) 4)
+       (apply str (repeat (count s) "*"))
+       (str (subs s 0 3)
+            (apply str (repeat (- (count s) 4) "*"))
+            (subs s (- (count s) 3))))
+     (string/join "" (repeat (- (count s) 4) "*")) "*****")))
+
+(defn normalize-model-name [model]
+  (let [model-s (if (keyword? model)
+                  (string/replace-first (str model) ":" "")
+                  model)]
+    (string/lower-case model-s)))

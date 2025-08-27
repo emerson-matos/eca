@@ -21,13 +21,13 @@
                       (merge p
                              (reduce
                               (fn [m [model _model-config]]
-                                (let [model (string/replace-first (str model) ":" "")
-                                      full-model (str provider "/" model)
+                                (let [full-model (str provider "/" model)
                                       model-capabilities (merge
                                                           (or (get all-models full-model)
                                                               ;; we guess the capabilities from
                                                               ;; the first model with same name
-                                                              (when-let [found-full-model (first (filter #(= model (second (string/split % #"/" 2)))
+                                                              (when-let [found-full-model (first (filter #(= (shared/normalize-model-name model)
+                                                                                                             (shared/normalize-model-name (second (string/split % #"/" 2))))
                                                                                                          (keys all-models)))]
                                                                 (get all-models found-full-model))
                                                               {:tools true
