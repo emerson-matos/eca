@@ -128,7 +128,7 @@
 
 (defn ^:private doctor-msg [db config]
   (let [model (llm-api/default-model db config)]
-    (multi-str (str "ECA version:" (config/eca-version))
+    (multi-str (str "ECA version: " (config/eca-version))
                ""
                (str "Server cmd: " (.orElse (.commandLine (.info (ProcessHandle/current))) nil))
                ""
