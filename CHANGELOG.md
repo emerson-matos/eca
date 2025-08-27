@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.36.2
+
 - Add login providers and server command to `/doctor`.
 
 ## 0.36.1
