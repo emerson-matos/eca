@@ -109,8 +109,8 @@
         provider-config (get-in config [:providers provider])
         model-config (get-in provider-config [:models model])
         extra-payload (:extraPayload model-config)
-        provider-api-key (provider-api-key provider provider-auth config)
-        provider-api-url (provider-api-url provider config)
+        api-key (provider-api-key provider provider-auth config)
+        api-url (provider-api-url provider config)
         provider-auth-type (:type provider-auth)
         callbacks {:on-message-received on-message-received-wrapper
                    :on-error on-error-wrapper
@@ -119,6 +119,7 @@
                    :on-reason on-reason-wrapper
                    :on-usage-updated on-usage-updated}]
     (try
+      (when-not api-url (throw (ex-info (format "API url not found.\nMake sure you have provider '%s' configured properly." provider) {})))
       (cond
         (= "openai" provider)
         (llm-providers.openai/completion!
@@ -131,8 +132,8 @@
           :tools tools
           :web-search web-search
           :extra-payload extra-payload
-          :api-url provider-api-url
-          :api-key provider-api-key}
+          :api-url api-url
+          :api-key api-key}
          callbacks)
 
         (= "anthropic" provider)
@@ -146,8 +147,8 @@
           :tools tools
           :web-search web-search
           :extra-payload extra-payload
-          :api-url provider-api-url
-          :api-key provider-api-key
+          :api-url api-url
+          :api-key api-key
           :auth-type provider-auth-type}
          callbacks)
 
@@ -161,8 +162,8 @@
           :past-messages past-messages
           :tools tools
           :extra-payload extra-payload
-          :api-url provider-api-url
-          :api-key provider-api-key
+          :api-url api-url
+          :api-key api-key
           :extra-headers {"openai-intent" "conversation-panel"
                           "x-request-id" (str (random-uuid))
                           "vscode-sessionid" ""
@@ -172,7 +173,7 @@
 
         (= "ollama" provider)
         (llm-providers.ollama/completion!
-         {:api-url provider-api-url
+         {:api-url api-url
           :reason? (:reason? model-capabilities)
           :model model
           :instructions instructions
@@ -200,8 +201,8 @@
             :tools tools
             :extra-payload extra-payload
             :url-relative-path url-relative-path
-            :api-url provider-api-url
-            :api-key provider-api-key}
+            :api-url api-url
+            :api-key api-key}
            callbacks))
 
         :else

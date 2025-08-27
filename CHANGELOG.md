@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Improve api url error message when not configured.
+
 ## 0.36.3
 
 - Fix `anthropic/claude-3-5-haiku-20241022` model.

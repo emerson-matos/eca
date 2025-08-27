@@ -140,6 +140,7 @@
                                                                      (update-some :verifier shared/obfuscate)
                                                                      (update-some :device-code shared/obfuscate)
                                                                      (update-some :access-token shared/obfuscate)
+                                                                     (update-some :refresh-token shared/obfuscate)
                                                                      (update-some :api-key shared/obfuscate)) "\n"))
                                           "\n"
                                           (:auth db)))
