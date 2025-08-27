@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Fix `anthropic/claude-3-5-haiku-20241022` model.
+- Log json error parsing in configs.
 
 ## 0.36.2
 
