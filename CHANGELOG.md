@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add login providers to `/doctor`.
+- Add login providers and server command to `/doctor`.
 
 ## 0.36.1
 

@@ -10,7 +10,9 @@
    [eca.features.prompt :as f.prompt]
    [eca.features.tools.mcp :as f.mcp]
    [eca.llm-api :as llm-api]
-   [eca.shared :as shared :refer [multi-str update-some]]))
+   [eca.shared :as shared :refer [multi-str update-some]])
+  (:import
+   [java.lang ProcessHandle]))
 
 (set! *warn-on-reflection* true)
 
@@ -128,17 +130,19 @@
   (let [model (llm-api/default-model db config)]
     (multi-str (str "ECA version:" (config/eca-version))
                ""
+               (str "Server cmd: " (.orElse (.commandLine (.info (ProcessHandle/current))) nil))
+               ""
                (str "Default model: " model)
                ""
                (str "Login providers: " (reduce
-                                         (fn [s [provider auth]]
-                                           (str s provider ": " (-> auth
-                                                                    (update-some :verifier shared/obfuscate)
-                                                                    (update-some :device-code shared/obfuscate)
-                                                                    (update-some :access-token shared/obfuscate)
-                                                                    (update-some :api-key shared/obfuscate)) "\n"))
-                                         "\n"
-                                         (:auth db)))
+                                          (fn [s [provider auth]]
+                                            (str s provider ": " (-> auth
+                                                                     (update-some :verifier shared/obfuscate)
+                                                                     (update-some :device-code shared/obfuscate)
+                                                                     (update-some :access-token shared/obfuscate)
+                                                                     (update-some :api-key shared/obfuscate)) "\n"))
+                                          "\n"
+                                          (:auth db)))
                (str "Relevant env vars: " (reduce (fn [s [key val]]
                                                     (if (or (string/includes? key "KEY")
                                                             (string/includes? key "API")
