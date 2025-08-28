@@ -58,15 +58,16 @@ You just need to add your provider to `providers` and make sure add the required
 
 Schema:
 
-| Option                        | Type   | Description                                                                     | Required |
-|-------------------------------|--------|---------------------------------------------------------------------------------|----------|
-| `api`                         | string | The API schema to use (`"openai-responses"`, `"openai-chat"`, or `"anthropic"`) | Yes      |
-| `urlEnv`                      | string | Environment variable name containing the API URL                                | No*      |
-| `url`                         | string | Direct API URL (use instead of `urlEnv`)                                        | No*      |
-| `keyEnv`                      | string | Environment variable name containing the API key                                | No*      |
-| `key`                         | string | Direct API key (use instead of `keyEnv`)                                        | No*      |
-| `models`                      | map    | Key: model name, value: its config                                              | Yes      |
-| `models <model> extraPayload` | map    | Extra payload sent in body to LLM                                               | No       |
+| Option                         | Type   | Description                                                                                         | Required |
+|--------------------------------|--------|-----------------------------------------------------------------------------------------------------|----------|
+| `api`                          | string | The API schema to use (`"openai-responses"`, `"openai-chat"`, or `"anthropic"`)                   | Yes      |
+| `urlEnv`                       | string | Environment variable name containing the API URL                                                    | No*      |
+| `url`                          | string | Direct API URL (use instead of `urlEnv`)                                                            | No*      |
+| `keyEnv`                       | string | Environment variable name containing the API key                                                    | No*      |
+| `key`                          | string | Direct API key (use instead of `keyEnv`)                                                            | No*      |
+| `completionUrlRelativePath`    | string | Optional override for the completion endpoint path (see defaults below and examples like Azure)     | No       |
+| `models`                       | map    | Key: model name, value: its config                                                                  | Yes      |
+| `models <model> extraPayload`  | map    | Extra payload sent in body to LLM                                                                   | No       |
 
 _* url and key will be search as env `<provider>_API_URL` / `<provider>_API_KEY`, but require config or to be found to work._
 
@@ -104,6 +105,17 @@ When configuring custom providers, choose the appropriate API type:
     - Any OpenAI-compatible provider
 
 Most third-party providers use the `openai-chat` API for compatibility with existing tools and libraries.
+
+#### Endpoint override (completionUrlRelativePath)
+
+Some providers require a non-standard or versioned completion endpoint path. Use `completionUrlRelativePath` to override the default path appended to your provider `url`.
+
+Defaults by API type:
+- `openai-responses`: `/v1/responses`
+- `openai-chat`: `/v1/chat/completions`
+- `anthropic`: `/v1/messages`
+
+Only set this when your provider uses a different path or expects query parameters at the endpoint (e.g., Azure API versioning).
 
 ## Providers examples
 
