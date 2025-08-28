@@ -10,9 +10,23 @@ ECA works with clients (editors) sending and receiving messages to server, a pro
 
 ## Missing env vars
 
-Some editors are started with empty shell especially on MacOS, you can check if the env vars are available via `/doctor`.
+When launching editors from a GUI application (Dock, Applications folder, or desktop environment), high chance that it won't inherit environment variables from your shell configuration files (`.zshrc`, `.bashrc`, etc.). Since the ECA server is started as a subprocess from editor, it inherits the editor environment, which may be missing your API keys and other configuration.
+
+You can check if the env vars are available via `/doctor`.
 
 One way to workaround that is to start the editor from your terminal.
+
+### Alternatives
+
+- Start the editor from your terminal.
+
+- Set variables in your editor if supported, example in Emacs: `(setenv "MY_ENV" "my-value")`
+
+- On macOS, you can set environment variables system-wide using `launchctl`:
+
+   ```bash
+   launchctl setenv ANTHROPIC_API_KEY "your-key-here"
+   ```
 
 ## Ask for help
 

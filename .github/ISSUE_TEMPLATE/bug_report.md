@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a report to help us improve ECA
 title: ''
 labels: bug
 assignees: ''
@@ -21,6 +21,9 @@ Steps to reproduce the behavior:
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
+
+**Doctor**
+Paste the relevant parts of `/doctor` command in chat if applicable:
 
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
