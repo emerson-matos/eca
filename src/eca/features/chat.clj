@@ -216,7 +216,7 @@
                                             (if @approved?*
                                               (do
                                                 (assert-chat-not-stopped! chat-ctx)
-                                                (let [result (f.tools/call-tool! name arguments @db* config messenger)
+                                                (let [result (f.tools/call-tool! name arguments @db* config messenger behavior)
                                                       details (f.tools/tool-call-details-after-invocation name arguments details result)]
                                                   (add-to-history! {:role "tool_call" :content (assoc tool-call
                                                                                                       :details details
@@ -355,7 +355,11 @@
         rules (f.rules/all config (:workspace-folders db))
         refined-contexts (f.context/raw-contexts->refined contexts db config)
         repo-map* (delay (f.index/repo-map db config {:as-string? true}))
-        instructions (f.prompt/build-instructions refined-contexts rules repo-map* (or behavior (-> config :chat :defaultBehavior)) config)
+        instructions (f.prompt/build-instructions refined-contexts
+                                                  rules
+                                                  repo-map*
+                                                  (or behavior (-> config :chat :defaultBehavior))
+                                                  config)
         chat-ctx {:chat-id chat-id
                   :request-id request-id
                   :contexts contexts

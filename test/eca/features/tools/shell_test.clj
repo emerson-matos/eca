@@ -2,7 +2,7 @@
   (:require
    [babashka.fs :as fs]
    [babashka.process :as p]
-   [clojure.test :refer [deftest is testing]]
+   [clojure.test :refer [deftest is testing are]]
    [eca.features.tools.shell :as f.tools.shell]
    [eca.test-helper :as h]
    [matcher-combinators.test :refer [match?]]))
@@ -67,7 +67,7 @@
     (is (match?
          {:error true
           :contents [{:type :text
-                      :text "Cannot run command 'rm' because it is excluded by eca config."}]}
+                      :text "Command 'rm -r /project/foo/src' is excluded by configuration"}]}
          (with-redefs [fs/exists? (constantly true)]
            ((get-in f.tools.shell/definitions ["eca_shell_command" :handler])
             {"command" "rm -r /project/foo/src"}
@@ -96,3 +96,77 @@
       (with-redefs [fs/exists? (constantly true)
                     fs/canonicalize identity]
         (is (true? (approval-fn {"working_directory" (h/file-path "/other/place")} {:db db})))))))
+
+(deftest plan-mode-restrictions-test
+  (testing "safe commands allowed in plan mode"
+    (are [command] (match?
+                    {:error false
+                     :contents [{:type :text
+                                 :text "Some output"}]}
+                    (with-redefs [fs/exists? (constantly true)
+                                  p/shell (constantly {:exit 0 :out "Some output"})]
+                      ((get-in f.tools.shell/definitions ["eca_shell_command" :handler])
+                       {"command" command}
+                       {:db {:workspace-folders [{:uri (h/file-uri "file:///project/foo") :name "foo"}]}
+                        :behavior "plan"})))
+      "git status"
+      "ls -la"
+      "find . -name '*.clj'"
+      "grep 'test' file.txt"
+      "cat file.txt"
+      "head -10 file.txt"
+      "pwd"
+      "date"
+      "env"))
+
+  (testing "dangerous commands blocked in plan mode"
+    (are [command] (match?
+                    {:error true
+                     :contents [{:type :text
+                                 :text "Command blocked in plan mode. Only read-only analysis commands are allowed."}]}
+                    ((get-in f.tools.shell/definitions ["eca_shell_command" :handler])
+                     {"command" command}
+                     {:db {:workspace-folders [{:uri (h/file-uri "file:///project/foo") :name "foo"}]}
+                      :behavior "plan"}))
+      "echo 'test' > file.txt"
+      "cat file.txt > output.txt"
+      "ls >> log.txt"
+      "rm file.txt"
+      "mv old.txt new.txt"
+      "cp file1.txt file2.txt"
+      "touch newfile.txt"
+      "mkdir newdir"
+      "sed -i 's/old/new/' file.txt"
+      "git add ."
+      "git commit -m 'test'"
+      "npm install package"
+      "python -c \"open('file.txt','w').write('test')\""
+      "bash -c 'echo test > file.txt'"))
+
+  (testing "commands not in whitelist blocked in plan mode"
+    (are [command] (match?
+                    {:error true
+                     :contents [{:type :text
+                                 :text "Command blocked in plan mode. Only read-only analysis commands are allowed."}]}
+                    ((get-in f.tools.shell/definitions ["eca_shell_command" :handler])
+                     {"command" command}
+                     {:db {:workspace-folders [{:uri (h/file-uri "file:///project/foo") :name "foo"}]}
+                      :behavior "plan"}))
+      "python --version"  ; not in whitelist
+      "node script.js"     ; not in whitelist
+      "clojure -M:test"))   ; not in whitelist
+
+  (testing "same commands work fine in agent mode"
+    (are [command] (match?
+                    {:error false
+                     :contents [{:type :text
+                                 :text "Some output"}]}
+                    (with-redefs [fs/exists? (constantly true)
+                                  p/shell (constantly {:exit 0 :out "Some output"})]
+                      ((get-in f.tools.shell/definitions ["eca_shell_command" :handler])
+                       {"command" command}
+                       {:db {:workspace-folders [{:uri (h/file-uri "file:///project/foo") :name "foo"}]}
+                        :behavior "agent"})))
+      "echo 'test' > file.txt"
+      "rm file.txt"
+      "python --version")))

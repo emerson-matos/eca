@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Improve plan-mode (prompt + eca_preview_file_change tool) #94
+- Add fallback for matching / editing text in files #94
+
 ## 0.37.0
 
 - Require approval for `eca_shell_command` if running outside workspace folders.

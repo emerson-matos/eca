@@ -3,10 +3,12 @@
    [babashka.fs :as fs]
    [clojure.java.io :as io]
    [clojure.java.shell :as shell]
+   [eca.logger :as logger]
    [clojure.string :as string]
    [eca.diff :as diff]
+   [eca.features.tools.text-match :as text-match]
    [eca.features.tools.util :as tools.util]
-   [eca.shared :as shared :refer [multi-str]]))
+   [eca.shared :as shared]))
 
 (set! *warn-on-reflection* true)
 
@@ -203,40 +205,62 @@
     (format "Searching for '%s'" pattern)
     "Searching for files"))
 
-(defn file-change-full-content [path original-content new-content all?]
-  (let [original-full-content (slurp path)
-        new-full-content (if all?
-                           (string/replace original-full-content original-content new-content)
-                           (string/replace-first original-full-content original-content new-content))]
-    (when (string/includes? original-full-content original-content)
-      {:original-full-content original-full-content
-       :new-full-content new-full-content})))
+(defn ^:private handle-file-change-result
+  "Convert file-change-full-content result to appropriate tool response"
+  [result path success-message]
+  (cond
+    (:new-full-content result)
+    (tools.util/single-text-content success-message)
 
-(defn ^:private change-file [arguments {:keys [db]} diff?]
+    (= (:error result) :not-found)
+    (tools.util/single-text-content (format "Original content not found in %s" path) :error)
+
+    (= (:error result) :ambiguous)
+    (tools.util/single-text-content
+     (format "Ambiguous match - content appears %d times in %s. Provide more specific context to identify the exact location."
+             (:match-count result) path) :error)
+
+    :else
+    (tools.util/single-text-content (format "Failed to process %s" path) :error)))
+
+(defn ^:private change-file [arguments {:keys [db]}]
   (or (tools.util/invalid-arguments arguments (concat (path-validations db)
                                                       [["path" fs/readable? "File $path is not readable"]]))
       (let [path (get arguments "path")
             original-content (get arguments "original_content")
             new-content (get arguments "new_content")
-            new-content (if diff?
-                          (str "<<<<<<< HEAD\n"
-                               original-content
-                               "\n=======\n"
-                               new-content
-                               "\n>>>>>>> eca\n")
-                          new-content)
-            all? (boolean (get arguments "all_occurrences"))]
-        (if-let [{:keys [new-full-content]} (file-change-full-content path original-content new-content all?)]
+            all? (boolean (get arguments "all_occurrences"))
+            result (text-match/apply-content-change-to-file path original-content new-content all?)]
+        (if (:new-full-content result)
           (do
-            (spit path new-full-content)
-            (tools.util/single-text-content (format "Successfully replaced content in %s." path)))
-          (tools.util/single-text-content (format "Original content not found in %s" path) :error)))))
+            (spit path (:new-full-content result))
+            (handle-file-change-result result path (format "Successfully replaced content in %s." path)))
+          (handle-file-change-result result path nil)))))
 
 (defn ^:private edit-file [arguments components]
-  (change-file arguments components false))
+  (change-file arguments components))
 
-(defn ^:private plan-edit-file [arguments components]
-  (change-file arguments components true))
+(defn ^:private preview-file-change [arguments {:keys [db]}]
+  (or (tools.util/invalid-arguments arguments [["path" (partial allowed-path? db) (str "Access denied - path $path outside allowed directories: " (tools.util/workspace-roots-strs db))]])
+      (let [path (get arguments "path")
+            original-content (get arguments "original_content")
+            new-content (get arguments "new_content")
+            all? (boolean (get arguments "all_occurrences"))
+            file-exists? (fs/exists? path)]
+        (cond
+          file-exists?
+          (let [result (text-match/apply-content-change-to-file path original-content new-content all?)]
+            (handle-file-change-result result path
+                                       (format "Change simulation completed for %s. Original file unchanged - preview only." path)))
+
+          (and (not file-exists?) (= "" original-content))
+          (tools.util/single-text-content (format "New file creation simulation completed for %s. File will be created - preview only." path))
+
+          :else
+          (tools.util/single-text-content
+           (format "Preview error for %s: For new files, original_content must be empty string (\"\"). Use markdown blocks during exploration, then eca_preview_file_change for final implementation only."
+                   path)
+           :error)))))
 
 (defn ^:private move-file [arguments {:keys [db]}]
   (let [workspace-dirs (tools.util/workspace-roots-strs db)]
@@ -251,9 +275,7 @@
 
 (def definitions
   {"eca_directory_tree"
-   {:description (str "Returns a recursive tree view of files and directories starting from the specified path. "
-                      "The path parameter must be an absolute path, not a relative path. "
-                      "**Only works within the directories: $workspaceRoots.**")
+   {:description (tools.util/read-tool-description "eca_directory_tree")
     :parameters {:type "object"
                  :properties {"path" {:type "string"
                                       :description "The absolute path to the directory."}
@@ -265,12 +287,7 @@
     :handler #'directory-tree
     :summary-fn (constantly "Listing file tree")}
    "eca_read_file"
-   {:description (str "Read the contents of a file from the file system. "
-                      "Use this tool when you need to examine "
-                      "the contents of a single file. Optionally use the 'line_offset' and/or 'limit' "
-                      "parameters to read specific contents of the file when you know the range. "
-                      "Prefer call once this tool over multiple calls passing small offsets. "
-                      "**Only works within the directories: $workspaceRoots.**")
+   {:description (tools.util/read-tool-description "eca_read_file")
     :parameters {:type "object"
                  :properties {"path" {:type "string"
                                       :description "The absolute path to the file to read."}
@@ -282,12 +299,7 @@
     :handler #'read-file
     :summary-fn #'read-file-summary}
    "eca_write_file"
-   {:description (str "Create a new file or completely overwrite an existing file with new content. "
-                      "This tool will automatically create any necessary parent directories if they don't exist. "
-                      "Use this tool when you want to create a new file from scratch or completely replace "
-                      "the entire content of an existing file. For partial edits or content replacement within "
-                      "existing files, use eca_edit_file instead. "
-                      "**Only works within the directories: $workspaceRoots.**")
+   {:description (tools.util/read-tool-description "eca_write_file")
     :parameters {:type "object"
                  :properties {"path" {:type "string"
                                       :description "The absolute path to the file to create or overwrite"}
@@ -295,14 +307,11 @@
                                          :description "The complete content to write to the file"}}
                  :required ["path" "content"]}
     :handler #'write-file
+    ;; TODO - add behaviors to config and define disabled tools there!
+    :enabled-fn #(not= "plan" (:behavior %))
     :summary-fn #'write-file-summary}
    "eca_edit_file"
-   {:description  (multi-str "You must use your `eca_read_file` tool to get the file’s exact contents before attempting an edit."
-                             "This tool will error if you attempt an edit without reading the file.When crafting the `orginal_content`, you must match the original content from the `eca_read_file` tool output exactly, including all indentation (spaces/tabs) and newlines."
-                             "Never include any part of the line number prefix in the `original_content` or `new_content`.The edit will FAIL if the `original_content` is not unique in the file. To resolve this, you must expand the `new_content` to include more surrounding lines of code or context to make it a unique block."
-                             "ALWAYS prefer making small, targeted edits to existing files. Avoid replacing entire functions or large blocks of code in a single step unless absolutely necessary. You can always call this tool multiple times for multiple edits."
-                             "To delete content, provide the content to be removed as the `original_content` and an empty string as the `new_content`."
-                             "To prepend or append content, the `new_content` must contain both the new content and the original content from `old_string`.")
+   {:description (tools.util/read-tool-description "eca_edit_file")
     :parameters  {:type "object"
                   :properties {"path" {:type "string"
                                        :description "The absolute file path to do the replace."}
@@ -314,36 +323,25 @@
                                                   :description "Whether to replace all occurences of the file or just the first one (default)"}}
                   :required ["path" "original_content" "new_content"]}
     :handler #'edit-file
-    :enabled-fn (fn [{:keys [behavior]}] (not= "plan" behavior))
-    :summary-fn (constantly "Editing file")}
-   "eca_plan_edit_file"
-   {:description  (str "Plan a file change where user needs to apply or reject the change. "
-                       "Replace a specific string or content block in a file with new content. "
-                       "Finds the exact original content and replaces it with new content. "
-                       "Be extra careful to format the original-content exactly correctly, "
-                       "taking extra care with whitespace and newlines. "
-                       "Avoid replacing whole functions, methods, or classes, change only the needed code. "
-                       "In addition to replacing strings, this can also be used to prepend, append, or delete contents from a file.")
-    :parameters  {:type "object"
-                  :properties {"path" {:type "string"
-                                       :description "The absolute file path to do the replace."}
-                               "original_content" {:type "string"
-                                                   :description "The exact content to find and replace"}
-                               "new_content" {:type "string"
-                                              :description "The new content to replace the original content with"}
-                               "all_occurrences" {:type "boolean"
-                                                  :description "Whether to replace all occurences of the file or just the first one (default)"}}
-                  :required ["path" "original_content" "new_content"]}
-    :handler #'plan-edit-file
-    ;; TODO improve plan behavior providing better tool for exit plan and present to user.
-    :enabled-fn (constantly false) #_(fn [{:keys [behavior]}] (= "plan" behavior))
-    :summary-fn (constantly "Planning edit")}
+    :enabled-fn #(not= "plan" (:behavior %))
+    :summary-fn (constantly "Editting file")}
+   "eca_preview_file_change"
+   {:description (tools.util/read-tool-description "eca_preview_file_change")
+    :parameters {:type "object"
+                 :properties {"path" {:type "string"
+                                      :description "The absolute file path to preview changes for."}
+                              "original_content" {:type "string"
+                                                  :description "The exact content to find in the file"}
+                              "new_content" {:type "string"
+                                             :description "The content to show as replacement in the preview"}
+                              "all_occurrences" {:type "boolean"
+                                                 :description "Whether to preview replacing all occurrences or just the first one (default)"}}
+                 :required ["path" "original_content" "new_content"]}
+    :handler #'preview-file-change
+    :enabled-fn #(= "plan" (:behavior %))
+    :summary-fn (constantly "Previewing change")}
    "eca_move_file"
-   {:description (str "Move or rename files and directories. Can move files between directories "
-                      "and rename them in a single operation. If the destination exists, the "
-                      "operation will fail. Works across different directories and can be used "
-                      "for simple renaming within the same directory. "
-                      "Both source and destination must be within the directories: $workspaceRoots.")
+   {:description (tools.util/read-tool-description "eca_move_file")
     :parameters  {:type "object"
                   :properties {"source" {:type "string"
                                          :description "The absolute origin file path to move."}
@@ -351,14 +349,10 @@
                                               :description "The new absolute file path to move to."}}
                   :required ["source" "destination"]}
     :handler #'move-file
+    :enabled-fn #(not= "plan" (:behavior %))
     :summary-fn (constantly "Moving file")}
    "eca_grep"
-   {:description (str "Fast content search tool that works with any codebase size. "
-                      "Finds the paths to files that have matching contents using regular expressions. "
-                      "Supports full regex syntax (eg. \"log.*Error\", \"function\\s+\\w+\", etc.). "
-                      "Filter files by pattern with the include parameter (eg. \"*.js\", \"*.{ts,tsx}\"). "
-                      "Returns matching file paths sorted by modification time. "
-                      "Use this tool when you need to find files containing specific patterns.")
+   {:description (tools.util/read-tool-description "eca_grep")
     :parameters  {:type "object"
                   :properties {"path" {:type "string"
                                        :description "The absolute path to search in."}
@@ -376,19 +370,34 @@
   (let [path (get arguments "path")
         original-content (get arguments "original_content")
         new-content (get arguments "new_content")
-        all? (get arguments "all_occurrences")]
-    (when-let [{:keys [original-full-content
-                       new-full-content]} (and path (fs/exists? path) original-content new-content
-                                               (file-change-full-content path original-content new-content all?))]
-      (let [{:keys [added removed diff]} (diff/diff original-full-content new-full-content path)]
+        all? (get arguments "all_occurrences")
+        file-exists? (and path (fs/exists? path))]
+    (cond
+      (and file-exists? original-content new-content)
+      (let [result (text-match/apply-content-change-to-file path original-content new-content all?)
+            original-full-content (:original-full-content result)]
+        (when original-full-content
+          (if-let [new-full-content (:new-full-content result)]
+            (let [{:keys [added removed diff]} (diff/diff original-full-content new-full-content path)]
+              {:type :fileChange
+               :path path
+               :linesAdded added
+               :linesRemoved removed
+               :diff diff})
+            (logger/warn "tool-call-details-before-invocation - NO DIFF GENERATED because match failed for path:" path))))
+
+      (and (not file-exists?) (= original-content "") new-content path)
+      (let [{:keys [added removed diff]} (diff/diff "" new-content path)]
         {:type :fileChange
          :path path
          :linesAdded added
          :linesRemoved removed
-         :diff diff}))))
+         :diff diff})
 
-(defmethod tools.util/tool-call-details-before-invocation :eca_plan_edit_file [name arguments]
-  (tools.util/tool-call-details-before-invocation :eca_edit_file name arguments))
+      :else nil)))
+
+(defmethod tools.util/tool-call-details-before-invocation :eca_preview_file_change [_name arguments]
+  (tools.util/tool-call-details-before-invocation :eca_edit_file arguments))
 
 (defmethod tools.util/tool-call-details-before-invocation :eca_write_file [_name arguments]
   (let [path (get arguments "path")

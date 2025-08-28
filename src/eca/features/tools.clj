@@ -55,14 +55,15 @@
       (mapv #(assoc % :origin :native) (native-tools db config))
       (mapv #(assoc % :origin :mcp) (f.mcp/all-tools db))))))
 
-(defn call-tool! [^String name ^Map arguments db config messenger]
+(defn call-tool! [^String name ^Map arguments db config messenger behavior]
   (logger/info logger-tag (format "Calling tool '%s' with args '%s'" name arguments))
   (let [arguments (update-keys arguments clojure.core/name)]
     (try
       (let [result (if-let [native-tool-handler (get-in (native-definitions db config) [name :handler])]
                      (native-tool-handler arguments {:db db
                                                      :config config
-                                                     :messenger messenger})
+                                                     :messenger messenger
+                                                     :behavior behavior})
                      (f.mcp/call-tool! name arguments db))]
         (logger/debug logger-tag "Tool call result: " result)
         result)
