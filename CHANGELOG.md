@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.37.0
+
 - Require approval for `eca_shell_command` if running outside workspace folders.
 - Fix anthropic subscription.
 
