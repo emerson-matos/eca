@@ -4,6 +4,8 @@
 
 ## 0.38.1
 
+- Fix graalvm properties.
+
 ## 0.38.0
 
 - Improve plan-mode (prompt + eca_preview_file_change tool) #94
