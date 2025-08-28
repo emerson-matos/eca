@@ -45,6 +45,7 @@
                                  :models {"gpt-5" {}
                                           "gpt-5-mini" {}
                                           "gpt-4.1" {}
+                                          "gemini-2.5-pro" {}
                                           "claude-sonnet-4" {}}}
                "ollama" {:url "http://localhost:11434"
                          :urlEnv "OLLAMA_API_URL"}}
