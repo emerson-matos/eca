@@ -60,7 +60,7 @@
 
 (def definitions
   {"eca_shell_command"
-   {:description (multi-str "Execute an arbitrary shell command and return the output.
+   {:description (multi-str "Executes an arbitrary shell command ensuring proper handling and security measures.
 1. Command Execution:
   - Always quote file paths that contain spaces with double quotes (e.g., cd \" path with spaces/file.txt \")
   - Examples of proper quoting:
@@ -71,6 +71,15 @@
   - After ensuring proper quoting, execute the command.
   - Capture the output of the command.
   - VERY IMPORTANT: You MUST avoid using search command `grep`. Instead use eca_grep to search. You MUST avoid read tools like `cat`, `head`, `tail`, and `ls`, and use eca_read_file or eca_directory_tree.
+  - It is very helpful if you write a clear, concise description of what this command does in 5-10 words.
+  - When issuing multiple commands, use the ';' or '&&' operator to separate them. DO NOT use newlines (newlines are ok in quoted strings).
+  - Try to maintain your current working directory throughout the session by using absolute paths and avoiding usage of `cd`. You may use `cd` if the User explicitly requests it.
+    <good-example>
+    pytest /foo/bar/tests
+    </good-example>
+    <bad-example>
+    cd /foo/bar && pytest tests
+    </bad-example>
 
 # Committing changes with git
 
@@ -186,4 +195,9 @@ Important:
                                                    :description "The directory to run the command in. Default to the first workspace root."}}
                  :required ["command"]}
     :handler #'shell-command
+    :require-approval-fn (fn [args {:keys [db]}]
+                           (when-let [wd (and args (get args "working_directory"))]
+                             (when-let [wd (and (fs/exists? wd) (str (fs/canonicalize wd)))]
+                               (let [workspace-roots (mapv (comp shared/uri->filename :uri) (:workspace-folders db))]
+                                 (not-any? #(fs/starts-with? wd %) workspace-roots)))))
     :summary-fn #'shell-command-summary}})

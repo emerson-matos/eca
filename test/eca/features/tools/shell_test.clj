@@ -74,3 +74,25 @@
             {:db {:workspace-folders [{:uri (h/file-uri "file:///project/foo") :name "foo"}]}
              :config {:nativeTools {:shell {:enabled true
                                             :excludeCommands ["ls" "rm"]}}}}))))))
+
+(deftest shell-require-approval-fn-test
+  (let [approval-fn (get-in f.tools.shell/definitions ["eca_shell_command" :require-approval-fn])
+        db {:workspace-folders [{:uri (h/file-uri "file:///project/foo") :name "foo"}]}]
+    (testing "returns nil when working_directory is not provided"
+      (is (nil? (approval-fn nil {:db db})))
+      (is (nil? (approval-fn {} {:db db}))))
+    (testing "returns nil when working_directory does not exist"
+      (with-redefs [fs/exists? (constantly false)]
+        (is (nil? (approval-fn {"working_directory" (h/file-path "/project/foo/src")} {:db db})))))
+    (testing "returns false when working_directory equals a workspace root"
+      (with-redefs [fs/exists? (constantly true)
+                    fs/canonicalize identity]
+        (is (false? (approval-fn {"working_directory" (h/file-path "/project/foo")} {:db db})))))
+    (testing "returns false when working_directory is a subdirectory of a workspace root"
+      (with-redefs [fs/exists? (constantly true)
+                    fs/canonicalize identity]
+        (is (false? (approval-fn {"working_directory" (h/file-path "/project/foo/src")} {:db db})))))
+    (testing "returns true when working_directory is outside any workspace root"
+      (with-redefs [fs/exists? (constantly true)
+                    fs/canonicalize identity]
+        (is (true? (approval-fn {"working_directory" (h/file-path "/other/place")} {:db db})))))))

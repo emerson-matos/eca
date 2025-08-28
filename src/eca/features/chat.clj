@@ -177,7 +177,7 @@
                                                :origin (tool-name->origin name all-tools)
                                                :arguments-text arguments-text
                                                :id id
-                                               :manual-approval (f.tools/manual-approval? name config)}
+                                               :manual-approval (f.tools/manual-approval? all-tools name nil db config)}
                                               :summary (f.tools/tool-call-summary all-tools name nil))))
       :on-tools-called (fn [tool-calls]
                          (assert-chat-not-stopped! chat-ctx)
@@ -191,7 +191,7 @@
                                               details (f.tools/tool-call-details-before-invocation name arguments)
                                               summary (f.tools/tool-call-summary all-tools name arguments)
                                               origin (tool-name->origin name all-tools)
-                                              manual-approval? (f.tools/manual-approval? name config)]
+                                              manual-approval? (f.tools/manual-approval? all-tools name arguments db config)]
                                             ;; Inform UI the tool is about to run and store approval promise
                                           (send-content! chat-ctx :assistant
                                                          (assoc-some

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Require approval for `eca_shell_command` if running outside workspace folders.
+
 ## 0.36.5
 
 - Fix pricing for models being case insensitive on its name when checking capabilities.
