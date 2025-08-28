@@ -1,5 +1,5 @@
 Preview the FINAL content that will be written to the file when the plan is accepted.
 Use only for showing definitive implementation, not for iterative exploration.
 When crafting the `orginal_content`, you must match the original content from the `eca_read_file` tool output exactly, including all indentation (spaces/tabs) and newlines.
-ALWAYS prefer making small, targeted content changes. Avoid passing entire functions or large blocks of code in a single step unless absolutely necessary.
+ALWAYS prefer making small, targeted content changes.
 For new files, original_content must be empty string.
