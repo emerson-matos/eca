@@ -225,7 +225,7 @@ There are 3 possible ways to configure rules following this order of priority:
           "github-copilot": {"url": "https://api.githubcopilot.com"},
           "ollama": {"url": "http://localhost:11434"}
       },
-      "defaultModel": nil, // let ECA decides the default model.
+      "defaultModel": null, // let ECA decides the default model.
       "rules" : [],
       "commands" : [],
       "nativeTools": {"filesystem": {"enabled": true},
