@@ -34,8 +34,7 @@
     (http/post
      url
      {:headers (assoc-some
-                {"x-api-key" api-key
-                 "anthropic-version" "2023-06-01"
+                {"anthropic-version" "2023-06-01"
                  "Content-Type" "application/json"}
                 "x-api-key" (when-not oauth? api-key)
                 "Authorization" (when oauth? (str "Bearer " api-key))
