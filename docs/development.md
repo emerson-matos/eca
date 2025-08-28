@@ -1,5 +1,10 @@
 # ECA Development
 
+## Building local
+
+- Install [babashka](https://babashka.org/).
+- Run `bb debug-cli`, it will geneate a JVM embeeded binary at project root where yuo can just `./eca`.
+
 ## Project structure
 
 The ECA codebase follows a pragmatic **layered layout** that separates concerns clearly so that you can jump straight to the part you need to change.
