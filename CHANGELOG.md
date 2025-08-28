@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.38.0
+
 - Improve plan-mode (prompt + eca_preview_file_change tool) #94
 - Add fallback for matching / editing text in files #94
 
