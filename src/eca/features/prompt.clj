@@ -12,16 +12,16 @@
 
 (def ^:private logger-tag "[PROMPT]")
 
-(defn ^:private base-prompt-template* [] (slurp (io/resource "prompts/eca_base.txt")))
+(defn ^:private base-prompt-template* [] (slurp (io/resource "prompts/eca_base.md")))
 (def ^:private base-prompt-template (memoize base-prompt-template*))
 
-(defn ^:private plan-behavior* [] (slurp (io/resource "prompts/plan_behavior.txt")))
+(defn ^:private plan-behavior* [] (slurp (io/resource "prompts/plan_behavior.md")))
 (def ^:private plan-behavior (memoize plan-behavior*))
 
-(defn ^:private agent-behavior* [] (slurp (io/resource "prompts/agent_behavior.txt")))
+(defn ^:private agent-behavior* [] (slurp (io/resource "prompts/agent_behavior.md")))
 (def ^:private agent-behavior (memoize agent-behavior*))
 
-(defn ^:private init-prompt-template* [] (slurp (io/resource "prompts/init.txt")))
+(defn ^:private init-prompt-template* [] (slurp (io/resource "prompts/init.md")))
 (def ^:private init-prompt-template (memoize init-prompt-template*))
 
 (defn ^:private replace-vars [s vars]

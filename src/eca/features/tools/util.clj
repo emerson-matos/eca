@@ -43,7 +43,7 @@
                validator)))
 
 (defn read-tool-description
-  "Read tool description from prompts/tools/<tool-name>.txt file"
+  "Read tool description from prompts/tools/<tool-name>.md file"
   [tool-name]
-  (-> (io/resource (str "prompts/tools/" tool-name ".txt"))
+  (-> (io/resource (str "prompts/tools/" tool-name ".md"))
       (slurp)))
