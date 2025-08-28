@@ -7,7 +7,7 @@
    [llm-mock.openai-chat :as llm-mock.openai-chat]
    [org.httpkit.server :as hk]))
 
-(def port 6660)
+(def port 5550)
 
 (defonce ^:private server* (atom nil))
 
