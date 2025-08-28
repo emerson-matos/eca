@@ -1,26 +1,55 @@
 (ns eca.features.tools.shell
-  (:require
-   [babashka.fs :as fs]
-   [babashka.process :as p]
-   [clojure.string :as string]
-   [eca.config :as config]
-   [eca.features.tools.util :as tools.util]
-   [eca.logger :as logger]
-   [eca.shared :as shared :refer [multi-str]]))
+  (:require [babashka.fs :as fs]
+            [babashka.process :as p]
+            [clojure.string :as string]
+            [eca.config :as config]
+            [eca.features.tools.util :as tools.util]
+            [eca.logger :as logger]
+            [eca.shared :as shared]))
 
 (set! *warn-on-reflection* true)
 
 (def ^:private logger-tag "[TOOLS-SHELL]")
 
-(defn ^:private shell-command [arguments {:keys [db config]}]
+;; Plan mode command restrictions
+;; TODO - We might see that this is not needed and prompt handles it.
+;;        If we don't get 'Command bocked in plan model' error for some time, let's remove it.
+;;        Maybe we should use allowed patterns only, especially for user's custom behaviors.
+(def ^:private plan-safe-commands-default
+  #{"git" "ls" "find" "grep" "rg" "ag" "cat" "head" "tail"
+    "pwd" "which" "file" "stat" "tree" "date" "whoami"
+    "env" "echo" "wc" "du" "df"})
+
+(def ^:private plan-forbidden-patterns-default
+  [#">"                              ; output redirection
+   #"\|\s*(tee|dd|xargs)"            ; dangerous pipes
+   #"\b(sed|awk|perl)\s+.*-i"       ; in-place editing
+   #"\b(rm|mv|cp|touch|mkdir)\b"    ; file operations
+   #"git\s+(add|commit|push)"       ; git mutations
+   #"npm\s+install"                 ; package installs
+   #"-c\s+[\"'].*open.*[\"']w[\"']" ; programmatic writes
+   #"bash.*-c.*>"])                 ; nested shell redirects
+
+(defn ^:private safe-for-plan-mode? [command-string]
+  (let [cmd (-> command-string (string/split #"\s+") first)]
+    (and (contains? plan-safe-commands-default cmd)
+         (not (some #(re-find % command-string) plan-forbidden-patterns-default)))))
+
+(defn ^:private shell-command [arguments {:keys [db config behavior]}]
   (let [command-args (get arguments "command")
         command (first (string/split command-args #"\s+"))
         user-work-dir (get arguments "working_directory")
-        exclude-cmds (-> config :nativeTools :shell :excludeCommands set)]
+        exclude-cmds (-> config :nativeTools :shell :excludeCommands set)
+        plan-mode? (= "plan" behavior)]
     (or (tools.util/invalid-arguments arguments [["working_directory" #(or (nil? %)
                                                                            (fs/exists? %)) "working directory $working_directory does not exist"]
-                                                 ["commmand" (constantly (not (contains? exclude-cmds command))) (format "Cannot run command '%s' because it is excluded by eca config."
-                                                                                                                         command)]])
+                                                 ["commmand" (constantly (not (contains? exclude-cmds command)))
+                                                  (format "Command '%s' is excluded by configuration" command-args)]])
+        ;; Check plan mode restrictions
+        (when (and plan-mode? (not (safe-for-plan-mode? command-args)))
+          {:error true
+           :contents [{:type :text
+                       :text "Command blocked in plan mode. Only read-only analysis commands are allowed."}]})
         (let [work-dir (or (some-> user-work-dir fs/canonicalize str)
                            (some-> (:workspace-folders db)
                                    first
