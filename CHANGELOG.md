@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Considerably improve toolCall approval / permissions config.
+  - Now with thave multiple optiosn to ask or allow tool calls, check config section.
+
 ## 0.38.1
 
 - Fix graalvm properties.
