@@ -123,26 +123,43 @@
       (some #(= name (str %)) manual-approval?)
       manual-approval?)))
 
-(defn manual-approval? [all-tools name args db config]
+(defn ^:private approval-matches? [[tool-name config] tool-call-name args]
+  (let [args-matchers (:argsMatchers config)]
+    (cond
+      ;; no config found for tool-call-name
+      (not= tool-call-name (str tool-name))
+      false
+
+      (map? args-matchers)
+      (some (fn [[arg-name matchers]]
+              (when-let [arg (get args arg-name)]
+                (some #(re-matches (re-pattern (str %)) (str arg))
+                      matchers)))
+            args-matchers)
+
+      :else
+      false)))
+
+(defn manual-approval? [all-tools tool-call-name args db config]
   (boolean
-    (let [require-approval-fn (:require-approval-fn (first (filter #(= name (:name %))
-                                                                   all-tools)))
-          {:keys [allow ask]} (get-in config [:toolCall :approval])]
-      (cond
-        (and require-approval-fn (require-approval-fn args {:db db}))
-        true
+   (let [require-approval-fn (:require-approval-fn (first (filter #(= tool-call-name (:name %))
+                                                                  all-tools)))
+         {:keys [allow ask]} (get-in config [:toolCall :approval])]
+     (cond
+       (and require-approval-fn (require-approval-fn args {:db db}))
+       true
 
-        (some #(= name (str (first %))) ask)
-        true
+       (some #(approval-matches? % tool-call-name args) ask)
+       true
 
-        (some #(= name (str (first %))) allow)
-        false
+       (some #(approval-matches? % tool-call-name args) allow)
+       false
 
-        (legacy-manual-approval? config)
-        true
+       (legacy-manual-approval? config)
+       true
 
-        :else
-        false))))
+       :else
+       false))))
 
 (defn tool-call-summary [all-tools name args]
   (when-let [summary-fn (:summary-fn (first (filter #(= name (:name %))

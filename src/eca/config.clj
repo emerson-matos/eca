@@ -66,7 +66,8 @@
                                  "eca_move_file" {}
                                  "eca_read_file" {}
                                  "eca_grep" {}}
-                         :ask []}}
+                         :ask {"eca_shell_command" {:argsMatchers {"command" [".*rm\\s.*"
+                                                                              ".*mv\\s.*"]}}}}}
    :mcpTimeoutSeconds 60
    :lspTimeoutSeconds 30
    :mcpServers {}
