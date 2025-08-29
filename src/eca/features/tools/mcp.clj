@@ -15,6 +15,7 @@
     McpSchema$ClientCapabilities
     McpSchema$Content
     McpSchema$GetPromptRequest
+    McpSchema$LoggingMessageNotification
     McpSchema$Prompt
     McpSchema$PromptArgument
     McpSchema$PromptMessage
@@ -67,12 +68,15 @@
       (getProcessBuilder [] (-> (ProcessBuilder. ^List pb-init-args)
                                 (.directory (io/file work-dir)))))))
 
-(defn ^:private ->client ^McpSyncClient [transport config]
+(defn ^:private ->client ^McpSyncClient [transport config workspaces]
   (-> (McpClient/sync transport)
       (.requestTimeout (Duration/ofSeconds (:mcpTimeoutSeconds config)))
       (.capabilities (-> (McpSchema$ClientCapabilities/builder)
                          (.roots true)
                          (.build)))
+      (.roots ^List (mapv #(McpSchema$Root. (:uri %) (:name %)) workspaces))
+      (.loggingConsumer (fn [^McpSchema$LoggingMessageNotification notification]
+                          (logger/info logger-tag (.data notification))))
       (.build)))
 
 (defn ^:private ->server [mcp-name server-config status db]
@@ -150,11 +154,9 @@
         obj-mapper (ObjectMapper.)]
     (try
       (let [transport (->transport server-config workspaces)
-            client (->client transport config)]
+            client (->client transport config workspaces)]
         (on-server-updated (->server name server-config :starting db))
         (swap! db* assoc-in [:mcp-clients name] {:client client})
-        (doseq [{:keys [name uri]} workspaces]
-          (.addRoot client (McpSchema$Root. uri name)))
         (.initialize client)
         (swap! db* assoc-in [:mcp-clients name :tools] (list-server-tools obj-mapper client))
         (swap! db* assoc-in [:mcp-clients name :prompts] (list-server-prompts client))
