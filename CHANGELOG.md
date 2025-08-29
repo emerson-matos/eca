@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.38.3
+
 - Fix anthropic token renew.
 
 ## 0.38.2
