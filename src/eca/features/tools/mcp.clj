@@ -198,8 +198,6 @@
                   tools))
         (:mcp-clients db)))
 
-(all-tools @eca.db/db*)
-
 (defn call-tool! [^String name ^Map arguments db]
   (let [mcp-client (->> (vals (:mcp-clients db))
                         (keep (fn [{:keys [client tools]}]
