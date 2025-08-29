@@ -187,7 +187,10 @@ There are 3 possible ways to configure rules following this order of priority:
         };
         disabledTools: string[],
         toolCall?: {
-          manualApproval?: boolean | string[], // manual approve all tools or the specified tools
+          approval: {
+            allow: {{key: string}: {}},
+            ask: {{key: string}: {}},
+          };
         };
         mcpTimeoutSeconds: number;
         lspTimeoutSeconds: number;
@@ -234,7 +237,13 @@ There are 3 possible ways to configure rules following this order of priority:
                        "editor": {"enabled": true}},
       "disabledTools": [],
       "toolCall": {
-        "manualApproval": null,
+        "approval": {
+          "allow": {
+            "eca_edit_file": {}
+            // ... all eca tools
+          },
+          "ask": {},
+        }
       },
       "mcpTimeoutSeconds" : 60,
       "lspTimeoutSeconds" : 30,

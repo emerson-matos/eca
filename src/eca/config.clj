@@ -57,6 +57,16 @@
                          :excludeCommands []}
                  :editor {:enabled true}}
    :disabledTools []
+   :toolCall {:approval {:allow {"eca_shell_command" {}
+                                 "eca_editor_diagnostics" {}
+                                 "eca_directory_tree" {}
+                                 "eca_write_file" {}
+                                 "eca_edit_file" {}
+                                 "eca_preview_file_change" {}
+                                 "eca_move_file" {}
+                                 "eca_read_file" {}
+                                 "eca_grep" {}}
+                         :ask []}}
    :mcpTimeoutSeconds 60
    :lspTimeoutSeconds 30
    :mcpServers {}
@@ -160,7 +170,9 @@
                  (fn [providers]
                    (when providers
                      (-> (normalize-providers providers)
-                         (update-vals normalize-provider-models)))))))
+                         (update-vals normalize-provider-models)))))
+      (update-in [:toolCall :approval :allow] update-keys name)
+      (update-in [:toolCall :approval :ask] update-keys name)))
 
 (defn all [db]
   (let [initialization-config @initialization-config*

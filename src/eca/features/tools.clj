@@ -117,15 +117,32 @@
                                                                         (assoc :type :mcp)
                                                                         (update :tools #(mapv with-tool-status %)))))})))
 
+(defn legacy-manual-approval? [config]
+  (let [manual-approval? (get-in config [:toolCall :manualApproval] nil)]
+    (if (coll? manual-approval?)
+      (some #(= name (str %)) manual-approval?)
+      manual-approval?)))
+
 (defn manual-approval? [all-tools name args db config]
   (boolean
-   (let [require-approval-fn (:require-approval-fn (first (filter #(= name (:name %))
-                                                                  all-tools)))
-         manual-approval? (get-in config [:toolCall :manualApproval] nil)]
-     (or (when require-approval-fn (require-approval-fn args {:db db}))
-         (if (coll? manual-approval?)
-           (some #(= name (str %)) manual-approval?)
-           manual-approval?)))))
+    (let [require-approval-fn (:require-approval-fn (first (filter #(= name (:name %))
+                                                                   all-tools)))
+          {:keys [allow ask]} (get-in config [:toolCall :approval])]
+      (cond
+        (and require-approval-fn (require-approval-fn args {:db db}))
+        true
+
+        (some #(= name (str (first %))) ask)
+        true
+
+        (some #(= name (str (first %))) allow)
+        false
+
+        (legacy-manual-approval? config)
+        true
+
+        :else
+        false))))
 
 (defn tool-call-summary [all-tools name args]
   (when-let [summary-fn (:summary-fn (first (filter #(= name (:name %))
