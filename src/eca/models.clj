@@ -47,6 +47,8 @@
                         :web-search (contains? models-with-web-search-support (name model))
                         :tools (get model-config "tool_call")
                         :max-output-tokens (get-in model-config ["limit" "output"])}
+                       :limit {:context (get-in model-config ["limit" "context"])
+                               :output (get-in model-config ["limit" "output"])}
                        :input-token-cost (some-> (get-in model-config ["cost" "input"]) float (/ one-million))
                        :output-token-cost (some-> (get-in model-config ["cost" "output"]) float (/ one-million))
                        :input-cache-creation-token-cost (some-> (get-in model-config ["cost" "cache_write"]) float (/ one-million))

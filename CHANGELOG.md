@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fix session-tokens in usage notifications.
+- Support context limit on usage notifications.
+
 ## 0.38.3
 
 - Fix anthropic token renew.
