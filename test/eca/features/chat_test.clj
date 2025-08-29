@@ -267,3 +267,36 @@
         (is (match?
              @invoked?
              [[{:role :user :content "test"}] test-chat-ctx]))))))
+
+(deftest message->decision-test
+  (testing "plain prompt message"
+    (is (= {:type :prompt-message
+            :message "Hello world"}
+           (#'f.chat/message->decision "Hello world"))))
+  (testing "ECA command without args"
+    (is (= {:type :eca-command
+            :command "help"
+            :args []}
+           (#'f.chat/message->decision "/help"))))
+  (testing "ECA command with args"
+    (is (= {:type :eca-command
+            :command "search"
+            :args ["foo" "bar"]}
+           (#'f.chat/message->decision "/search foo bar"))))
+  (testing "ECA command with args with spaces in quotes"
+    (is (= {:type :eca-command
+            :command "search"
+            :args ["foo bar" "baz" "qux bla blow"]}
+           (#'f.chat/message->decision "/search \"foo bar\" baz \"qux bla blow\""))))
+  (testing "MCP prompt without args"
+    (is (= {:type :mcp-prompt
+            :server "server"
+            :prompt "prompt"
+            :args []}
+           (#'f.chat/message->decision "/server:prompt"))))
+  (testing "MCP prompt with args"
+    (is (= {:type :mcp-prompt
+            :server "server"
+            :prompt "prompt"
+            :args ["arg1" "arg2"]}
+           (#'f.chat/message->decision "/server:prompt arg1 arg2")))))
