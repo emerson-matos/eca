@@ -194,8 +194,8 @@
 
 (defn all-tools [db]
   (into []
-        (mapcat (fn [[_name {:keys [tools]}]]
-                  tools))
+        (mapcat (fn [[name {:keys [tools]}]]
+                  (map #(assoc % :server name) tools)))
         (:mcp-clients db)))
 
 (defn call-tool! [^String name ^Map arguments db]

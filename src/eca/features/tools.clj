@@ -36,7 +36,7 @@
             f.tools.editor/definitions))))
 
 (defn ^:private native-tools [db config]
-  (vals (native-definitions db config)))
+  (mapv #(assoc % :server "eca") (vals (native-definitions db config))))
 
 (defn all-tools
   "Returns all available tools, including both native ECA tools
@@ -117,17 +117,30 @@
                                                                         (assoc :type :mcp)
                                                                         (update :tools #(mapv with-tool-status %)))))})))
 
-(defn legacy-manual-approval? [config]
+(defn legacy-manual-approval? [config tool-name]
   (let [manual-approval? (get-in config [:toolCall :manualApproval] nil)]
     (if (coll? manual-approval?)
-      (some #(= name (str %)) manual-approval?)
+      (some #(= tool-name (str %)) manual-approval?)
       manual-approval?)))
 
-(defn ^:private approval-matches? [[tool-name config] tool-call-name args]
-  (let [args-matchers (:argsMatchers config)]
+(defn ^:private approval-matches? [[server-or-full-tool-name config] tool-call-server tool-call-name args]
+  (let [args-matchers (:argsMatchers config)
+        [server-name tool-name] (if (string/includes? server-or-full-tool-name "__")
+                                  (string/split server-or-full-tool-name #"__" 2)
+                                  (if (string/starts-with? server-or-full-tool-name "eca_")
+                                    ["eca" server-or-full-tool-name]
+                                    [server-or-full-tool-name nil]))]
     (cond
-      ;; no config found for tool-call-name
-      (not= tool-call-name (str tool-name))
+      ;; specified server name in config
+      (and (nil? tool-name)
+           ;; but the name doesn't match
+           (not= tool-call-server server-name))
+      false
+
+      ;; tool or server not match
+      (and tool-name
+           (or (not= tool-call-server server-name)
+               (not= tool-call-name tool-name)))
       false
 
       (map? args-matchers)
@@ -142,35 +155,35 @@
 
 (defn manual-approval? [all-tools tool-call-name args db config]
   (boolean
-    (let [require-approval-fn (:require-approval-fn (first (filter #(= tool-call-name (:name %))
-                                                                   all-tools)))
-          {:keys [allow ask byDefault]} (get-in config [:toolCall :approval])]
-      (cond
-        (and require-approval-fn (require-approval-fn args {:db db}))
-        true
+   (let [{:keys [server require-approval-fn]} (first (filter #(= tool-call-name (:name %))
+                                                             all-tools))
+         {:keys [allow ask byDefault]} (get-in config [:toolCall :approval])]
+     (cond
+       require-approval-fn
+       (require-approval-fn args {:db db})
 
-        (some #(approval-matches? % tool-call-name args) ask)
-        true
+       (some #(approval-matches? % server tool-call-name args) ask)
+       true
 
-        (some #(approval-matches? % tool-call-name args) allow)
-        false
+       (some #(approval-matches? % server tool-call-name args) allow)
+       false
 
-        (legacy-manual-approval? config)
-        true
+       (legacy-manual-approval? config tool-call-name)
+       true
 
-        (= "ask" byDefault)
-        true
+       (= "ask" byDefault)
+       true
 
-        (= "allow" byDefault)
-        false
+       (= "allow" byDefault)
+       false
 
         ;; TODO suport :deny
         ;; (= "deny" byDefault)
         ;; false
 
         ;; A config error, default to manual approve
-        :else
-        true))))
+       :else
+       true))))
 
 (defn tool-call-summary [all-tools name args]
   (when-let [summary-fn (:summary-fn (first (filter #(= name (:name %))
