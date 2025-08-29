@@ -6,14 +6,14 @@
   3. local config-file: searching from a local `.eca/config.json` file.
   4. `initializatonOptions` sent in `initialize` request."
   (:require
-   [camel-snake-kebab.core :as csk]
    [cheshire.core :as json]
    [cheshire.factory :as json.factory]
    [clojure.core.memoize :as memoize]
    [clojure.java.io :as io]
    [clojure.string :as string]
    [eca.logger :as logger]
-   [eca.shared :as shared])
+   [eca.shared :as shared]
+   [camel-snake-kebab.core :as csk])
   (:import
    [java.io File]))
 
@@ -87,7 +87,7 @@
   (try
     (binding [json.factory/*json-factory* (json.factory/make-json-factory
                                            {:allow-comments true})]
-      (json/parse-string raw-string true))
+      (json/parse-string raw-string))
     (catch Exception e
       (logger/warn "Error parsing config json:" (.getMessage e)))))
 
@@ -138,49 +138,67 @@
 
 (def ollama-model-prefix "ollama/")
 
-(defn ^:private normalize-providers [providers]
-  (letfn [(norm-key [k]
-            (csk/->kebab-case (string/replace-first (str k) ":" "")))]
-    (reduce-kv (fn [m k v]
-                 (let [nk (norm-key k)]
-                   (if (contains? m nk)
-                     (update m nk #(deep-merge % v))
-                     (assoc m nk v))))
-               {}
-               providers)))
+(defn ^:private normalize-fields
+  "Converts a deep nested map where keys are strings to keywords.
+   normalization-rules follow the nest order, :ANY means any field name.
+    :kebab-case means convert field names to kebab-case.
+    :stringfy means convert field names to strings."
+  [normalization-rules m]
+  (let [kc-paths (set (:kebab-case normalization-rules))
+        str-paths (set (:stringfy normalization-rules))
+        ; match a current path against a rule path with :ANY wildcard
+        matches-path? (fn [rule-path cur-path]
+                        (and (= (count rule-path) (count cur-path))
+                             (every? true?
+                                     (map (fn [rp cp]
+                                            (or (= rp :ANY)
+                                                (= rp cp)))
+                                          rule-path cur-path))))
+        applies? (fn [paths cur-path]
+                   (some #(matches-path? % cur-path) paths))
+        normalize-map (fn normalize-map [cur-path m*]
+                        (cond
+                          (map? m*)
+                          (let [apply-kebab? (applies? kc-paths cur-path)
+                                apply-string? (applies? str-paths cur-path)]
+                            (into {}
+                                  (map (fn [[k v]]
+                                         (let [base-name (cond
+                                                           (keyword? k) (name k)
+                                                           (string? k) k
+                                                           :else (str k))
+                                               kebabed (if apply-kebab?
+                                                         (csk/->kebab-case base-name)
+                                                         base-name)
+                                               new-k (if apply-string?
+                                                       kebabed
+                                                       (keyword kebabed))
+                                               new-v (normalize-map (conj cur-path new-k) v)]
+                                           [new-k new-v])))
+                                  m*))
 
-(defn ^:private normalize-provider-models [provider]
-  (let [models (or (:models provider)
-                   (get provider "models"))
-        models' (when models
-                  (into {}
-                        (map (fn [[k v]]
-                               [(if (or (keyword? k) (symbol? k))
-                                  (string/replace-first (str k) ":" "")
-                                  (str k))
-                                v])
-                             models)))
-        provider' (dissoc provider "models")]
-    (if models'
-      (assoc provider' :models models')
-      provider')))
+                          (sequential? m*)
+                          (mapv #(normalize-map cur-path %) m*)
 
-(defn ^:private normalize-fields [config]
-  (-> config
-      (update-in [:providers]
-                 (fn [providers]
-                   (when providers
-                     (-> (normalize-providers providers)
-                         (update-vals normalize-provider-models)))))
-      (update-in [:toolCall :approval :allow] update-keys name)
-      (update-in [:toolCall :approval :ask] update-keys name)))
+                          :else m*))]
+    (normalize-map [] m)))
 
 (defn all [db]
   (let [initialization-config @initialization-config*
         pure-config? (:pureConfig initialization-config)]
-    (normalize-fields
-     (deep-merge initial-config
-                 initialization-config
-                 (when-not pure-config? (config-from-envvar))
-                 (when-not pure-config? (config-from-global-file))
-                 (when-not pure-config? (config-from-local-file (:workspace-folders db)))))))
+    (deep-merge initial-config
+                (normalize-fields
+                 {:kebab-case
+                  [[:providers]]
+                  :stringfy
+                  [[:providers]
+                   [:providers :ANY :models]
+                   [:toolCall :approval :allow]
+                   [:toolCall :approval :allow :ANY :argsMatchers]
+                   [:toolCall :approval :ask]
+                   [:toolCall :approval :ask :ANY :argsMatchers]
+                   [:mcpServers]]}
+                 (deep-merge initialization-config
+                             (when-not pure-config? (config-from-envvar))
+                             (when-not pure-config? (config-from-global-file))
+                             (when-not pure-config? (config-from-local-file (:workspace-folders db))))))))

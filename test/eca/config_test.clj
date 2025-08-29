@@ -73,21 +73,33 @@
                                :providers {"github-copilot" {:key "123"}}})))))
 
 (deftest normalize-fields-test
-  (is (match?
-       {:pureConfig true
-        :providers {"custom-provider" {:key "123"
-                                       :models {"gpt-5" {}}}
-                    "openrouter" {:models {"openai/o4-mini" {}}}}}
-       (#'config/normalize-fields {:pureConfig true
-                                   :providers {"custom-provider" {:key "123"
-                                                                  :models {"gpt-5" {}}}
-                                               "openrouter" {:models {"openai/o4-mini" {}}}}})))
-  (is (match?
-       {:pureConfig true
-        :providers {"custom-provider" {:key "123"
-                                       :models {"gpt-5" {}}}
-                    "openrouter" {:models {"openai/o4-mini" {}}}}}
-       (#'config/normalize-fields {:pureConfig true
-                                   :providers {:customProvider {:key "123"
-                                                                :models {"gpt-5" {}}}
-                                               :openrouter {:models {:openai/o4-mini {}}}}}))))
+  (testing "stringfy only passed rules"
+    (is (match?
+         {:pureConfig true
+          :providers {"custom-provider" {:key "123"
+                                         :models {"gpt-5" {}}}
+                      "openrouter" {:models {"openai/o4-mini" {}}}}}
+         (#'config/normalize-fields
+          {:stringfy
+           [[:providers]
+            [:providers :ANY :models]]}
+          {"pureConfig" true
+           "providers" {"custom-provider" {"key" "123"
+                                           "models" {"gpt-5" {}}}
+                        "openrouter" {"models" {"openai/o4-mini" {}}}}}))))
+  (testing "kebab-case only passed rules"
+    (is (match?
+         {:pureConfig true
+          :providers {"custom-provider" {:key "123"
+                                         :models {"gpt-5" {}}}
+                      "open-router" {:models {"openAi/o4-mini" {}}}}}
+         (#'config/normalize-fields
+          {:stringfy
+           [[:providers]
+            [:providers :ANY :models]]
+           :kebab-case
+           [[:providers]]}
+          {"pureConfig" true
+           "providers" {"customProvider" {"key" "123"
+                                          "models" {"gpt-5" {}}}
+                        "open-router" {"models" {"openAi/o4-mini" {}}}}})))))
