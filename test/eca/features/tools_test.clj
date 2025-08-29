@@ -60,3 +60,51 @@
                                                                              :parameters {}}}]
            (f.tools/all-tools "agent" {:workspace-folders [{:name "foo" :uri (h/file-uri "file:///path/to/project/foo")}]}
                               {:nativeTools {:filesystem {:enabled true}}}))))))
+
+(deftest manual-approval?-test
+  (testing "require-approval-fn forces manual approval"
+    (let [all-tools [{:name "my_tool" :require-approval-fn (fn [_ _] true)}]
+          conf {}]
+      (is (true? (f.tools/manual-approval? all-tools "my_tool" {:x 1} {} conf)))))
+
+  (testing "ask with args match requests approval"
+    (let [all-tools []
+          conf {:toolCall {:approval {:ask {"my_tool" {:argsMatchers {"path" [".*\\.ya?ml$"]}}}}}}]
+      (is (true? (f.tools/manual-approval? all-tools "my_tool" {"path" "config.yaml"} {} conf)))))
+
+  (testing "allow without args matchers allows without approval"
+    (let [all-tools []
+          conf {:toolCall {:approval {:allow {"my_tool" {}}}}}]
+      (is (false? (f.tools/manual-approval? all-tools "my_tool" {} {} conf)))))
+
+  (testing "ask has priority over allow"
+    (let [all-tools []
+          conf {:toolCall {:approval {:ask {"my_tool" {}}
+                                      :allow {"my_tool" {}}}}}]
+      (is (true? (f.tools/manual-approval? all-tools "my_tool" {} {} conf)))))
+
+  (testing "legacy manualApproval boolean true forces approval"
+    (let [all-tools []
+          conf {:toolCall {:manualApproval true}}]
+      (is (true? (f.tools/manual-approval? all-tools "my_tool" {} {} conf)))))
+
+  (testing "byDefault ask"
+    (let [all-tools []
+          conf {:toolCall {:approval {:byDefault "ask"}}}]
+      (is (true? (f.tools/manual-approval? all-tools "my_tool" {} {} conf)))))
+
+  (testing "byDefault allow"
+    (let [all-tools []
+          conf {:toolCall {:approval {:byDefault "allow"}}}]
+      (is (false? (f.tools/manual-approval? all-tools "my_tool" {} {} conf)))))
+
+  (testing "ask entry with non-matching args falls back to byDefault"
+    (let [all-tools []
+          conf {:toolCall {:approval {:ask {"my_tool" {:argsMatchers {"path" ["\\.json$"]}}}
+                                      :byDefault "allow"}}}]
+      (is (false? (f.tools/manual-approval? all-tools "my_tool" {"path" "file.yaml"} {} conf)))))
+
+  (testing "missing approval config defaults to manual approval"
+    (let [all-tools []
+          conf {}]
+      (is (true? (f.tools/manual-approval? all-tools "my_tool" {} {} conf))))))

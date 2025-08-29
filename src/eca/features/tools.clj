@@ -138,28 +138,39 @@
             args-matchers)
 
       :else
-      false)))
+      true)))
 
 (defn manual-approval? [all-tools tool-call-name args db config]
   (boolean
-   (let [require-approval-fn (:require-approval-fn (first (filter #(= tool-call-name (:name %))
-                                                                  all-tools)))
-         {:keys [allow ask]} (get-in config [:toolCall :approval])]
-     (cond
-       (and require-approval-fn (require-approval-fn args {:db db}))
-       true
+    (let [require-approval-fn (:require-approval-fn (first (filter #(= tool-call-name (:name %))
+                                                                   all-tools)))
+          {:keys [allow ask byDefault]} (get-in config [:toolCall :approval])]
+      (cond
+        (and require-approval-fn (require-approval-fn args {:db db}))
+        true
 
-       (some #(approval-matches? % tool-call-name args) ask)
-       true
+        (some #(approval-matches? % tool-call-name args) ask)
+        true
 
-       (some #(approval-matches? % tool-call-name args) allow)
-       false
+        (some #(approval-matches? % tool-call-name args) allow)
+        false
 
-       (legacy-manual-approval? config)
-       true
+        (legacy-manual-approval? config)
+        true
 
-       :else
-       false))))
+        (= "ask" byDefault)
+        true
+
+        (= "allow" byDefault)
+        false
+
+        ;; TODO suport :deny
+        ;; (= "deny" byDefault)
+        ;; false
+
+        ;; A config error, default to manual approve
+        :else
+        true))))
 
 (defn tool-call-summary [all-tools name args]
   (when-let [summary-fn (:summary-fn (first (filter #(= name (:name %))

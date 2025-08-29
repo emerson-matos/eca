@@ -57,17 +57,9 @@
                          :excludeCommands []}
                  :editor {:enabled true}}
    :disabledTools []
-   :toolCall {:approval {:allow {"eca_shell_command" {}
-                                 "eca_editor_diagnostics" {}
-                                 "eca_directory_tree" {}
-                                 "eca_write_file" {}
-                                 "eca_edit_file" {}
-                                 "eca_preview_file_change" {}
-                                 "eca_move_file" {}
-                                 "eca_read_file" {}
-                                 "eca_grep" {}}
-                         :ask {"eca_shell_command" {:argsMatchers {"command" [".*rm\\s.*"
-                                                                              ".*mv\\s.*"]}}}}}
+   :toolCall {:approval {:byDefault "ask"
+                         :allow {}
+                         :ask {}}}
    :mcpTimeoutSeconds 60
    :lspTimeoutSeconds 30
    :mcpServers {}
