@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix command prompts to allow args with spaces between quotes.
+
 ## 0.38.1
 
 - Fix graalvm properties.
