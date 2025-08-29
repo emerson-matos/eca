@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.38.2
+
 - Fix command prompts to allow args with spaces between quotes.
 - Fix anthropic token renew when expires.
 
