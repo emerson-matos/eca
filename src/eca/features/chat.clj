@@ -76,27 +76,29 @@
                   :message-cost (shared/tokens->cost input-tokens input-cache-creation-tokens input-cache-read-tokens output-tokens full-model db)
                   :session-cost (shared/tokens->cost total-input-tokens total-input-cache-creation-tokens total-input-cache-read-tokens total-output-tokens full-model db)))))
 
+(defn ^:private tokenize-args [^String s]
+  (if (string/blank? s)
+    []
+    (->> (re-seq #"\s*\"([^\"]*)\"|\s*([^\s]+)" s)
+         (map (fn [[_ quoted unquoted]] (or quoted unquoted)))
+         (vec))))
+
 (defn ^:private message->decision [message]
-  (let [slash? (string/starts-with? message "/")
-        mcp-prompt? (string/includes? (first (string/split message #" ")) ":")]
-    (cond
-      (and slash? mcp-prompt?)
+  (let [slash? (string/starts-with? message "/")]
+    (if slash?
       (let [command (subs message 1)
-            parts (string/split command #" ")
-            [server] (string/split command #":")]
-        {:type :mcp-prompt
-         :server server
-         :prompt (second (string/split (first parts) #":"))
-         :args (vec (rest parts))})
-
-      slash?
-      (let [command (subs message 1)
-            parts (string/split command #" ")]
-        {:type :eca-command
-         :command (first parts)
-         :args (vec (rest parts))})
-
-      :else
+            tokens (let [toks (tokenize-args command)] (if (seq toks) toks [""]))
+            first-token (first tokens)
+            args (vec (rest tokens))]
+        (if (and first-token (string/includes? first-token ":"))
+          (let [[server prompt] (string/split first-token #":" 2)]
+            {:type :mcp-prompt
+             :server server
+             :prompt prompt
+             :args args})
+          {:type :eca-command
+           :command first-token
+           :args args}))
       {:type :prompt-message
        :message message})))
 
@@ -230,15 +232,15 @@
                                                                                                              :origin origin)})
                                                   (send-content! chat-ctx :assistant
                                                                  (assoc-some
-                                                                   {:type :toolCalled
-                                                                    :origin origin
-                                                                    :name name
-                                                                    :arguments arguments
-                                                                    :error (:error result)
-                                                                    :id id
-                                                                    :outputs (:contents result)}
-                                                                   :details details
-                                                                   :summary summary))))
+                                                                  {:type :toolCalled
+                                                                   :origin origin
+                                                                   :name name
+                                                                   :arguments arguments
+                                                                   :error (:error result)
+                                                                   :id id
+                                                                   :outputs (:contents result)}
+                                                                  :details details
+                                                                  :summary summary))))
                                               (do
                                                 (add-to-history! {:role "tool_call" :content tool-call})
                                                 (add-to-history! {:role "tool_call_output"

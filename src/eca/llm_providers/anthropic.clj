@@ -251,6 +251,7 @@
                                url
                                {:headers {"Content-Type" "application/json"}
                                 :body (json/generate-string body)
+                                :throw-exceptions? false
                                 :as :json})]
     (if (= 200 status)
       {:refresh-token (:refresh_token body)
@@ -341,8 +342,8 @@
     (send-msg! (format "Invalid API key '%s'" input))))
 
 (defmethod f.login/login-step ["anthropic" :login/renew-token] [{:keys [db* provider]}]
-  (let [{:keys [access-token refresh-token expires-at]} (get-in @db* [:auth provider])
-        {:keys []} (oauth-refresh refresh-token)]
+  (let [{:keys [refresh-token]} (get-in @db* [:auth provider])
+        {:keys [refresh-token access-token expires-at]} (oauth-refresh refresh-token)]
     (swap! db* update-in [:auth provider] merge {:step :login/done
                                                  :type :auth/oauth
                                                  :refresh-token refresh-token

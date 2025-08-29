@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix command prompts to allow args with spaces between quotes.
+- Fix anthropic token renew when expires.
 - Considerably improve toolCall approval / permissions config.
   - Now with thave multiple optiosn to ask or allow tool calls, check config section.
 
