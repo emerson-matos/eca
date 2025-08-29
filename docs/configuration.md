@@ -74,9 +74,77 @@ For MCP servers configuration, use the `mcpServers` config, example:
 }
 ```
 
-### Manual approval
+### Tool approval / permissions
 
-By default, ECA auto approve any tool call from LLM, to configure that or for which tools, check `toolCall manualApproval` config or try the `plan` behavior before.
+By default, ECA ask to call any tool, but that's can easily be configureed in many ways via the `toolCall approval` config
+
+Check some examples:
+
+=== "Allow any tools by default"
+
+   ```javascript
+   {
+     "toolCall": {
+       "approval": {
+         "byDefault": "allow"
+       }
+     }
+   }
+   ```
+
+=== "Allow all but some tools"
+
+   ```javascript
+   {
+     "toolCall": {
+       "approval": {
+         "byDefault": "allow",
+         "ask": {
+           "eca_editfile": {},
+           "my-mcp__my_tool": {}
+         }
+       }
+     }
+   }
+   ```
+
+=== "Ask all but all tools from some mcps"
+
+   ```javascript
+   {
+     "toolCall": {
+       "approval": {
+         // "byDefault": "ask", not needed as it's eca default
+         "allow": {
+           "eca": {},
+           "my-mcp": {}
+         }
+       }
+     }
+   }
+   ```
+   
+=== "Matching by a tool argument"
+
+  __`argsMatchers`__ is a map of argument name by list of [java regex](https://www.regexplanet.com/advanced/java/index.html).
+
+   ```javascript
+   {
+     "toolCall": {
+       "approval": {
+         "byDefault": "allow",
+         "allow": {
+           "eca_shell_command": {"argsMatchers" {"command" [".*rm.*"
+                                                           ".*mv.*"]}}
+         }
+       }
+     }
+   }
+   ```
+
+Also check the `plan` behavior which is safer.
+
+__The `manualApproval` setting was deprecated and replaced by the `approval` one without breaking changes__
 
 ## Custom command prompts
 
@@ -188,6 +256,7 @@ There are 3 possible ways to configure rules following this order of priority:
         disabledTools?: string[],
         toolCall?: {
           approval?: {
+            byDefault: 'ask' | 'allow';
             allow?: {{key: string}: {argsMatchers?: {{[key]: string}: string[]}}},
             ask?: {{key: string}: {argsMatchers?: {{[key]: string}: string[]}}},
           };
@@ -238,13 +307,9 @@ There are 3 possible ways to configure rules following this order of priority:
       "disabledTools": [],
       "toolCall": {
         "approval": {
-          "allow": {
-            "eca_edit_file": {}
-            // ... all other eca tools
-          },
-          "ask": {
-            "eca_shell_command": {"argsMatchers": {"command" [".*rm\\s.*", ".*mv\\s.*"]}}
-          }
+          "byDefault": "ask",
+          "allow": {},
+          "ask": {}
         }
       },
       "mcpTimeoutSeconds" : 60,
