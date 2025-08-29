@@ -185,11 +185,11 @@ There are 3 possible ways to configure rules following this order of priority:
                     excludeCommands: string[]};
             editor: {enabled: boolean,};
         };
-        disabledTools: string[],
+        disabledTools?: string[],
         toolCall?: {
-          approval: {
-            allow: {{key: string}: {}},
-            ask: {{key: string}: {}},
+          approval?: {
+            allow?: {{key: string}: {argsMatchers?: {{[key]: string}: string[]}}},
+            ask?: {{key: string}: {argsMatchers?: {{[key]: string}: string[]}}},
           };
         };
         mcpTimeoutSeconds: number;
@@ -240,9 +240,11 @@ There are 3 possible ways to configure rules following this order of priority:
         "approval": {
           "allow": {
             "eca_edit_file": {}
-            // ... all eca tools
+            // ... all other eca tools
           },
-          "ask": {},
+          "ask": {
+            "eca_shell_command": {"argsMatchers": {"command" [".*rm\\s.*", ".*mv\\s.*"]}}
+          }
         }
       },
       "mcpTimeoutSeconds" : 60,
