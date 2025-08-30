@@ -185,9 +185,9 @@ Only set this when your provider uses a different path or expects query paramete
           "url": "https://api.deepseek.com", // or "urlEnv"
           "key": "your-api-key", // or "keyEnv"
           "models": {
-            "deepseek-chat": {"extraPayload": {"max_tokens": 8192}},
-            "deepseek-coder": {"extraPayload": {"max_tokens": 8192}},
-            "deepseek-reasoner": {"extraPayload": {"max_tokens": 8192}}
+            "deepseek-chat": {},
+            "deepseek-coder": {},
+            "deepseek-reasoner": {} 
            }
         }
       }
@@ -222,8 +222,8 @@ Only set this when your provider uses a different path or expects query paramete
           "url": "https://api.z.ai/api/anthropic",
           "key": "your-api-key", // or "keyEnv"
           "models": {
-            "GLM-4.5": {"extraPayload": {"max_tokens": 8192}},
-            "GLM-4.5-Air": {"extraPayload": {"max_tokens": 8192}}
+            "GLM-4.5": {},
+            "GLM-4.5-Air": {}
            }
         }
       }
