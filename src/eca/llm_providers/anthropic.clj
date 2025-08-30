@@ -106,7 +106,6 @@
    {:keys [on-message-received on-error on-reason on-prepare-tool-call on-tools-called on-usage-updated]}]
   (let [messages (concat (normalize-messages past-messages)
                          (normalize-messages user-messages))
-        thinking (:thinking extra-payload)
         body (merge (assoc-some
                      {:model model
                       :messages (add-cache-to-last-message messages)
@@ -116,8 +115,8 @@
                       :tools (->tools tools web-search)
                       :system [{:type "text" :text "You are Claude Code, Anthropic's official CLI for Claude."}
                                {:type "text" :text instructions :cache_control {:type "ephemeral"}}]}
-                     :thinking (when (and reason? thinking)
-                                 thinking))
+                     :thinking (when reason?
+                                 {:type "enabled" :budget_tokens 2048}))
                     extra-payload)
 
         on-response-fn
