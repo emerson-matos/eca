@@ -108,7 +108,7 @@
         body (merge (assoc-some
                      {:model model
                       :messages (add-cache-to-last-message messages)
-                      :max_tokens (or max-output-tokens {:max_tokens 8192})
+                      :max_tokens (or max-output-tokens {:max_tokens 32000})
                       :stream true
                       :tools (->tools tools web-search)
                       :system [{:type "text" :text "You are Claude Code, Anthropic's official CLI for Claude."}
