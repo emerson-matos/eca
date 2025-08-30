@@ -200,7 +200,6 @@ There are 3 possible ways to configure rules following this order of priority:
             defaultBehavior?: string;
             welcomeMessage?: string;
         };
-        agentFileRelativePath?: string;
         index?: {
             ignoreFiles: [{
                 type: string;
@@ -243,7 +242,6 @@ There are 3 possible ways to configure rules following this order of priority:
         "defaultBehavior": "agent"
         "welcomeMessage" : "Welcome to ECA!\n\nType '/' for commands\n\n"
       },
-      "agentFileRelativePath": "AGENTS.md"
       "index" : {
         "ignoreFiles" : [ {
           "type" : "gitignore"

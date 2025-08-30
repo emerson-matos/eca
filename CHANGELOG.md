@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- drop `agentFileRelativePath` in favor of behaviors customizations in the future.
+
 ## 0.39.0
 
 - Fix session-tokens in usage notifications.
