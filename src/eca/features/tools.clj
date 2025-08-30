@@ -159,8 +159,8 @@
                                                              all-tools))
          {:keys [allow ask byDefault]} (get-in config [:toolCall :approval])]
      (cond
-       require-approval-fn
-       (require-approval-fn args {:db db})
+       (and require-approval-fn (require-approval-fn args {:db db}))
+       true
 
        (some #(approval-matches? % server tool-call-name args) ask)
        true

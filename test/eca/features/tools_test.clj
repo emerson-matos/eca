@@ -72,8 +72,8 @@
                    {:name "download" :server "web"}]]
     (testing "tool has require-approval-fn which returns true"
       (is (true? (f.tools/manual-approval? all-tools "eca_shell" {} {} {}))))
-    (testing "tool has require-approval-fn which returns false"
-      (is (false? (f.tools/manual-approval? all-tools "eca_plan" {} {} {}))))
+    (testing "tool has require-approval-fn which returns false we ignore it"
+      (is (true? (f.tools/manual-approval? all-tools "eca_plan" {} {} {}))))
     (testing "if legacy-manual-approval present, considers it"
       (is (true? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:manualApproval true}}))))
     (testing "if approval config is provided"
@@ -91,7 +91,9 @@
                                                {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}}))))
         (testing "has arg and matches"
           (is (false? (f.tools/manual-approval? all-tools "request" {"url" "http://foo.com"} {}
-                                                {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}}))))
+                                                {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}})))
+          (is (false? (f.tools/manual-approval? all-tools "request" {"url" "foobar"} {}
+                                                {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" ["foo.*"]}}}}}}))))
         (testing "has not that arg"
           (is (true? (f.tools/manual-approval? all-tools "request" {"crazy-url" "http://foo.com"} {}
                                                 {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}}))))))
