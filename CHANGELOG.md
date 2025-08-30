@@ -4,6 +4,7 @@
 
 - Fix session-tokens in usage notifications.
 - Support context limit on usage notifications.
+- Fix session/message tokens calculation.
 
 ## 0.38.3
 

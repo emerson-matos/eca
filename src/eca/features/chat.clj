@@ -68,8 +68,7 @@
           total-input-tokens (get-in db [:chats chat-id :total-input-tokens] 0)
           total-input-cache-creation-tokens (get-in db [:chats chat-id :total-input-cache-creation-tokens] nil)
           total-input-cache-read-tokens (get-in db [:chats chat-id :total-input-cache-read-tokens] nil)
-          total-input-cache-tokens (+ (or total-input-cache-creation-tokens 0)
-                                      (or total-input-cache-read-tokens 0))
+          total-input-cache-tokens (or total-input-cache-read-tokens 0)
           total-output-tokens (get-in db [:chats chat-id :total-output-tokens] 0)
           model-capabilities (get-in db [:models full-model])]
       (assoc-some {:message-output-tokens output-tokens
