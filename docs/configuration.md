@@ -76,65 +76,65 @@ Check some examples:
 
 === "Allow any tools by default"
 
-   ```javascript
-   {
-     "toolCall": {
-       "approval": {
-         "byDefault": "allow"
-       }
-     }
-   }
-   ```
+    ```javascript
+    {
+      "toolCall": {
+        "approval": {
+          "byDefault": "allow"
+        }
+      }
+    }
+    ```
 
 === "Allow all but some tools"
 
-   ```javascript
-   {
-     "toolCall": {
-       "approval": {
-         "byDefault": "allow",
-         "ask": {
-           "eca_editfile": {},
-           "my-mcp__my_tool": {}
-         }
-       }
-     }
-   }
-   ```
+    ```javascript
+    {
+      "toolCall": {
+        "approval": {
+          "byDefault": "allow",
+          "ask": {
+            "eca_editfile": {},
+            "my-mcp__my_tool": {}
+          }
+        }
+      }
+    }
+    ```
 
 === "Ask all but all tools from some mcps"
 
-   ```javascript
-   {
-     "toolCall": {
-       "approval": {
-         // "byDefault": "ask", not needed as it's eca default
-         "allow": {
-           "eca": {},
-           "my-mcp": {}
-         }
-       }
-     }
-   }
-   ```
+    ```javascript
+    {
+      "toolCall": {
+        "approval": {
+          // "byDefault": "ask", not needed as it's eca default
+          "allow": {
+            "eca": {},
+            "my-mcp": {}
+          }
+        }
+      }
+    }
+    ```
    
 === "Matching by a tool argument"
 
-  __`argsMatchers`__ is a map of argument name by list of [java regex](https://www.regexplanet.com/advanced/java/index.html).
+    __`argsMatchers`__ is a map of argument name by list of [java regex](https://www.regexplanet.com/advanced/java/index.html).
 
-   ```javascript
-   {
-     "toolCall": {
-       "approval": {
-         "byDefault": "allow",
-         "allow": {
-           "eca_shell_command": {"argsMatchers" {"command" [".*rm.*",
-                                                            ".*mv.*"]}}
-         }
-       }
-     }
-   }
-   ```
+    ```javascript
+    {
+      "toolCall": {
+        "approval": {
+          "byDefault": "allow",
+          "allow": {
+            "eca_shell_command": {"argsMatchers" {"command" [".*rm.*",
+                                                             ".*mv.*"]}}
+          }
+        }
+      }
+    }
+    ```
 
 Also check the `plan` behavior which is safer.
 
