@@ -164,7 +164,7 @@ There are 3 possible ways to configure rules following this order of priority:
 
     ```typescript
     interface Config {
-        providers: {[key: string]: {
+        providers?: {[key: string]: {
             api?: 'openai-responses' | 'openai-chat' | 'anthropic';
             url?: string;
             urlEnv?: string;
@@ -176,8 +176,8 @@ There are 3 possible ways to configure rules following this order of priority:
             }};
         }};
         defaultModel?: string;
-        rules: [{path: string;}];
-        commands: [{path: string;}];
+        rules?: [{path: string;}];
+        commands?: [{path: string;}];
         systemPromptTemplateFile?: string;
         nativeTools?: {
             filesystem: {enabled: boolean};
@@ -185,13 +185,13 @@ There are 3 possible ways to configure rules following this order of priority:
                     excludeCommands: string[]};
             editor: {enabled: boolean,};
         };
-        disabledTools: string[],
+        disabledTools?: string[],
         toolCall?: {
           manualApproval?: boolean | string[], // manual approve all tools or the specified tools
         };
-        mcpTimeoutSeconds: number;
-        lspTimeoutSeconds: number;
-        mcpServers: {[key: string]: {
+        mcpTimeoutSeconds?: number;
+        lspTimeoutSeconds?: number;
+        mcpServers?: {[key: string]: {
             command: string;
             args?: string[];
             disabled?: boolean;
@@ -200,7 +200,7 @@ There are 3 possible ways to configure rules following this order of priority:
             defaultBehavior?: string;
             welcomeMessage?: string;
         };
-        agentFileRelativePath: string;
+        agentFileRelativePath?: string;
         index?: {
             ignoreFiles: [{
                 type: string;
