@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Improve anthropic extraPayload requirement when adding models.
+- Add message to when config failed to be parsed.
 
 ## 0.40.0
 

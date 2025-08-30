@@ -9,6 +9,7 @@
    [eca.features.tools.mcp :as f.mcp]
    [eca.llm-api :as llm-api]
    [eca.logger :as logger]
+   [eca.messenger :as messenger]
    [eca.models :as models]
    [eca.shared :as shared]))
 
@@ -49,12 +50,11 @@
                   ollama-models)]
       (swap! db* update :models merge models))))
 
-(defn initialize [{:keys [db*]} params]
+(defn initialize [{:keys [db* messenger]} params]
   (logger/logging-task
    :eca/initialize
    (reset! config/initialization-config* (shared/map->camel-cased-map (:initialization-options params)))
    (let [config (config/all @db*)]
-     (logger/debug "Considered config: " config)
      (swap! db* assoc
             :client-info (:client-info params)
             :workspace-folders (:workspace-folders params)
@@ -62,6 +62,16 @@
      (initialize-models! db* config)
      (when-not (:pureConfig config)
        (db/load-db-from-cache! db*))
+     (future
+       (Thread/sleep 1000) ;; wait chat window is open in some editors.
+       (when-let [error (config/validation-error)]
+         (messenger/chat-content-received
+          messenger
+          {:role "system"
+           :content {:type :text
+                     :text (format "\nFailed to parse '%s' config, check stderr logs, double check your config and restart\n"
+                                   error)}})))
+     (logger/debug "Considered config: " config)
      {:models (sort (keys (:models @db*)))
       :chat-default-model (f.chat/default-model @db* config)
       :chat-behaviors (:chat-behaviors @db*)

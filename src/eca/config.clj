@@ -6,18 +6,24 @@
   3. local config-file: searching from a local `.eca/config.json` file.
   4. `initializatonOptions` sent in `initialize` request."
   (:require
+   [camel-snake-kebab.core :as csk]
    [cheshire.core :as json]
    [cheshire.factory :as json.factory]
    [clojure.core.memoize :as memoize]
    [clojure.java.io :as io]
    [clojure.string :as string]
    [eca.logger :as logger]
-   [eca.shared :as shared]
-   [camel-snake-kebab.core :as csk])
+   [eca.shared :as shared])
   (:import
    [java.io File]))
 
 (set! *warn-on-reflection* true)
+
+(def ^:private logger-tag "[CONFIG]")
+
+(def ^:dynamic *env-var-config-error* false)
+(def ^:dynamic *global-config-error* false)
+(def ^:dynamic *local-config-error* false)
 
 (def initial-config
   {:providers {"openai" {:api "openai-responses"
@@ -74,17 +80,19 @@
 
 (def ^:private ttl-cache-config-ms 5000)
 
-(defn ^:private safe-read-json-string [raw-string]
+(defn ^:private safe-read-json-string [raw-string config-dyn-var]
   (try
+    (alter-var-root config-dyn-var (constantly false))
     (binding [json.factory/*json-factory* (json.factory/make-json-factory
                                            {:allow-comments true})]
       (json/parse-string raw-string))
     (catch Exception e
-      (logger/warn "Error parsing config json:" (.getMessage e)))))
+      (alter-var-root config-dyn-var (constantly true))
+      (logger/warn logger-tag "Error parsing config json:" (.getMessage e)))))
 
 (defn ^:private config-from-envvar* []
   (some-> (System/getenv "ECA_CONFIG")
-          (safe-read-json-string)))
+          (safe-read-json-string (var *env-var-config-error*))))
 
 (def ^:private config-from-envvar (memoize config-from-envvar*))
 
@@ -96,7 +104,7 @@
 (defn ^:private config-from-global-file* []
   (let [config-file (io/file (global-config-dir) "config.json")]
     (when (.exists config-file)
-      (safe-read-json-string (slurp config-file)))))
+      (safe-read-json-string (slurp config-file) (var *global-config-error*)))))
 
 (def ^:private config-from-global-file (memoize/ttl config-from-global-file* :ttl/threshold ttl-cache-config-ms))
 
@@ -107,7 +115,7 @@
       final-config
       (let [config-file (io/file (shared/uri->filename uri) ".eca" "config.json")]
         (when (.exists config-file)
-          (safe-read-json-string (slurp config-file))))))
+          (safe-read-json-string (slurp config-file) (var *local-config-error*))))))
    {}
    roots))
 
@@ -193,3 +201,12 @@
                              (when-not pure-config? (config-from-envvar))
                              (when-not pure-config? (config-from-global-file))
                              (when-not pure-config? (config-from-local-file (:workspace-folders db))))))))
+
+(defn validation-error []
+  (cond
+    *env-var-config-error* "ENV"
+    *global-config-error* "global"
+    *local-config-error* "local"
+
+    ;; all good
+    :else nil))
