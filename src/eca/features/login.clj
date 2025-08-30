@@ -54,4 +54,5 @@
   (login-step
    {:provider provider
     :step :login/renew-token
-    :db* db*}))
+    :db* db*})
+  (db/update-global-cache! @db*))

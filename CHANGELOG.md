@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.39.0
+
+- Fix session-tokens in usage notifications.
+- Support context limit on usage notifications.
+- Fix session/message tokens calculation.
+
+## 0.38.3
+
+- Fix anthropic token renew.
+
+## 0.38.2
+
 - Fix command prompts to allow args with spaces between quotes.
 - Fix anthropic token renew when expires.
 - Considerably improve toolCall approval / permissions config.

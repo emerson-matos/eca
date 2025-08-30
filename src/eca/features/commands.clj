@@ -183,13 +183,14 @@
                     total-input-cache-creation-tokens (get-in db [:chats chat-id :total-input-cache-creation-tokens] nil)
                     total-input-cache-read-tokens (get-in db [:chats chat-id :total-input-cache-read-tokens] nil)
                     total-output-tokens (get-in db [:chats chat-id :total-output-tokens] 0)
+                    model-capabilities (get-in db [:models full-model])
                     text (multi-str (str "Total input tokens: " total-input-tokens)
                                     (when total-input-cache-creation-tokens
                                       (str "Total input cache creation tokens: " total-input-cache-creation-tokens))
                                     (when total-input-cache-read-tokens
                                       (str "Total input cache read tokens: " total-input-cache-read-tokens))
                                     (str "Total output tokens: " total-output-tokens)
-                                    (str "Total cost: $" (shared/tokens->cost total-input-tokens total-input-cache-creation-tokens total-input-cache-read-tokens total-output-tokens full-model db)))]
+                                    (str "Total cost: $" (shared/tokens->cost total-input-tokens total-input-cache-creation-tokens total-input-cache-read-tokens total-output-tokens model-capabilities)))]
                 {:type :chat-messages
                  :chats {chat-id [{:role "system" :content [{:type :text :text text}]}]}})
       "config" {:type :chat-messages

@@ -68,13 +68,15 @@
           total-input-tokens (get-in db [:chats chat-id :total-input-tokens] 0)
           total-input-cache-creation-tokens (get-in db [:chats chat-id :total-input-cache-creation-tokens] nil)
           total-input-cache-read-tokens (get-in db [:chats chat-id :total-input-cache-read-tokens] nil)
-          total-input-cache-tokens (or total-input-cache-creation-tokens 0)
-          total-output-tokens (get-in db [:chats chat-id :total-output-tokens] 0)]
+          total-input-cache-tokens (or total-input-cache-read-tokens 0)
+          total-output-tokens (get-in db [:chats chat-id :total-output-tokens] 0)
+          model-capabilities (get-in db [:models full-model])]
       (assoc-some {:message-output-tokens output-tokens
                    :message-input-tokens (+ input-tokens message-input-cache-tokens)
                    :session-tokens (+ total-input-tokens total-input-cache-tokens total-output-tokens)}
-                  :message-cost (shared/tokens->cost input-tokens input-cache-creation-tokens input-cache-read-tokens output-tokens full-model db)
-                  :session-cost (shared/tokens->cost total-input-tokens total-input-cache-creation-tokens total-input-cache-read-tokens total-output-tokens full-model db)))))
+                  :limit (:limit model-capabilities)
+                  :message-cost (shared/tokens->cost input-tokens input-cache-creation-tokens input-cache-read-tokens output-tokens model-capabilities)
+                  :session-cost (shared/tokens->cost total-input-tokens total-input-cache-creation-tokens total-input-cache-read-tokens total-output-tokens model-capabilities)))))
 
 (defn ^:private tokenize-args [^String s]
   (if (string/blank? s)

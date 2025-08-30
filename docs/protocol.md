@@ -543,6 +543,20 @@ interface UsageContent {
      * The cost of the whole chat session so far.
      */
     sessionCost?: string;
+    
+    /**
+     * Informations about limits.
+     */
+    limit: {
+        /**
+         * The context limit for this chat.
+         */
+        context: number;
+        /**
+         * The output limit for this chat.
+         */
+        output: number;
+    }
 }
 
 /**

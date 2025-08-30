@@ -73,9 +73,9 @@
 
 (defn multi-str [& strings] (string/join "\n" (remove nil? strings)))
 
-(defn tokens->cost [input-tokens input-cache-creation-tokens input-cache-read-tokens output-tokens full-model db]
+(defn tokens->cost [input-tokens input-cache-creation-tokens input-cache-read-tokens output-tokens model-capabilities]
   (when-let [{:keys [input-token-cost output-token-cost
-                     input-cache-creation-token-cost input-cache-read-token-cost]} (get-in db [:models full-model])]
+                     input-cache-creation-token-cost input-cache-read-token-cost]} model-capabilities]
     (when (and input-token-cost output-token-cost)
       (let [input-cost (* input-tokens input-token-cost)
             input-cost (if (and input-cache-creation-tokens input-cache-creation-token-cost)

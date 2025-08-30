@@ -232,25 +232,25 @@ Only set this when your provider uses a different path or expects query paramete
 
 === "Same model with different settings"
 
-   For now, you can create different providers with same model names to achieve that:
+    For now, you can create different providers with same model names to achieve that:
    
-   ```javascript
-   {
-    "providers": {
-      "openai": {
-        "api": "openai-responses",
-        "models": { "gpt-5": {} }
-      },
-      "openai-high": {
-        "api": "openai-responses",
-        "url": "https://api.openai.com",
-        "keyEnv": "OPENAI_API_KEY",
-        "models": {
-          "gpt-5": {
-            "extraPayload": { "reasoning": { "effort": "high" } }
-          }
-        }
-      }
+    ```javascript
+    {
+     "providers": {
+       "openai": {
+         "api": "openai-responses",
+         "models": { "gpt-5": {} }
+       },
+       "openai-high": {
+         "api": "openai-responses",
+         "url": "https://api.openai.com",
+         "keyEnv": "OPENAI_API_KEY",
+         "models": {
+           "gpt-5": {
+             "extraPayload": { "reasoning": { "effort": "high" } }
+           }
+         }
+       }
+     }
     }
-   }
-   ```
+    ```
