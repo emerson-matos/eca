@@ -537,7 +537,7 @@ interface UsageContent {
     /**
      * Informations about limits.
      */
-    limit: {
+    limit?: {
         /**
          * The context limit for this chat.
          */
