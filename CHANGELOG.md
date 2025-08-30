@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.40.0
+
 - Drop `agentFileRelativePath` in favor of behaviors customizations in the future.
 - Unwrap `chat` config to be at root level.
 - Fix token expiration for copilot and anthropic.
