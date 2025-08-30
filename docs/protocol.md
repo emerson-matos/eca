@@ -519,16 +519,6 @@ interface URLContent {
 interface UsageContent {
     type: 'usage';
     
-    /*
-     * Number of tokens sent on previous prompt including all context used by ECA.
-     */
-    messageInputTokens: number;
-    
-    /*
-     * Number of tokens received from LLm in last prompt.
-     */
-    messageOutputTokens: number;
-    
     /**
      * The total input + output tokens of the whole chat session so far.
      */
@@ -537,7 +527,7 @@ interface UsageContent {
     /**
      * The cost of the last sent message summing input + output tokens.
      */
-    messageCost?: string; 
+    lastMessageCost?: string; 
     
     /**
      * The cost of the whole chat session so far.
