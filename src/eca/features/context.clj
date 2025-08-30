@@ -15,7 +15,7 @@
 
 (defn ^:private agents-file-contexts
   "Search for AGENTS.md file both in workspaceRoot and global config dir."
-  [db config]
+  [db _config]
   ;; TODO make it customizable by behavior
   (let [agent-file "AGENTS.md"
         local-agent-files (keep (fn [{:keys [uri]}]
@@ -23,7 +23,7 @@
                                     (when (fs/readable? agent-file)
                                       (fs/canonicalize agent-file))))
                                 (:workspace-folders db))
-        global-agent-file (let [agent-file (fs/path (config/global-config-dir) (:agentFileRelativePath config))]
+        global-agent-file (let [agent-file (fs/path (config/global-config-dir) agent-file)]
                             (when (fs/readable? agent-file)
                               (fs/canonicalize agent-file)))]
     (mapv (fn [path]

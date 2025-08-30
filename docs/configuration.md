@@ -13,9 +13,7 @@ There are multiples ways to configure ECA:
     `~/.config/eca/config.json`
     ```javascript
     {
-      "chat" : {
-        "defaultBehavior": "plan"
-      }
+      "defaultBehavior": "plan"
     }
     ```
 
@@ -26,9 +24,7 @@ There are multiples ways to configure ECA:
     `.eca/config.json`
     ```javascript
     {
-      "chat" : {
-        "defaultBehavior": "plan"
-      }
+      "defaultBehavior": "plan"
     }
     ```
 
@@ -40,9 +36,7 @@ There are multiples ways to configure ECA:
 
     ```javascript
     "initializationOptions": {
-      "chat" : {
-        "defaultBehavior": "plan"
-      }
+      "defaultBehavior": "plan"
     }
     ```
 
@@ -196,10 +190,8 @@ There are 3 possible ways to configure rules following this order of priority:
             args?: string[];
             disabled?: boolean;
         }};
-        chat?: {
-            defaultBehavior?: string;
-            welcomeMessage?: string;
-        };
+        defaultBehavior?: string;
+        welcomeMessage?: string;
         index?: {
             ignoreFiles: [{
                 type: string;
@@ -238,10 +230,8 @@ There are 3 possible ways to configure rules following this order of priority:
       "mcpTimeoutSeconds" : 60,
       "lspTimeoutSeconds" : 30,
       "mcpServers" : {},
-      "chat" : {
-        "defaultBehavior": "agent"
-        "welcomeMessage" : "Welcome to ECA!\n\nType '/' for commands\n\n"
-      },
+      "defaultBehavior": "agent"
+      "welcomeMessage" : "Welcome to ECA!\n\nType '/' for commands\n\n"
       "index" : {
         "ignoreFiles" : [ {
           "type" : "gitignore"

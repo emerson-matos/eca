@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- drop `agentFileRelativePath` in favor of behaviors customizations in the future.
+- Drop `agentFileRelativePath` in favor of behaviors customizations in the future.
+- Unwrap `chat` config to be at root level.
 
 ## 0.39.0
 
