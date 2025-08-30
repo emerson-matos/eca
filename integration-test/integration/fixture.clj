@@ -8,6 +8,7 @@
   (str "http://localhost:" llm-mock.server/port))
 
 (def default-init-options {:pureConfig true
+                           :toolCall {:approval {:byDefault "allow"}}
                            :providers {"openai" {:url (str base-llm-mock-url "/openai")
                                                  :key "foo-key"
                                                  :keyEnv "FOO"}

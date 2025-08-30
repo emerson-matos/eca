@@ -11,12 +11,13 @@
   (testing "Include mcp tools"
     (is (match?
          (m/embeds [{:name "eval"
+                     :server "clojureMCP"
                      :description "eval code"
                      :parameters {"type" "object"
                                   :properties {"code" {:type "string"}}}
                      :origin :mcp}])
          (f.tools/all-tools "agent"
-                            {:mcp-clients {:clojureMCP
+                            {:mcp-clients {"clojureMCP"
                                            {:tools [{:name "eval"
                                                      :description "eval code"
                                                      :parameters {"type" "object"
@@ -25,6 +26,7 @@
   (testing "Include enabled native tools"
     (is (match?
          (m/embeds [{:name "eca_directory_tree"
+                     :server "eca"
                      :description string?
                      :parameters some?
                      :origin :native}])
@@ -35,7 +37,7 @@
          (f.tools/all-tools "agent" {} {:nativeTools {:filesystem {:enabled false}}}))))
   (testing "Plan mode includes preview tool but excludes mutating tools"
     (let [plan-tools (f.tools/all-tools "plan" {} {:nativeTools {:filesystem {:enabled true}
-                                                                  :shell {:enabled true}}})
+                                                                 :shell {:enabled true}}})
           tool-names (set (map :name plan-tools))]
       ;; Verify that preview tool is included
       (is (contains? tool-names "eca_preview_file_change"))
@@ -60,3 +62,46 @@
                                                                              :parameters {}}}]
            (f.tools/all-tools "agent" {:workspace-folders [{:name "foo" :uri (h/file-uri "file:///path/to/project/foo")}]}
                               {:nativeTools {:filesystem {:enabled true}}}))))))
+
+(deftest manual-approval?-test
+  (let [all-tools [{:name "eca_read" :server "eca"}
+                   {:name "eca_write" :server "eca"}
+                   {:name "eca_shell" :server "eca" :require-approval-fn (constantly true)}
+                   {:name "eca_plan" :server "eca" :require-approval-fn (constantly false)}
+                   {:name "request" :server "web"}
+                   {:name "download" :server "web"}]]
+    (testing "tool has require-approval-fn which returns true"
+      (is (true? (f.tools/manual-approval? all-tools "eca_shell" {} {} {}))))
+    (testing "tool has require-approval-fn which returns false we ignore it"
+      (is (true? (f.tools/manual-approval? all-tools "eca_plan" {} {} {}))))
+    (testing "if legacy-manual-approval present, considers it"
+      (is (true? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:manualApproval true}}))))
+    (testing "if approval config is provided"
+      (testing "when matches allow config, return false"
+        (is (false? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:approval {:allow {"web__request" {}}}}})))
+        (is (false? (f.tools/manual-approval? all-tools "eca_read" {} {} {:toolCall {:approval {:allow {"eca_read" {}}}}})))
+        (is (false? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:approval {:allow {"web" {}}}}}))))
+      (testing "when matches ask config, return true"
+        (is (true? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:approval {:ask {"web__request" {}}}}})))
+        (is (true? (f.tools/manual-approval? all-tools "eca_read" {} {} {:toolCall {:approval {:ask {"eca_read" {}}}}})))
+        (is (true? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:approval {:ask {"web" {}}}}}))))
+      (testing "when contains argsMatchers"
+        (testing "has arg but not matches"
+          (is (true? (f.tools/manual-approval? all-tools "request" {"url" "http://bla.com"} {}
+                                               {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}}))))
+        (testing "has arg and matches"
+          (is (false? (f.tools/manual-approval? all-tools "request" {"url" "http://foo.com"} {}
+                                                {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}})))
+          (is (false? (f.tools/manual-approval? all-tools "request" {"url" "foobar"} {}
+                                                {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" ["foo.*"]}}}}}}))))
+        (testing "has not that arg"
+          (is (true? (f.tools/manual-approval? all-tools "request" {"crazy-url" "http://foo.com"} {}
+                                                {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}}))))))
+    (testing "if no approval config matches"
+      (testing "checks byDefault"
+        (testing "when 'ask', return true"
+          (is (true? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:approval {:byDefault "ask"}}}))))
+        (testing "when 'allow', return false"
+          (is (false? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:approval {:byDefault "allow"}}})))))
+      (testing "fallback to manual approval"
+        (is (true? (f.tools/manual-approval? all-tools "request" {} {} {})))))))

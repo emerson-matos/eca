@@ -150,7 +150,7 @@
 (defn ^:private initialize-server! [name db* config on-server-updated]
   (let [db @db*
         workspaces (:workspace-folders @db*)
-        server-config (get-in config [:mcpServers (keyword name)])
+        server-config (get-in config [:mcpServers name])
         obj-mapper (ObjectMapper.)]
     (try
       (let [transport (->transport server-config workspaces)
@@ -162,8 +162,9 @@
         (swap! db* assoc-in [:mcp-clients name :prompts] (list-server-prompts client))
         (swap! db* assoc-in [:mcp-clients name :resources] (list-server-resources client))
         (on-server-updated (->server name server-config :running @db*)))
+      (logger/info logger-tag (format "Started MCP server %s" name))
       (catch Exception e
-        (logger/warn logger-tag (format "Could not initialize MCP server %s. Error: %s" name (.getMessage e)))
+        (logger/error logger-tag (format "Could not initialize MCP server %s." name) e)
         (on-server-updated (->server name server-config :failed db))))))
 
 (defn initialize-servers-async! [{:keys [on-server-updated]} db* config]
@@ -178,7 +179,7 @@
 
 (defn stop-server! [name db* config {:keys [on-server-updated]}]
   (when-let [{:keys [client]} (get-in @db* [:mcp-clients name])]
-    (let [server-config (get-in config [:mcpServers (keyword name)])]
+    (let [server-config (get-in config [:mcpServers name])]
       (on-server-updated (->server name server-config :stopping @db*))
       (.closeGracefully ^McpSyncClient client)
       (swap! db* update :mcp-clients dissoc name)
@@ -186,17 +187,15 @@
       (logger/info logger-tag (format "Stopped MCP server %s" name)))))
 
 (defn start-server! [name db* config {:keys [on-server-updated]}]
-  (when-let [server-config (get-in config [:mcpServers (keyword name)])]
+  (when-let [server-config (get-in config [:mcpServers name])]
     (if (get server-config :disabled false)
       (logger/warn logger-tag (format "MCP server %s is disabled and cannot be started" name))
-      (do
-        (initialize-server! name db* config on-server-updated)
-        (logger/info logger-tag (format "Started MCP server %s" name))))))
+      (initialize-server! name db* config on-server-updated))))
 
 (defn all-tools [db]
   (into []
-        (mapcat (fn [[_name {:keys [tools]}]]
-                  tools))
+        (mapcat (fn [[name {:keys [tools]}]]
+                  (map #(assoc % :server name) tools)))
         (:mcp-clients db)))
 
 (defn call-tool! [^String name ^Map arguments db]

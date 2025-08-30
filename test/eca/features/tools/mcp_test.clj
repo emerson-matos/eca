@@ -21,15 +21,15 @@
            (mcp/all-tools {:mcp-clients {"server1" {}}}))))
 
   (testing "db with single server with tools"
-    (let [tools [{:name "tool1" :description "desc1"}
-                 {:name "tool2" :description "desc2"}]]
+    (let [tools [{:name "tool1" :description "desc1" :server "server1"}
+                 {:name "tool2" :description "desc2" :server "server1"}]]
       (is (= tools
              (mcp/all-tools {:mcp-clients {"server1" {:tools tools}}})))))
 
   (testing "db with multiple servers with tools"
-    (let [tools1 [{:name "tool1" :description "desc1"}]
-          tools2 [{:name "tool2" :description "desc2"}
-                  {:name "tool3" :description "desc3"}]]
+    (let [tools1 [{:name "tool1" :description "desc1" :server "server1"}]
+          tools2 [{:name "tool2" :description "desc2" :server "server2"}
+                  {:name "tool3" :description "desc3" :server "server2"}]]
       (is (= (concat tools1 tools2)
              (mcp/all-tools {:mcp-clients {"server1" {:tools tools1}
                                            "server2" {:tools tools2}}}))))))

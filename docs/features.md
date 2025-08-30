@@ -20,9 +20,9 @@ Behavior affect the prompt passed to LLM and the tools to include, the current s
 ECA leverage tools to give more power to the LLM, this is the best way to make LLMs have more context about your codebase and behave like an agent.
 It supports both MCP server tools + ECA native tools.
 
-!!! warning "Automatic approval"
+!!! info "Approval / permissions"
 
-    By default, ECA auto approve any tool call from LLM, to configure that or for which tools, check `toolCall manualApproval` config or try the `plan` behavior.
+    By default, ECA ask to approve any tool, you can easily configure that, check `toolCall approval` [config](./config.md) or try the `plan` behavior.
 
 ### Native tools
 
