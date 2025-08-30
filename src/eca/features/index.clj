@@ -12,11 +12,10 @@
 
 (defn ^:private git-ls-files* [root-path]
   (try
-    (some-> (shell/sh "git" "ls-files" "--others" "--exclude-standard" "--cached"
-                      :dir root-path)
-            :out
-            (string/split #"\n"))
-
+    (let [{:keys [out exit]} (shell/sh "git" "ls-files" "--others" "--exclude-standard" "--cached"
+                                       :dir root-path)]
+      (when (= 0 exit)
+        (string/split out #"\n")))
     (catch Exception _ nil)))
 
 (def ^:private git-ls-files (memoize/ttl git-ls-files* :ttl/threshold ttl-git-ls-files-ms))
@@ -25,14 +24,16 @@
   (reduce
    (fn [files {:keys [type]}]
      (case type
-       :gitignore (let [git-files (some->> (git-ls-files root-filename)
-                                           (mapv (comp str fs/canonicalize #(fs/file root-filename %)))
-                                           set)]
-                    (if (seq git-files)
-                      (filter (fn [file]
-                                (contains? git-files (str file)))
-                              files)
-                      files))
+       :gitignore (if-let [git-files (git-ls-files root-filename)]
+                    (let [git-paths (some->> git-files
+                                             (mapv (comp str fs/canonicalize #(fs/file root-filename %)))
+                                             set)]
+                      (if (seq git-paths)
+                        (filter (fn [file]
+                                  (contains? git-paths (str file)))
+                                files)
+                        files))
+                    files)
        files))
    file-paths
    (get-in config [:index :ignoreFiles])))

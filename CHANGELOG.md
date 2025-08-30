@@ -4,6 +4,7 @@
 
 - Improve anthropic extraPayload requirement when adding models.
 - Add message to when config failed to be parsed.
+- Fix context completion for workspaces that are not git. #98
 
 ## 0.40.0
 

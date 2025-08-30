@@ -18,7 +18,8 @@
           file1 (fs/path root "ignored.txt")
           file2 (fs/path root "not-ignored.txt")]
       (testing "returns filtered files when `git ls-files` works"
-        (with-redefs [shell/sh (fn [& _args] {:exit 0 :out "not-ignored.txt"})
+        (with-redefs [f.index/git-ls-files #'f.index/git-ls-files*
+                      shell/sh (constantly {:exit 0 :out "not-ignored.txt"})
                       fs/canonicalize #(fs/path root %)]
           (is
            (match?
@@ -26,10 +27,11 @@
             (f.index/filter-allowed [file1 file2] root gitignore-config)))))
 
       (testing "returns all files when `git ls-files` exits non-zero"
-        (with-redefs [shell/sh (fn [& _args] {:exit 1})]
+        (with-redefs [f.index/git-ls-files #'f.index/git-ls-files*
+                      shell/sh (constantly {:exit 1})]
           (is
            (match?
-            [file2]
+            [file1 file2]
             (f.index/filter-allowed [file1 file2] root gitignore-config))))))))
 
 (deftest repo-map-test
@@ -50,7 +52,7 @@
                         "  baz.clj"
                         " foo.clj"
                         "")
-             (eca.features.index/repo-map {:workspace-folders [{:uri (h/file-uri "file:///fake/repo")}]} 
+             (eca.features.index/repo-map {:workspace-folders [{:uri (h/file-uri "file:///fake/repo")}]}
                                           {:index {:repoMap {:maxEntriesPerDir 50 :maxTotalEntries 800}}}
                                           {:as-string? true}))))))
 
@@ -65,9 +67,9 @@
                                                     "src/f.clj"
                                                     "src/g.clj"
                                                     "src/h.clj"])]
-      (let [out (eca.features.index/repo-map {:workspace-folders [{:uri (h/file-uri "file:///fake/repo")}]} 
+      (let [out (eca.features.index/repo-map {:workspace-folders [{:uri (h/file-uri "file:///fake/repo")}]}
                                              {:index {:repoMap {:maxTotalEntries 800
-                                                                 :maxEntriesPerDir 3}}}
+                                                                :maxEntriesPerDir 3}}}
                                              {:as-string? true})]
         (is (string/includes? out (str (h/file-path "/fake/repo") "\n")))
         ;; Under src, only first 3 children (sorted) and a per-dir truncated line should appear
@@ -84,9 +86,9 @@
                                                     "LICENSE"
                                                     "src/a.clj"
                                                     "src/b.clj"])]
-      (let [out (eca.features.index/repo-map {:workspace-folders [{:uri (h/file-uri "file:///fake/repo")}]} 
+      (let [out (eca.features.index/repo-map {:workspace-folders [{:uri (h/file-uri "file:///fake/repo")}]}
                                              {:index {:repoMap {:maxTotalEntries 3
-                                                                 :maxEntriesPerDir 800}}}
+                                                                :maxEntriesPerDir 800}}}
                                              {:as-string? true})]
         ;; Contains a global truncated line
         (is (string/includes? out "\n... truncated output ("))))))
