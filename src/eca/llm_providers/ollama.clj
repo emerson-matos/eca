@@ -28,8 +28,7 @@
         (do
           (logger/warn logger-tag "Unknown status code:" status)
           [])))
-    (catch Exception e
-      (logger/warn logger-tag "Error listing running models:" (.getMessage e))
+    (catch Exception _
       [])))
 
 (defn model-capabilities [{:keys [model api-url]}]
