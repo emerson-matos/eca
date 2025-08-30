@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Improve anthropic extraPayload requirement when adding models.
+
 ## 0.40.0
 
 - Drop `agentFileRelativePath` in favor of behaviors customizations in the future.
