@@ -65,10 +65,10 @@
      {:models (sort (keys (:models @db*)))
       :chat-default-model (f.chat/default-model @db* config)
       :chat-behaviors (:chat-behaviors @db*)
-      :chat-default-behavior (or (:defaultBehavior config)
-                                 (:defaultBehavior (:chat config))) ;;legacy
-      :chat-welcome-message (or (:welcomeMessage config) ;;legacy
-                                (:welcomeMessage (:chat config)))})))
+      :chat-default-behavior (or (:defaultBehavior (:chat config)) ;;legacy
+                                 (:defaultBehavior config))
+      :chat-welcome-message (or (:welcomeMessage (:chat config)) ;;legacy
+                                (:welcomeMessage config))})))
 
 (defn initialized [{:keys [db* messenger config]}]
   (future
