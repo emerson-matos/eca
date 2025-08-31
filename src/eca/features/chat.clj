@@ -41,6 +41,7 @@
     (db/update-workspaces-cache! @db*)))
 
 (defn ^:private assert-chat-not-stopped! [{:keys [chat-id db*] :as chat-ctx}]
+  ;; TODO: Should :stoping be :stopping?
   (when (identical? :stoping (get-in @db* [:chats chat-id :status]))
     (finish-chat-prompt! :idle chat-ctx)
     (logger/info logger-tag "Chat prompt stopped:" chat-id)
@@ -49,12 +50,12 @@
 
 ;;; Helper functions for tool call state management
 
-(defn ^:private merge-in
+#_(defn ^:private merge-in
   "Like assoc-in but merges the value with existing map at the path"
   [m path value]
   (update-in m path merge value))
 
-(defn ^:private init-tool-call-state!
+#_(defn ^:private init-tool-call-state!
   "Initialize the state tracking for a new tool call.
 
   Creates a new tool call state entry with:
@@ -77,7 +78,27 @@
           :stop-requested? false
           :notifications-sent #{}}))
 
-(defn ^:private update-tool-call-status!
+(defn ^:private get-tool-call-state
+  "Get the complete state map for a specific tool call."
+  [db chat-id tool-call-id]
+  (get-in db [:chats chat-id :tool-calls tool-call-id]))
+
+#_(defn ^:private get-tool-call-notifications-sent
+  "Get the set of notifications sent for a specific tool call."
+  [db chat-id tool-call-id]
+  (:notifications-sent (get-tool-call-state db chat-id tool-call-id)))
+
+(defn ^:private get-active-tool-calls
+  "Returns a map of tool calls that are still active.
+
+  Active tool calls are those not in the following states: :completed, :rejected, :stopped."
+  [db chat-id]
+  (->> (get-in db [:chats chat-id :tool-calls] {})
+       (remove (fn [[_ state]]
+                 (#{:completed :rejected :stopped} (:status state))))
+       (into {})))
+
+#_(defn ^:private update-tool-call-status!
   "Atomically update the status of a tool call and optionally merge additional updates.
 
   Args:
@@ -93,7 +114,7 @@
                (assoc-in [:chats chat-id :tool-calls tool-call-id :status] new-status)
                (cond-> extra-updates (merge-in [:chats chat-id :tool-calls tool-call-id] extra-updates))))))
 
-(defn ^:private mark-notification-sent!
+#_(defn ^:private mark-notification-sent!
   "Mark that a specific notification type has been sent for a tool call.
 
   This prevents duplicate notifications from being sent for the same tool call.
@@ -101,32 +122,225 @@
   [db* chat-id tool-call-id notification-type]
   (swap! db* update-in [:chats chat-id :tool-calls tool-call-id :notifications-sent] conj notification-type))
 
-(defn ^:private should-send-notification?
+#_(defn ^:private should-send-notification?
   "Check if a notification type should be sent for a tool call.
 
   Returns false if the notification was already sent (prevents duplicates).
   Exception: toolCallPrepare notifications are always allowed (can send multiple)."
   [db chat-id tool-call-id notification-type]
   (or (= notification-type :toolCallPrepare)
-      (not (contains? (get-in db [:chats chat-id :tool-calls tool-call-id :notifications-sent] #{})
+      (not (contains? (get-tool-call-notifications-sent db chat-id tool-call-id)
                       notification-type))))
 
-(defn ^:private get-tool-call-state
-  "Get the complete state map for a specific tool call."
-  [db chat-id tool-call-id]
-  (get-in db [:chats chat-id :tool-calls tool-call-id]))
+;;; Event-driven state machine for tool calls
 
-(defn ^:private get-active-tool-calls
-  "Returns a map of tool calls that are still active (not completed, rejected, or stopped).
+(def ^:private tool-call-state-machine
+  "State machine for tool call lifecycle management.
 
-  Active tool calls are those in states: :initial, :preparing, :waiting-approval, :executing"
-  [db chat-id]
-  (->> (get-in db [:chats chat-id :tool-calls] {})
-       (remove (fn [[_ state]]
-                 (#{:completed :rejected :stopped} (:status state))))
-       (into {})))
+   Maps [current-status event] -> {:status new-status :actions [action-list]}
 
-(defn ^:private determine-stop-state-and-actions
+   Events:
+   - :tool-prepare     - LLM preparing tool call (can happen multiple times)
+   - :tool-run         - LLM ready to run tool call
+   - :user-approve     - User approves tool call
+   - :user-reject      - User rejects tool call
+   - :send-reject      - A made-up event to cause a toolCallReject.  Used in a context where are the data is available.
+   - :execution-start  - Tool call execution begins
+   - :execution-end    - Tool call completes successfully
+   - :stop-requested   - An event to request that active tool calls be stopped
+
+   Actions:
+   - send-* notifications
+   - promise init & delivery
+   - logging/metrics"
+  {;; Note: transition-tool-call! treats no existing state as :initial state
+   [:initial :tool-prepare]
+   {:status :preparing
+    :actions [:send-toolCallPrepare]}
+
+   [:preparing :tool-prepare]
+   {:status :preparing
+    :actions [:send-toolCallPrepare]} ; Multiple prepares allowed
+
+   [:preparing :tool-run]
+   {:status :check-approval
+    :actions [:init-approval-promise :send-toolCallRun]}
+
+   [:check-approval :manual-approve]
+   {:status :waiting-approval
+    :actions [:send-progress]}
+
+   [:check-approval :auto-approve]
+   {:status :execution-approved
+    :actions [:deliver-approval-true]}
+
+   [:waiting-approval :user-approve]
+   {:status :execution-approved
+    :actions [:deliver-approval-true]}
+
+   [:waiting-approval :user-reject]
+   {:status :rejected
+    :actions [:deliver-approval-false :log-rejection]}
+
+   [:rejected :send-reject]
+   {:status :rejected
+    :actions [:send-toolCallRejected]}
+
+   [:execution-approved :execution-start]
+   {:status :executing
+    :actions []}
+
+   [:executing :execution-end]
+   {:status :completed
+    :actions [:send-toolCalled :record-metrics]}
+
+   ;; And now all the :stop-requested transitions
+
+   ;; In the future, when calls can be interrupted,
+   ;; more states and actions will be required.
+
+   [:execution-approved :stop-requested]
+   {:status :stopped
+    :actions [:send-toolCallRejected]}
+
+   [:waiting-approval :stop-requested]
+   {:status :stopped
+    :actions [:deliver-approval-false]}
+
+   [:check-approval :stop-requested]
+   {:status :stopped
+    :actions [:send-toolCallRejected]}
+
+   [:preparing :stop-requested]
+   {:status :stopped
+    :actions [:send-toolCallRejected]}
+
+   [:initial :stop-requested] ; Nothing sent yet, just mark as stopped
+   {:status :stopped
+    :actions []}})
+
+(defn ^:private execute-action!
+  "Execute a single action during state transition"
+  [action db* chat-ctx tool-call-id event-data]
+  (case action
+    ;; Notification actions
+    :send-progress
+    (send-content! chat-ctx :system
+                   {:type :progress
+                    :state (:state event-data)
+                    :text (:text event-data)})
+
+    :send-toolCallPrepare
+    (send-content! chat-ctx :assistant
+                   (assoc-some
+                    {:type :toolCallPrepare
+                     :id tool-call-id
+                     :name (:name event-data)
+                     :origin (:origin event-data)
+                     :arguments-text (:arguments-text event-data)
+                     :manual-approval (:manual-approval event-data)}
+                    :summary (:summary event-data)))
+
+    :send-toolCallRun
+    (send-content! chat-ctx :assistant
+                   (assoc-some
+                    {:type :toolCallRun
+                     :id tool-call-id
+                     :name (:name event-data)
+                     :origin (:origin event-data)
+                     :arguments (:arguments event-data)
+                     :manual-approval (:manual-approval event-data)}
+                    :details (:details event-data)
+                    :summary (:summary event-data)))
+
+    :send-toolCalled
+    (send-content! chat-ctx :assistant
+                   (assoc-some
+                    {:type :toolCalled
+                     :id tool-call-id
+                     :origin (:origin event-data)
+                     :name (:name event-data)
+                     :arguments (:arguments event-data)
+                     :error (:error event-data)
+                     :outputs (:outputs event-data)}
+                    :details (:details event-data)
+                    :summary (:summary event-data)))
+
+    :send-toolCallRejected
+    (send-content! chat-ctx :assistant
+                   (assoc-some
+                    {:type :toolCallRejected
+                     :id tool-call-id
+                     :origin (:origin event-data)
+                     :name (:name event-data)
+                     :arguments (:arguments event-data)
+                     :reason (:reason event-data :user)}
+                    :details (:details event-data)
+                    :summary (:summary event-data)))
+
+    ;; State management actions
+    :init-approval-promise
+    (swap! db* assoc-in [:chats (:chat-id chat-ctx) :tool-calls tool-call-id :approved?*]
+           (:approved?* event-data))
+
+    :deliver-approval-false
+    (deliver (get-in @db* [:chats (:chat-id chat-ctx) :tool-calls tool-call-id :approved?*])
+             false)
+
+    :deliver-approval-true
+    (deliver (get-in @db* [:chats (:chat-id chat-ctx) :tool-calls tool-call-id :approved?*])
+             true)
+
+    ;; Logging/metrics actions
+    :log-rejection
+    (logger/info logger-tag "Tool call rejected"
+                 {:tool-call-id tool-call-id :reason (:reason event-data)})
+
+    :record-metrics
+    (logger/debug logger-tag "Tool call completed"
+                  {:tool-call-id tool-call-id :duration (:duration event-data)})
+
+    ;; Default case for unknown actions
+    (logger/warn logger-tag "Unknown action" {:action action :tool-call-id tool-call-id})))
+
+(defn ^:private transition-tool-call!
+  "Execute an event-driven state transition for a tool call.
+
+   Args:
+   - db*: Database atom
+   - chat-ctx: Chat context map with :chat-id, :request-id, :messenger
+   - tool-call-id: Tool call identifier
+   - event: Event keyword (e.g., :tool-prepare, :tool-run, :user-approve)
+   - event-data: Optional map with event-specific data
+
+   Returns: {:status new-status :actions actions-executed}
+
+   Throws: ex-info if the transition is invalid for the current state"
+  [db* chat-ctx tool-call-id event & [event-data]]
+  (let [current-state (get-tool-call-state @db* (:chat-id chat-ctx) tool-call-id)
+        current-status (:status current-state :initial) ; Default to :initial if no state
+        transition-key [current-status event]
+        {:keys [status actions]} (get tool-call-state-machine transition-key)]
+
+    (when-not status
+      (let [valid-events (map second (filter #(= current-status (first %))
+                                             (keys tool-call-state-machine)))]
+        (throw (ex-info "Invalid state transition"
+                        {:current-status current-status
+                         :event event
+                         :tool-call-id tool-call-id
+                         :valid-events valid-events}))))
+
+    ;; Atomic status update
+    (swap! db* assoc-in [:chats (:chat-id chat-ctx) :tool-calls tool-call-id :status] status)
+
+    ;; Execute all actions sequentially
+    (doseq [action actions]
+      (execute-action! action db* chat-ctx tool-call-id event-data))
+
+    {:status status :actions actions}))
+
+#_(defn ^:private determine-stop-state-and-actions
   "Pure function to determine updated state and actions for stopping a tool call.
 
   Given the current tool call state, returns a map with:
@@ -168,7 +382,7 @@
       {:state tool-call-state
        :actions [:no-action]})))
 
-(defn ^:private stop-tool-call-atomically!
+#_(defn ^:private stop-tool-call-atomically!
   "Atomically determine and apply the appropriate stop action for a tool call.
 
   This function uses determine-stop-state-and-actions (pure) to determine the new state and actions,
@@ -318,17 +532,16 @@
                                          (finish-chat-prompt! :idle chat-ctx))))
       :on-prepare-tool-call (fn [{:keys [id name arguments-text]}]
                               (assert-chat-not-stopped! chat-ctx)
-                              (send-content! chat-ctx :assistant
-                                             (assoc-some
-                                              {:type :toolCallPrepare
-                                               :name name
-                                               :origin (tool-name->origin name all-tools)
-                                               :arguments-text arguments-text
-                                               :id id}
-                                              :summary (f.tools/tool-call-summary all-tools name nil))))
+                              (transition-tool-call! db* chat-ctx id :tool-prepare
+                                                     {:name name
+                                                      :origin (tool-name->origin name all-tools)
+                                                      :arguments-text arguments-text
+                                                      :manual-approval (f.tools/manual-approval? name config)
+                                                      :summary (f.tools/tool-call-summary all-tools name nil)}))
+      ;; TODO: Should this be :on-tool-called instead for consistency?
       :on-tools-called (fn [tool-calls]
                          (assert-chat-not-stopped! chat-ctx)
-                          ;; Flush any pending assistant text once before processing multiple tool calls
+                         ;; Flush any pending assistant text once before processing multiple tool calls
                          (when-not (string/blank? @received-msgs*)
                            (add-to-history! {:role "assistant" :content [{:type :text :text @received-msgs*}]})
                            (reset! received-msgs* ""))
@@ -338,34 +551,29 @@
                                               details (f.tools/tool-call-details-before-invocation name arguments)
                                               summary (f.tools/tool-call-summary all-tools name arguments)
                                               origin (tool-name->origin name all-tools)
-                                              approval (f.tools/approval all-tools name arguments db config)
-                                              ask? (= :ask approval)]
-                                          ;; Inform client the tool is about to run and store approval promise
-                                          (send-content! chat-ctx :assistant
-                                                         (assoc-some
-                                                          {:type :toolCallRun
-                                                           :name name
-                                                           :origin (tool-name->origin name all-tools)
-                                                           :arguments arguments
-                                                           :id id
-                                                           :manual-approval ask?}
-                                                          :details details
-                                                          :summary summary))
-                                          (swap! db* assoc-in [:chats chat-id :tool-calls id :approved?*] approved?*)
-                                          (if ask?
-                                            (send-content! chat-ctx :system
-                                                           {:type :progress
-                                                            :state :running
-                                                            :text "Waiting for tool call approval"})
-                                              ;; Otherwise decide approval
-                                            (deliver approved?* (= :allow approval)))
-                                            ;; Execute each tool call concurrently
+                                              manual-approval? (f.tools/manual-approval? name config)]
+                                          ;; Inform UI the tool is about to run and store approval promise
+                                          (transition-tool-call! db* chat-ctx id :tool-run
+                                                                 {:approved?* approved?*
+                                                                  :name name
+                                                                  :origin (tool-name->origin name all-tools)
+                                                                  :arguments arguments
+                                                                  :manual-approval manual-approval?
+                                                                  :details details
+                                                                  :summary summary})
+                                          (if manual-approval?
+                                            (transition-tool-call! db* chat-ctx id :manual-approve
+                                                                   {:state :running
+                                                                    :text "Waiting for tool call approval"})
+                                            (transition-tool-call! db* chat-ctx id :auto-approve))
+                                          ;; Execute each tool call concurrently - this should be the return value of let
                                           (future
                                             (if @approved?*
+                                              ;; assert: In :execution-approved state
                                               (do
                                                 (assert-chat-not-stopped! chat-ctx)
-                                                (let [result (f.tools/call-tool! name arguments @db* config messenger behavior)
-                                                      details (f.tools/tool-call-details-after-invocation name arguments details result)]
+                                                (transition-tool-call! db* chat-ctx id :execution-start)
+                                                (let [result (f.tools/call-tool! name arguments @db* config messenger)]
                                                   (add-to-history! {:role "tool_call" :content (assoc tool-call
                                                                                                       :details details
                                                                                                       :summary summary
@@ -376,37 +584,30 @@
                                                                                                              :details details
                                                                                                              :summary summary
                                                                                                              :origin origin)})
-                                                  (send-content! chat-ctx :assistant
-                                                                 (assoc-some
-                                                                  {:type :toolCalled
-                                                                   :origin origin
-                                                                   :name name
-                                                                   :arguments arguments
-                                                                   :error (:error result)
-                                                                   :id id
-                                                                   :outputs (:contents result)}
-                                                                  :details details
-                                                                  :summary summary))))
-                                              (let [[reject-reason reject-text] (if (= :deny approval)
-                                                                                  [:user-config "Tool call denied by user config"]
-                                                                                  [:user-choice "Tool call rejected by user choice"])]
+                                                  (transition-tool-call! db* chat-ctx id :execution-end
+                                                                         {:origin origin
+                                                                          :name name
+                                                                          :arguments arguments
+                                                                          :error (:error result)
+                                                                          :outputs (:contents result)
+                                                                          :details details
+                                                                          :summary summary})))
+                                              ;; assert: In :rejected state
+                                              (do
                                                 (add-to-history! {:role "tool_call" :content tool-call})
                                                 (add-to-history! {:role "tool_call_output"
                                                                   :content (assoc tool-call :output {:error true
                                                                                                      :contents [{:text reject-text
                                                                                                                  :type :text}]})})
-                                                (send-content! chat-ctx :assistant
-                                                               (assoc-some
-                                                                {:type :toolCallRejected
-                                                                 :origin origin
-                                                                 :name name
-                                                                 :arguments arguments
-                                                                 :reason reject-reason
-                                                                 :id id}
-                                                                :details details
-                                                                :summary summary))))))))]
+                                                (transition-tool-call! db* chat-ctx id :send-reject
+                                                                         {:origin origin
+                                                                          :name name
+                                                                          :arguments arguments
+                                                                          :reason :user
+                                                                          :details details
+                                                                          :summary summary})))))))]
                            (assert-chat-not-stopped! chat-ctx)
-                            ;; Wait all tool calls to complete before returning
+                           ;; Wait for all tool calls to complete before returning
                            (run! deref calls)
                            (send-content! chat-ctx :system {:type :progress :state :running :text "Generating"})
                            {:new-messages (get-in @db* [:chats chat-id :messages])}))
@@ -533,11 +734,21 @@
      :model full-model
      :status :prompting}))
 
-(defn tool-call-approve [{:keys [chat-id tool-call-id]} db*]
-  (deliver (get-in @db* [:chats chat-id :tool-calls tool-call-id :approved?*]) true))
+(defn tool-call-approve [{:keys [chat-id tool-call-id request-id]} db* messenger]
+  (let [chat-ctx {;; What else is needed?
+                  :chat-id chat-id
+                  :db* db*
+                  :request-id request-id
+                  :messenger messenger}]
+    (transition-tool-call! db* chat-ctx tool-call-id :user-approve)))
 
-(defn tool-call-reject [{:keys [chat-id tool-call-id]} db*]
-  (deliver (get-in @db* [:chats chat-id :tool-calls tool-call-id :approved?*]) false))
+(defn tool-call-reject [{:keys [chat-id tool-call-id request-id]} db* messenger]
+  (let [chat-ctx {;; What else is needed?
+                  :chat-id chat-id
+                  :db* db*
+                  :request-id request-id
+                  :messenger messenger}]
+    (transition-tool-call! db* chat-ctx tool-call-id :user-reject)))
 
 (defn query-context
   [{:keys [query contexts chat-id]}
@@ -569,6 +780,27 @@
                     :messenger messenger}]
       (send-content! chat-ctx :system {:type :text
                                        :text "\nPrompt stopped"})
+
+      ;; Handle each active tool call
+      (doseq [[tool-call-id _] (get-active-tool-calls @db* chat-id)]
+        (transition-tool-call! db* chat-ctx tool-call-id :stop-requested)
+        #_(let [{:keys [actions]} (stop-tool-call-atomically! db* chat-id tool-call-id)]
+          (doseq [action actions]
+            (case action
+              :send-reject
+              (when (should-send-notification? @db* chat-id tool-call-id :toolCallRejected)
+                (send-content! chat-ctx :assistant {:type :toolCallRejected
+                                                    :id tool-call-id
+                                                    :reason :stop})
+                (mark-notification-sent! db* chat-id tool-call-id :toolCallRejected))
+
+              :reject-approval
+              ;; This will send a toolCallRejected
+              (deliver (get-in @db* [:chats chat-id :tool-calls tool-call-id :approved?*]) false)
+
+              (:wait-for-completion :no-action)
+              nil))))
+      ;; TODO: Should :stoping be :stopping?
       (finish-chat-prompt! :stoping chat-ctx))))
 
 (defn delete-chat
