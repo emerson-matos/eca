@@ -100,15 +100,15 @@
    :eca/chat-query-commands
    (f.chat/query-commands params db* config)))
 
-(defn chat-tool-call-approve [{:keys [db*]} params]
+(defn chat-tool-call-approve [{:keys [messenger db*]} params]
   (logger/logging-task
    :eca/chat-tool-call-approve
-   (f.chat/tool-call-approve params db*)))
+   (f.chat/tool-call-approve params db* messenger)))
 
-(defn chat-tool-call-reject [{:keys [db*]} params]
+(defn chat-tool-call-reject [{:keys [messenger db*]} params]
   (logger/logging-task
    :eca/chat-tool-call-reject
-   (f.chat/tool-call-reject params db*)))
+   (f.chat/tool-call-reject params db* messenger)))
 
 (defn chat-prompt-stop [{:keys [db* messenger]} params]
   (logger/logging-task
