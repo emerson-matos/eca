@@ -50,43 +50,10 @@
 
 ;;; Helper functions for tool call state management
 
-#_(defn ^:private merge-in
-  "Like assoc-in but merges the value with existing map at the path"
-  [m path value]
-  (update-in m path merge value))
-
-#_(defn ^:private init-tool-call-state!
-  "Initialize the state tracking for a new tool call.
-
-  Creates a new tool call state entry with:
-  - approved?*: Promise for approval/rejection
-  - prepare-sent?: Whether toolCallPrepare notification was sent
-  - run-sent?: Whether toolCallRun notification was sent
-  - status: Current lifecycle status (:initial, :preparing, :waiting-approval, :executing, :completed, :rejected, :stopped)
-  - execution-future: Reference to the executing future
-  - stop-requested?: Flag indicating stop was requested during execution
-  - notifications-sent: Set tracking which notifications have been sent to prevent duplicates
-
-  Note: :actions are not stored in persistent state - they are returned transiently during stop processing."
-  [db* chat-id tool-call-id]
-  (swap! db* assoc-in [:chats chat-id :tool-calls tool-call-id]
-         {:approved?* (promise)
-          :prepare-sent? false
-          :run-sent? false
-          :status :initial
-          :execution-future nil
-          :stop-requested? false
-          :notifications-sent #{}}))
-
 (defn ^:private get-tool-call-state
   "Get the complete state map for a specific tool call."
   [db chat-id tool-call-id]
   (get-in db [:chats chat-id :tool-calls tool-call-id]))
-
-#_(defn ^:private get-tool-call-notifications-sent
-  "Get the set of notifications sent for a specific tool call."
-  [db chat-id tool-call-id]
-  (:notifications-sent (get-tool-call-state db chat-id tool-call-id)))
 
 (defn ^:private get-active-tool-calls
   "Returns a map of tool calls that are still active.
@@ -97,40 +64,6 @@
        (remove (fn [[_ state]]
                  (#{:completed :rejected :stopped} (:status state))))
        (into {})))
-
-#_(defn ^:private update-tool-call-status!
-  "Atomically update the status of a tool call and optionally merge additional updates.
-
-  Args:
-  - db*: Database atom
-  - chat-id: Chat session ID
-  - tool-call-id: Tool call identifier
-  - new-status: New status value (:initial, :preparing, :waiting-approval, :executing, :completed, :rejected, :stopped)
-  - extra-updates: Optional map of additional fields to merge into the tool call state"
-  [db* chat-id tool-call-id new-status & [extra-updates]]
-  (swap! db*
-         (fn [db]
-           (-> db
-               (assoc-in [:chats chat-id :tool-calls tool-call-id :status] new-status)
-               (cond-> extra-updates (merge-in [:chats chat-id :tool-calls tool-call-id] extra-updates))))))
-
-#_(defn ^:private mark-notification-sent!
-  "Mark that a specific notification type has been sent for a tool call.
-
-  This prevents duplicate notifications from being sent for the same tool call.
-  Notification types include: :toolCallPrepare, :toolCallRun, :toolCalled, :toolCallRejected"
-  [db* chat-id tool-call-id notification-type]
-  (swap! db* update-in [:chats chat-id :tool-calls tool-call-id :notifications-sent] conj notification-type))
-
-#_(defn ^:private should-send-notification?
-  "Check if a notification type should be sent for a tool call.
-
-  Returns false if the notification was already sent (prevents duplicates).
-  Exception: toolCallPrepare notifications are always allowed (can send multiple)."
-  [db chat-id tool-call-id notification-type]
-  (or (= notification-type :toolCallPrepare)
-      (not (contains? (get-tool-call-notifications-sent db chat-id tool-call-id)
-                      notification-type))))
 
 ;;; Event-driven state machine for tool calls
 
@@ -339,64 +272,6 @@
       (execute-action! action db* chat-ctx tool-call-id event-data))
 
     {:status status :actions actions}))
-
-#_(defn ^:private determine-stop-state-and-actions
-  "Pure function to determine updated state and actions for stopping a tool call.
-
-  Given the current tool call state, returns a map with:
-  - :state - Updated state map (without transient :actions)
-  - :actions - Vector of action keywords to execute immediately (transient, not persisted)
-
-  Actions include:
-  - :no-action - Tool call in initial state (nothing sent yet) or already completed/stopped
-  - :send-reject - Send toolCallRejected immediately (scenario a: prepare-only)
-  - :reject-approval - Reject the approval promise, let future send notification (scenario b: waiting approval)
-  - :wait-for-completion - Set stop flag and wait for executing future (scenario c: executing)
-
-  This function has no side effects - it only analyzes state and returns updates + actions."
-  [tool-call-state]
-  (let [{:keys [prepare-sent? run-sent? status]} tool-call-state]
-    (cond
-      ;; Initial state - nothing sent yet, just mark as stopped
-      (= status :initial)
-      {:state (assoc tool-call-state :status :stopped)
-       :actions [:no-action]}
-
-      ;; Scenario (a): Prepare-only state
-      (and prepare-sent? (not run-sent?))
-      {:state (assoc tool-call-state :status :stopped)
-       :actions [:send-reject]}
-
-      ;; Scenario (b): Waiting for approval
-      (and run-sent? (= status :waiting-approval))
-      {:state (assoc tool-call-state :status :stopped)
-       :actions [:reject-approval]}
-
-      ;; Scenario (c): Currently executing
-      (= status :executing)
-      {:state (assoc tool-call-state :stop-requested? true)
-       :actions [:wait-for-completion]}
-
-      ;; Already stopped/completed - no action needed
-      :else
-      {:state tool-call-state
-       :actions [:no-action]})))
-
-#_(defn ^:private stop-tool-call-atomically!
-  "Atomically determine and apply the appropriate stop action for a tool call.
-
-  This function uses determine-stop-state-and-actions (pure) to determine the new state and actions,
-  then atomically applies the state update. Actions are returned transiently for immediate execution.
-
-  Returns: {:actions <transient-actions-vector> :state <updated-tool-call-state>}"
-  [db* chat-id tool-call-id]
-  (let [current-state (get-tool-call-state @db* chat-id tool-call-id)
-        {:keys [state actions]} (determine-stop-state-and-actions current-state)]
-    ;; Atomically update the state in the database
-    (swap! db* assoc-in [:chats chat-id :tool-calls tool-call-id] state)
-    ;; Return actions for immediate execution and the updated state
-    {:actions actions
-     :state state}))
 
 (defn ^:private tool-name->origin [name all-tools]
   (:origin (first (filter #(= name (:name %)) all-tools))))
