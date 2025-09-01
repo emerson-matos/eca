@@ -57,7 +57,7 @@
 (defn ^:private get-active-tool-calls
   "Returns a map of tool calls that are still active.
 
-  Active tool calls are those not in the following states: :completed, :rejected, :stopped."
+  Active tool calls are those not in the following (terminal) states: :completed, :rejected, :stopped."
   [db chat-id]
   (->> (get-in db [:chats chat-id :tool-calls] {})
        (remove (fn [[_ state]]
@@ -128,7 +128,7 @@
 
    ;; And now all the :stop-requested transitions
 
-   ;; In the future, when calls can be interrupted,
+   ;; TODO: In the future, when calls can be interrupted,
    ;; more states and actions will be required.
 
    [:execution-approved :stop-requested]
@@ -442,7 +442,7 @@
                                             (transition-tool-call! db* chat-ctx id :auto-approve))
                                           ;; Execute each tool call concurrently - this should be the return value of let
                                           (future
-                                            (if @approved?*
+                                            (if @approved?* ;TODO: Should there be a timeout here?  If so, what would be the state transitions?
                                               ;; assert: In :execution-approved state
                                               (do
                                                 (assert-chat-not-stopped! chat-ctx)
@@ -657,23 +657,7 @@
 
       ;; Handle each active tool call
       (doseq [[tool-call-id _] (get-active-tool-calls @db* chat-id)]
-        (transition-tool-call! db* chat-ctx tool-call-id :stop-requested)
-        #_(let [{:keys [actions]} (stop-tool-call-atomically! db* chat-id tool-call-id)]
-          (doseq [action actions]
-            (case action
-              :send-reject
-              (when (should-send-notification? @db* chat-id tool-call-id :toolCallRejected)
-                (send-content! chat-ctx :assistant {:type :toolCallRejected
-                                                    :id tool-call-id
-                                                    :reason :stop})
-                (mark-notification-sent! db* chat-id tool-call-id :toolCallRejected))
-
-              :reject-approval
-              ;; This will send a toolCallRejected
-              (deliver (get-in @db* [:chats chat-id :tool-calls tool-call-id :approved?*]) false)
-
-              (:wait-for-completion :no-action)
-              nil))))
+        (transition-tool-call! db* chat-ctx tool-call-id :stop-requested))
       (finish-chat-prompt! :stopping chat-ctx))))
 
 (defn delete-chat
