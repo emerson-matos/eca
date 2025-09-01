@@ -228,21 +228,18 @@
                                                    :id "tool-1"
                                                    :name "eca_directory_tree"
                                                    :argumentsText ""
-                                                   :manualApproval false
                                                    :summary "Listing file tree"})
         (match-content chat-id req-id "assistant" {:type "toolCallPrepare"
                                                    :origin "native"
                                                    :id "tool-1"
                                                    :name "eca_directory_tree"
                                                    :argumentsText "{\"pat"
-                                                   :manualApproval false
                                                    :summary "Listing file tree"})
         (match-content chat-id req-id "assistant" {:type "toolCallPrepare"
                                                    :origin "native"
                                                    :id "tool-1"
                                                    :name "eca_directory_tree"
                                                    :argumentsText (str "h\":\"" (h/project-path->canon-path "resources") "\"}")
-                                                   :manualApproval false
                                                    :summary "Listing file tree"})
         (match-content chat-id req-id "system" {:type "usage"
                                                 :sessionTokens 35

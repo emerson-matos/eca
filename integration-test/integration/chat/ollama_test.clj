@@ -225,7 +225,6 @@
                                                    :id (m/pred string?)
                                                    :name "eca_directory_tree"
                                                    :argumentsText ""
-                                                   :manualApproval false
                                                    :summary "Listing file tree"})
         (match-content chat-id req-id "assistant" {:type "toolCallRun"
                                                    :origin "native"
