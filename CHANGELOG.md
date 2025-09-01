@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.43.0
+
 - Support `chat/selectedBehaviorChanged` client notification.
 - Update models according with supported models given its auth or key/url configuration.
 - Return models only authenticated or logged in avoid too much models on UI that won't work.
