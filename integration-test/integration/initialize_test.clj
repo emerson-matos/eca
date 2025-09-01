@@ -43,9 +43,9 @@
     (testing "config updated"
       (is (match?
            {:chat {:models models
-                   :defaultModel "anthropic/claude-sonnet-4-20250514"
+                   :selectModel "anthropic/claude-sonnet-4-20250514"
                    :behaviors ["agent" "plan"]
-                   :defaultBehavior "plan"
+                   :selectBehavior "plan"
                    :welcomeMessage "Welcome to ECA!\n\nType '/' for commands\n\n"}}
            (eca/client-awaits-server-notification :config/updated)))))
 
@@ -97,18 +97,18 @@
                                                           :providers
                                                           (merge fixture/default-providers
                                                                  {"my-custom" {:api "openai-chat"
-                                                                              :url "MY_URL"
-                                                                              :key "MY_KEY"
-                                                                              :models {"foo1" {}
-                                                                                       "bar2" {}}}})})})))))
+                                                                               :url "MY_URL"
+                                                                               :key "MY_KEY"
+                                                                               :models {"foo1" {}
+                                                                                        "bar2" {}}}})})})))))
     (testing "initialized notification"
       (eca/notify! (fixture/initialized-notification)))
 
     (testing "config updated"
       (is (match?
            {:chat {:models models
-                   :defaultModel "my-custom/bar-2"
+                   :selectModel "my-custom/bar-2"
                    :behaviors ["agent" "plan"]
-                   :defaultBehavior "agent"
+                   :selectBehavior "agent"
                    :welcomeMessage "Welcome to ECA!\n\nType '/' for commands\n\n"}}
            (eca/client-awaits-server-notification :config/updated))))))

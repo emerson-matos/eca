@@ -1059,21 +1059,27 @@ interface ConfigUpdatedParams {
         models?: ChatModel[];
 
         /**
-        * The default model to use in the chat, if that is present
-        * clients should update chat selected model unless user changed it
-        */
-        defaultModel?: ChatModel;
-
-        /**
         * The chat behaviors the user can select.
         */
         behaviors?: ChatBehavior[];
+        
+        /**
+         * The model for client select in chat, if that is present
+         * clients should forcefully update chat selected model.
+         * 
+         * Server returns this when starting and only when makes sense to 
+         * force update a model, like a config change.
+         */
+        selectModel?: ChatModel;
 
         /**
-        * The default behavior to use in the chat, if that is present
-        * clients should update chat selected behavior unless user changed it.
-        */
-        defaultBehavior?: ChatBehavior;
+         * The behavior for client select in chat, if that is present
+         * clients should forcefully update chat selected behavior.
+         * 
+         * Server returns this when starting and only when makes sense to 
+         * force update a behavior, like a config change.
+         */
+        selectBehavior?: ChatBehavior;
 
         /**
         * Message to show when starting a new chat.

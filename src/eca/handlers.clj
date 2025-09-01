@@ -45,18 +45,22 @@
                                     (when (not= (:providers-config-hash @db*) new-providers-hash)
                                       (swap! db* assoc :providers-config-hash new-providers-hash)
                                       (models/sync-models! db* config (fn [models]
-                                                                 (let [db @db*]
-                                                                   (config/notify-fields-changed-only!
-                                                                    {:chat
-                                                                     {:models (sort (keys models))
-                                                                      :default-model (f.chat/default-model db config)
-                                                                      :behaviors (:chat-behaviors db)
-                                                                      :default-behavior (or (:defaultBehavior (:chat config)) ;;legacy
-                                                                                            (:defaultBehavior config))
-                                                                      :welcome-message (or (:welcomeMessage (:chat config)) ;;legacy
-                                                                                           (:welcomeMessage config))}}
-                                                                    messenger
-                                                                    db*)))))))]
+                                                                        (let [db @db*]
+                                                                          (config/notify-fields-changed-only!
+                                                                           {:chat
+                                                                            {:models (sort (keys models))
+                                                                             :behaviors (:chat-behaviors db)
+                                                                             :select-model (f.chat/default-model db config)
+                                                                             :select-behavior (or (:defaultBehavior (:chat config)) ;;legacy
+                                                                                                  (:defaultBehavior config))
+                                                                             :welcome-message (or (:welcomeMessage (:chat config)) ;;legacy
+                                                                                                  (:welcomeMessage config))
+                                                                             ;; Deprecated, remove after changing emacs, vscode and intellij.
+                                                                             :default-model (f.chat/default-model db config)
+                                                                             :default-behavior (or (:defaultBehavior (:chat config)) ;;legacy
+                                                                                                   (:defaultBehavior config))}}
+                                                                           messenger
+                                                                           db*)))))))]
     (swap! db* assoc-in [:config-updated-fns :sync-models] #(sync-models-and-notify! %))
     (sync-models-and-notify! config))
   (future
@@ -127,5 +131,4 @@
    :eca/mcp-start-server
    (f.tools/start-server! (:name params) db* messenger config)))
 
-(defn chat-selected-behavior-changed [{:keys []} {:keys [_behavior]}]
-  )
+(defn chat-selected-behavior-changed [{:keys []} {:keys [_behavior]}])

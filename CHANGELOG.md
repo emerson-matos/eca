@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Safely rename `default*` -> `select*` in `config/updated`.
+
 ## 0.43.0
 
 - Support `chat/selectedBehaviorChanged` client notification.
