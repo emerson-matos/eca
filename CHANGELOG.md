@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.42.0
+
 - New server notification `config/updated` used to notify clients when a relevant config changed (behaviors, models etc).
 - Deprecate info inside `initialize` response, clients should use `config/updated` now.
 
