@@ -240,7 +240,7 @@
              {:role :system :content {:type :progress :state :running :text "Generating"}}
              {:role :assistant :content {:type :text :text "Ok,"}}
              {:role :assistant :content {:type :text :text " working on it"}}
-             {:role :assistant :content {:type :toolCallPrepare :id "call-1" :name "list_allowed_directories" :arguments-text "" :manual-approval false}}
+             {:role :assistant :content {:type :toolCallPrepare :id "call-1" :name "list_allowed_directories" :arguments-text ""}}
              {:role :assistant :content {:type :toolCallRun :id "call-1" :name "list_allowed_directories" :arguments {} :manual-approval false}}
              {:role :assistant :content {:type :toolCalled :id "call-1" :name "list_allowed_directories" :arguments {} :outputs [{:content "Allowed directories: /foo/bar" :type :text}]}}
              {:role :system :content {:type :progress :state :running :text "Generating"}}
