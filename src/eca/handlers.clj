@@ -165,3 +165,6 @@
   (logger/logging-task
    :eca/mcp-start-server
    (f.tools/start-server! (:name params) db* messenger config)))
+
+(defn chat-selected-behavior-changed [{:keys []} {:keys [_behavior]}]
+  )

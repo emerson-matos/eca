@@ -69,6 +69,9 @@
 (defmethod lsp.server/receive-notification "mcp/startServer" [_ components params]
   (handlers/mcp-start-server (with-config components) params))
 
+(defmethod lsp.server/receive-notification "chat/selectedBehaviorChanged" [_ components params]
+  (handlers/chat-selected-behavior-changed (with-config components) params))
+
 (defn ^:private monitor-server-logs [log-ch]
   ;; NOTE: if this were moved to `initialize`, after timbre has been configured,
   ;; the server's startup logs and traces would appear in the regular log file

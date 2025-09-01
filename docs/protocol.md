@@ -930,6 +930,24 @@ interface ChatDeleteParams {
 }
 ```
 
+### Chat selected behavior changed (➡️)
+
+A client notification for server telling the user selected a different behavior in chat.
+
+_Notification:_
+
+* method: `chat/selectedBehaviorChanged`
+* params: `ChatSelectedBehaviorChanged` defined as follows:
+
+```typescript
+interface ChatSelectedBehaviorChanged {
+    /**
+     * The selected behavior.
+     */
+    behavior: ChatBehavior;
+}
+```
+
 _Response:_
 
 ```typescript
