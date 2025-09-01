@@ -1021,7 +1021,7 @@ Soon
 ### Config updated (⬅️)
 
 A server notification with the new config server is considering (models, behaviors etc), usually related to config or auth changes.
-Clients should update UI accordingly, if a field is missing/null, means it has no change since last config used, so clients should ignore.
+Clients should update UI accordingly, if a field is missing/null, means it had no change since last config updated, so clients should ignore.
 
 _Notification:_ 
 
@@ -1041,9 +1041,26 @@ interface ConfigUpdatedParams {
         models?: ChatModel[];
 
         /**
+        * The default model to use in the chat, if that is present
+        * clients should update chat selected model unless user changed it
+        */
+        defaultModel?: ChatModel;
+
+        /**
         * The chat behaviors the user can select.
         */
         behaviors?: ChatBehavior[];
+
+        /**
+        * The default behavior to use in the chat, if that is present
+        * clients should update chat selected behavior unless user changed it.
+        */
+        defaultBehavior?: ChatBehavior;
+
+        /**
+        * Message to show when starting a new chat.
+        */
+        welcomeMessage?: string;
     }
 }
 ```
