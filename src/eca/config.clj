@@ -10,9 +10,11 @@
    [cheshire.core :as json]
    [cheshire.factory :as json.factory]
    [clojure.core.memoize :as memoize]
+   [clojure.data :as data]
    [clojure.java.io :as io]
    [clojure.string :as string]
    [eca.logger :as logger]
+   [eca.messenger :as messenger]
    [eca.shared :as shared])
   (:import
    [java.io File]))
@@ -24,6 +26,8 @@
 (def ^:dynamic *env-var-config-error* false)
 (def ^:dynamic *global-config-error* false)
 (def ^:dynamic *local-config-error* false)
+
+(def ^:private listen-idle-ms 3000)
 
 (def initial-config
   {:providers {"openai" {:api "openai-responses"
@@ -210,3 +214,66 @@
 
     ;; all good
     :else nil))
+
+(defn listen-for-changes! [db*]
+  (while (not (:stopping @db*))
+    (Thread/sleep ^long listen-idle-ms)
+    (let [db @db*
+          new-config (all db)
+          new-config-hash (hash new-config)]
+      (when (not= new-config-hash (:config-hash db))
+        (swap! db* assoc :config-hash new-config-hash)
+        (doseq [config-updated-fns (vals (:config-updated-fns db))]
+          (config-updated-fns new-config))))))
+
+(defn diff-keeping-vectors
+  "Like (second (clojure.data/diff a b)) but if a value is a vector, keep vector value from b.
+
+  Example1: (diff-keeping-vectors {:a 1 :b 2}  {:a 1 :b 3}) => {:b 3}
+  Example2: (diff-keeping-vectors {:a 1 :b [:bar]}  {:b [:bar :foo]}) => {:b [:bar :foo]}"
+  [a b]
+  (letfn [(diff-maps [a b]
+            (let [all-keys (set (concat (keys a) (keys b)))]
+              (reduce
+               (fn [acc k]
+                 (let [a-val (get a k)
+                       b-val (get b k)]
+                   (cond
+                     ;; Key doesn't exist in b, skip
+                     (and (contains? a k) (not (contains? b k)))
+                     acc
+
+                     ;; Key doesn't exist in a, include from b
+                     (and (not (contains? a k)) (contains? b k))
+                     (assoc acc k b-val)
+
+                     ;; Both are vectors and they differ, use the entire vector from b
+                     (and (vector? a-val) (vector? b-val) (not= a-val b-val))
+                     (assoc acc k b-val)
+
+                     ;; Both are maps, recurse
+                     (and (map? a-val) (map? b-val))
+                     (let [nested-diff (diff-maps a-val b-val)]
+                       (if (seq nested-diff)
+                         (assoc acc k nested-diff)
+                         acc))
+
+                     ;; Values are different, use value from b
+                     (not= a-val b-val)
+                     (assoc acc k b-val)
+
+                     ;; Values are the same, skip
+                     :else
+                     acc)))
+               {}
+               all-keys)))]
+    (let [result (diff-maps a b)]
+      (when (seq result)
+        result))))
+
+(defn notify-fields-changed-only! [config-updated messenger db*]
+  (let [config-to-notify (diff-keeping-vectors (:last-config-notified @db*)
+                                               config-updated)]
+    (when (seq config-to-notify)
+      (swap! db* update :last-config-notified shared/deep-merge config-to-notify)
+      (messenger/config-updated messenger config-to-notify))))

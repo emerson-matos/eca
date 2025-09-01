@@ -15,9 +15,9 @@
 
 (set! *warn-on-reflection* true)
 
-(defn ^:private initialize-models! [db* config]
+(defn ^:private sync-models! [db* config on-models-updated]
   (let [all-models (models/all)
-        eca-models (reduce
+        all-models (reduce
                     (fn [p [provider provider-config]]
                       (merge p
                              (reduce
@@ -25,8 +25,8 @@
                                 (let [full-model (str provider "/" model)
                                       model-capabilities (merge
                                                           (or (get all-models full-model)
-                                                              ;; we guess the capabilities from
-                                                              ;; the first model with same name
+                                                                     ;; we guess the capabilities from
+                                                                     ;; the first model with same name
                                                               (when-let [found-full-model (first (filter #(= (shared/normalize-model-name model)
                                                                                                              (shared/normalize-model-name (second (string/split % #"/" 2))))
                                                                                                          (keys all-models)))]
@@ -38,49 +38,76 @@
                               {}
                               (:models provider-config))))
                     {}
-                    (:providers config))]
-    (swap! db* update :models merge eca-models))
-  (when-let [ollama-models (seq (llm-api/extra-models config))]
-    (let [models (reduce
-                  (fn [models {:keys [model] :as ollama-model}]
-                    (assoc models
-                           (str config/ollama-model-prefix model)
-                           (select-keys ollama-model [:tools :reason?])))
-                  {}
-                  ollama-models)]
-      (swap! db* update :models merge models))))
+                    (:providers config))
+        all-models (if-let [local-models (seq (llm-api/local-models config))]
+                     (let [models (reduce
+                                   (fn [models {:keys [model] :as ollama-model}]
+                                     (assoc models
+                                            (str config/ollama-model-prefix model)
+                                            (select-keys ollama-model [:tools :reason?])))
+                                   {}
+                                   local-models)]
+                       (swap! db* update :models merge models))
+                     all-models)]
+    (swap! db* assoc :models all-models)
+    (on-models-updated)))
 
-(defn initialize [{:keys [db* messenger]} params]
+(defn initialize [{:keys [db*]} params]
   (logger/logging-task
    :eca/initialize
    (reset! config/initialization-config* (shared/map->camel-cased-map (:initialization-options params)))
    (let [config (config/all @db*)]
+     (logger/debug "Considered config: " config)
      (swap! db* assoc
             :client-info (:client-info params)
             :workspace-folders (:workspace-folders params)
             :client-capabilities (:capabilities params))
-     (initialize-models! db* config)
      (when-not (:pureConfig config)
        (db/load-db-from-cache! db*))
-     (future
-       (Thread/sleep 1000) ;; wait chat window is open in some editors.
-       (when-let [error (config/validation-error)]
-         (messenger/chat-content-received
-          messenger
-          {:role "system"
-           :content {:type :text
-                     :text (format "\nFailed to parse '%s' config, check stderr logs, double check your config and restart\n"
-                                   error)}})))
-     (logger/debug "Considered config: " config)
-     {:models (sort (keys (:models @db*)))
-      :chat-default-model (f.chat/default-model @db* config)
-      :chat-behaviors (:chat-behaviors @db*)
-      :chat-default-behavior (or (:defaultBehavior (:chat config)) ;;legacy
-                                 (:defaultBehavior config))
-      :chat-welcome-message (or (:welcomeMessage (:chat config)) ;;legacy
-                                (:welcomeMessage config))})))
+
+     ;; Deprecated
+     ;; For backward compatibility,
+     ;; we now return chat config via `config/updated` notification.
+     (sync-models! db* config (fn []))
+     (let [db @db*]
+       {:models (sort (keys (:models db)))
+        :chat-default-model (f.chat/default-model db config)
+        :chat-behaviors (:chat-behaviors db)
+        :chat-default-behavior (or (:defaultBehavior (:chat config)) ;;legacy
+                                   (:defaultBehavior config))
+        :chat-welcome-message (or (:welcomeMessage (:chat config)) ;;legacy
+                                  (:welcomeMessage config))}))))
 
 (defn initialized [{:keys [db* messenger config]}]
+  (let [sync-models-and-notify! (fn [config]
+                                  (let [new-providers-hash (hash (:providers config))]
+                                    (when (not= (:providers-config-hash @db*) new-providers-hash)
+                                      (swap! db* assoc :providers-config-hash new-providers-hash)
+                                      (sync-models! db* config (fn []
+                                                                 (let [db @db*]
+                                                                   (config/notify-fields-changed-only!
+                                                                    {:chat
+                                                                     {:models (sort (keys (:models db)))
+                                                                      :default-model (f.chat/default-model db config)
+                                                                      :behaviors (:chat-behaviors db)
+                                                                      :default-behavior (or (:defaultBehavior (:chat config)) ;;legacy
+                                                                                            (:defaultBehavior config))
+                                                                      :welcome-message (or (:welcomeMessage (:chat config)) ;;legacy
+                                                                                           (:welcomeMessage config))}}
+                                                                    messenger
+                                                                    db*)))))))]
+    (swap! db* assoc-in [:config-updated-fns :sync-models] #(sync-models-and-notify! %))
+    (sync-models-and-notify! config))
+  (future
+    (Thread/sleep 1000) ;; wait chat window is open in some editors.
+    (when-let [error (config/validation-error)]
+      (messenger/chat-content-received
+       messenger
+       {:role "system"
+        :content {:type :text
+                  :text (format "\nFailed to parse '%s' config, check stderr logs, double check your config and restart\n"
+                                error)}}))
+    (config/listen-for-changes! db*))
   (future
     (f.tools/init-servers! db* messenger config)))
 
@@ -88,7 +115,7 @@
   (logger/logging-task
    :eca/shutdown
    (f.mcp/shutdown! db*)
-   (reset! db* db/initial-db)
+   (swap! db* assoc :stopping true)
    nil))
 
 (defn chat-prompt [{:keys [messenger db* config]} params]

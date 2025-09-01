@@ -103,3 +103,46 @@
            "providers" {"customProvider" {"key" "123"
                                           "models" {"gpt-5" {}}}
                         "open-router" {"models" {"openAi/o4-mini" {}}}}})))))
+
+(deftest diff-keeping-vectors-test
+  (testing "like clojure.data/diff"
+    (is (= {:b 3}
+           (#'config/diff-keeping-vectors {:a 1
+                                           :b 2}
+                                          {:a 1
+                                           :b 3})))
+    (is (= nil
+           (#'config/diff-keeping-vectors {:a {:b 2}
+                                           :c 3}
+                                          {:a {:b 2}
+                                           :c 3})))
+    (is (= {:a {:b 3}}
+           (#'config/diff-keeping-vectors {:a {:b 2}
+                                           :c 3}
+                                          {:a {:b 3}
+                                           :c 3}))))
+  (testing "if a vector value changed, we keep vector from b"
+    (is (= {:b [:bar :foo]}
+           (#'config/diff-keeping-vectors {:a 1
+                                           :c 3
+                                           :b [:bar]}
+                                          {:c 3
+                                           :b [:bar :foo]})))
+    (is (= {:b [:bar]}
+           (#'config/diff-keeping-vectors {:a 1
+                                           :c 3
+                                           :b [:bar :foo]}
+                                          {:c 3
+                                           :b [:bar]})))
+    (is (= {:b [:bar]}
+           (#'config/diff-keeping-vectors {:a 1
+                                           :c 3
+                                           :b []}
+                                          {:c 3
+                                           :b [:bar]})))
+    (is (= {:b []}
+           (#'config/diff-keeping-vectors {:a 1
+                                           :c 3
+                                           :b [:bar]}
+                                          {:c 3
+                                           :b []})))))

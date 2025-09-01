@@ -149,33 +149,7 @@ type ChatBehavior = 'agent' | 'plan';
 _Response:_
 
 ```typescript
-interface InitializeResponse {
-    
-    /*
-     * The models supported by the server.
-     */
-    models: ChatModel[];
-    
-    /*
-     * Default model used by server.
-     */
-    chatDefaultModel: ChatModel;
-    
-    /*
-     * The chat behaviors available.
-     */
-    chatBehaviors: ChatBehavior[];
-    
-    /*
-     * Default chat behavior used by server.
-     */
-    chatDefaultBehavior: ChatBehavior;
-    
-    /*
-     * The chat welcome message when chat is cleared or in a new state.
-     */
-    chatWelcomeMessage: string;
-}
+interface InitializeResponse {}
 ```
 
 ### Initialized (➡️)
@@ -1043,6 +1017,36 @@ Soon
 Soon
 
 ## Configuration
+
+### Config updated (⬅️)
+
+A server notification with the new config server is considering (models, behaviors etc), usually related to config or auth changes.
+Clients should update UI accordingly, if a field is missing/null, means it has no change since last config used, so clients should ignore.
+
+_Notification:_ 
+
+* method: `config/updated`
+* params: `configUpdatedParams` defined as follows:
+
+```typescript
+interface ConfigUpdatedParams {
+    /**
+     * Configs related to chat.
+     */
+    chat?: {
+
+       /**
+        * The models the user can use in chat.
+        */
+        models?: ChatModel[];
+
+        /**
+        * The chat behaviors the user can select.
+        */
+        behaviors?: ChatBehavior[];
+    }
+}
+```
 
 ### Tool updated (⬅️)
 

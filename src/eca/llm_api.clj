@@ -41,7 +41,7 @@
   (or (get-in config [:providers (name provider) :url])
       (some-> (get-in config [:providers (name provider) :urlEnv]) config/get-env)))
 
-(defn extra-models [config]
+(defn local-models [config]
   (let [ollama-api-url (provider-api-url "ollama" config)]
     (mapv
      (fn [{:keys [model] :as ollama-model}]

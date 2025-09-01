@@ -18,7 +18,9 @@
   (System/lineSeparator))
 
 (defn uri->filename [uri]
-  (let [uri (URI. uri)]
+  (let [uri (-> (URI. uri)
+                (.toASCIIString)
+                (URI.))]
     (-> uri Paths/get .toString
         ;; WINDOWS drive letters
         (string/replace #"^[a-z]:\\" string/upper-case))))

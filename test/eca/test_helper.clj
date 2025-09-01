@@ -24,6 +24,7 @@
 (defrecord TestMessenger [messages* diagnostics*]
   messenger/IMessenger
   (chat-content-received [_ data] (swap! messages* update :chat-content-received (fnil conj []) data))
+  (config-updated [_ _data] _)
   (tool-server-updated [_ data] (swap! messages* update :tool-server-update (fnil conj []) data))
   (showMessage [_ data] (swap! messages* update :show-message (fnil conj []) data))
   (editor-diagnostics [_ _uri] (future {:diagnostics @diagnostics*})))

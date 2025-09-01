@@ -9,7 +9,7 @@
 (deftest initialize-test
   (testing "initializationOptions config is merged properly with default init config"
     (let [db* (atom {})]
-      (with-redefs [handlers/initialize-models! (constantly nil)
+      (with-redefs [handlers/sync-models! (constantly nil)
                     db/load-db-from-cache! (constantly nil)]
         (is (match?
              {}
