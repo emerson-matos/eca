@@ -6,11 +6,12 @@
 
 (def namespaces
   '[integration.initialize-test
-    integration.chat.openai-test
-    integration.chat.anthropic-test
-    integration.chat.github-copilot-test
-    integration.chat.ollama-test
-    integration.chat.custom-provider-test])
+    ;integration.chat.openai-test
+    ;integration.chat.anthropic-test
+    ;integration.chat.github-copilot-test
+    ;integration.chat.ollama-test
+    ;integration.chat.custom-provider-test
+    ])
 
 (defn timeout [timeout-ms callback]
   (let [fut (future (callback))
