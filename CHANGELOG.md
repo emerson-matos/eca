@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.43.1
+
 - Safely rename `default*` -> `select*` in `config/updated`.
 
 ## 0.43.0
