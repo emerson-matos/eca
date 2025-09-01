@@ -53,10 +53,8 @@
         (match-content chat-id req-id "assistant" {:type "text" :text "Knock"})
         (match-content chat-id req-id "assistant" {:type "text" :text " knock!"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 10
-                                                :messageOutputTokens 20
                                                 :sessionTokens 30
-                                                :messageCost m/absent
+                                                :lastMessageCost m/absent
                                                 :sessionCost m/absent})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -85,10 +83,8 @@
         (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
         (match-content chat-id req-id "assistant" {:type "text" :text "Foo"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 10
-                                                :messageOutputTokens 5
-                                                :sessionTokens 45
-                                                :messageCost m/absent
+                                                :sessionTokens 15
+                                                :lastMessageCost m/absent
                                                 :sessionCost m/absent})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -121,10 +117,8 @@
         (match-content chat-id req-id "assistant" {:type "text" :text "\n\n"})
         (match-content chat-id req-id "assistant" {:type "text" :text "Ha!"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 5
-                                                :messageOutputTokens 15
-                                                :sessionTokens 65
-                                                :messageCost m/absent
+                                                :sessionTokens 20
+                                                :lastMessageCost m/absent
                                                 :sessionCost m/absent})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?

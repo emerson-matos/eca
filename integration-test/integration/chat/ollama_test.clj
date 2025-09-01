@@ -257,8 +257,8 @@
                                                                      :arguments {:path (h/project-path->canon-path "resources")}
                                                                      :summary "Listing file tree"
                                                                      :origin "native"}}]}
-                         {:role "tool" :content (str "├── file1.md\n" 
-                                                     "└── file2.md\n\n" 
+                         {:role "tool" :content (str "├── file1.md\n"
+                                                     "└── file2.md\n\n"
                                                      "0 directories, 2 files\n")}]
               :tools (m/embeds [{:type "function" :function {:name "eca_directory_tree"}}])}
              llm.mocks/*last-req-body*))))))

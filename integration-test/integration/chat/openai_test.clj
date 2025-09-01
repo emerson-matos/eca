@@ -37,10 +37,8 @@
         (match-content chat-id req-id "assistant" {:type "text" :text "Knock"})
         (match-content chat-id req-id "assistant" {:type "text" :text " knock!"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 10
-                                                :messageOutputTokens 20
                                                 :sessionTokens 30
-                                                :messageCost (m/pred string?)
+                                                :lastMessageCost (m/pred string?)
                                                 :sessionCost (m/pred string?)})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -69,10 +67,8 @@
         (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
         (match-content chat-id req-id "assistant" {:type "text" :text "Foo"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 10
-                                                :messageOutputTokens 5
-                                                :sessionTokens 45
-                                                :messageCost (m/pred string?)
+                                                :sessionTokens 15
+                                                :lastMessageCost (m/pred string?)
                                                 :sessionCost (m/pred string?)})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -105,10 +101,8 @@
         (match-content chat-id req-id "assistant" {:type "text" :text "\n\n"})
         (match-content chat-id req-id "assistant" {:type "text" :text "Ha!"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 5
-                                                :messageOutputTokens 15
-                                                :sessionTokens 65
-                                                :messageCost (m/pred string?)
+                                                :sessionTokens 20
+                                                :lastMessageCost (m/pred string?)
                                                 :sessionCost (m/pred string?)})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -150,10 +144,8 @@
         (match-content chat-id req-id "assistant" {:type "text" :text "hello"})
         (match-content chat-id req-id "assistant" {:type "text" :text " there!"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 5
-                                                :messageOutputTokens 30
                                                 :sessionTokens 35
-                                                :messageCost (m/pred string?)
+                                                :lastMessageCost (m/pred string?)
                                                 :sessionCost (m/pred string?)})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -187,10 +179,8 @@
         (match-content chat-id req-id "assistant" {:type "text" :text "I'm "})
         (match-content chat-id req-id "assistant" {:type "text" :text " fine"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 10
-                                                :messageOutputTokens 20
-                                                :sessionTokens 65
-                                                :messageCost (m/pred string?)
+                                                :sessionTokens 30
+                                                :lastMessageCost (m/pred string?)
                                                 :sessionCost (m/pred string?)})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -255,10 +245,8 @@
                                                    :manualApproval false
                                                    :summary "Listing file tree"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 5
-                                                :messageOutputTokens 30
                                                 :sessionTokens 35
-                                                :messageCost (m/pred string?)
+                                                :lastMessageCost (m/pred string?)
                                                 :sessionCost (m/pred string?)})
         (match-content chat-id req-id "assistant" {:type "toolCallRun"
                                                    :origin "native"
@@ -279,12 +267,6 @@
                                                                                       "0 directories, 2 files")}]})
         (match-content chat-id req-id "assistant" {:type "text" :text "The files I see:\n"})
         (match-content chat-id req-id "assistant" {:type "text" :text "file1\nfile2\n"})
-        (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 5
-                                                :messageOutputTokens 30
-                                                :sessionTokens 70
-                                                :messageCost (m/pred string?)
-                                                :sessionCost (m/pred string?)})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:input [{:role "user" :content [{:type "input_text" :text "What files you see?"}]}

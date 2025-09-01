@@ -37,10 +37,8 @@
         (match-content chat-id req-id "assistant" {:type "text" :text "Knock"})
         (match-content chat-id req-id "assistant" {:type "text" :text " knock!"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 10
-                                                :messageOutputTokens 20
                                                 :sessionTokens 30
-                                                :messageCost (m/pred string?)
+                                                :lastMessageCost (m/pred string?)
                                                 :sessionCost (m/pred string?)})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -69,16 +67,14 @@
         (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
         (match-content chat-id req-id "assistant" {:type "text" :text "Foo"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 10
-                                                :messageOutputTokens 5
-                                                :sessionTokens 45
-                                                :messageCost (m/pred string?)
+                                                :sessionTokens 15
+                                                :lastMessageCost (m/pred string?)
                                                 :sessionCost (m/pred string?)})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:messages [{:role "user" :content [{:type "text" :text "Tell me a joke!"}]}
-                        {:role "assistant" :content [{:type "text" :text "Knock knock!"}]}
-                        {:role "user" :content [{:type "text" :text "Who's there?"}]}]}
+                         {:role "assistant" :content [{:type "text" :text "Knock knock!"}]}
+                         {:role "user" :content [{:type "text" :text "Who's there?"}]}]}
              llm.mocks/*last-req-body*))))
 
     (testing "model reply again keeping context"
@@ -105,18 +101,16 @@
         (match-content chat-id req-id "assistant" {:type "text" :text "\n\n"})
         (match-content chat-id req-id "assistant" {:type "text" :text "Ha!"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 5
-                                                :messageOutputTokens 15
-                                                :sessionTokens 65
-                                                :messageCost (m/pred string?)
+                                                :sessionTokens 20
+                                                :lastMessageCost (m/pred string?)
                                                 :sessionCost (m/pred string?)})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:messages [{:role "user" :content [{:type "text" :text "Tell me a joke!"}]}
-                        {:role "assistant" :content [{:type "text" :text "Knock knock!"}]}
-                        {:role "user" :content [{:type "text" :text "Who's there?"}]}
-                        {:role "assistant" :content [{:type "text" :text "Foo"}]}
-                        {:role "user" :content [{:type "text" :text "What foo?"}]}]}
+                         {:role "assistant" :content [{:type "text" :text "Knock knock!"}]}
+                         {:role "user" :content [{:type "text" :text "Who's there?"}]}
+                         {:role "assistant" :content [{:type "text" :text "Foo"}]}
+                         {:role "user" :content [{:type "text" :text "What foo?"}]}]}
              llm.mocks/*last-req-body*))))))
 
 (deftest reasoning-text
@@ -150,10 +144,8 @@
         (match-content chat-id req-id "assistant" {:type "text" :text "hello"})
         (match-content chat-id req-id "assistant" {:type "text" :text " there!"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 5
-                                                :messageOutputTokens 30
                                                 :sessionTokens 35
-                                                :messageCost (m/pred string?)
+                                                :lastMessageCost (m/pred string?)
                                                 :sessionCost (m/pred string?)})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -187,20 +179,18 @@
         (match-content chat-id req-id "assistant" {:type "text" :text "I'm "})
         (match-content chat-id req-id "assistant" {:type "text" :text " fine"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 10
-                                                :messageOutputTokens 20
-                                                :sessionTokens 65
-                                                :messageCost (m/pred string?)
+                                                :sessionTokens 30
+                                                :lastMessageCost (m/pred string?)
                                                 :sessionCost (m/pred string?)})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:messages [{:role "user" :content [{:type "text" :text "hello!"}]}
-                        {:role "assistant"
-                         :content [{:type "thinking"
-                                    :signature "enc-123"
-                                    :thinking "I should say hello"}]}
-                        {:role "assistant" :content [{:type "text" :text "hello there!"}]}
-                        {:role "user" :content [{:type "text" :text "how are you?"}]}]
+                         {:role "assistant"
+                          :content [{:type "thinking"
+                                     :signature "enc-123"
+                                     :thinking "I should say hello"}]}
+                         {:role "assistant" :content [{:type "text" :text "hello there!"}]}
+                         {:role "user" :content [{:type "text" :text "how are you?"}]}]
               :system (m/pred vector?)}
              llm.mocks/*last-req-body*))))))
 
@@ -255,10 +245,8 @@
                                                    :manualApproval false
                                                    :summary "Listing file tree"})
         (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 5
-                                                :messageOutputTokens 30
                                                 :sessionTokens 35
-                                                :messageCost (m/pred string?)
+                                                :lastMessageCost (m/pred string?)
                                                 :sessionCost (m/pred string?)})
         (match-content chat-id req-id "assistant" {:type "toolCallRun"
                                                    :origin "native"
@@ -279,31 +267,25 @@
                                                                                       "0 directories, 2 files")}]})
         (match-content chat-id req-id "assistant" {:type "text" :text "The files I see:\n"})
         (match-content chat-id req-id "assistant" {:type "text" :text "file1\nfile2\n"})
-        (match-content chat-id req-id "system" {:type "usage"
-                                                :messageInputTokens 5
-                                                :messageOutputTokens 30
-                                                :sessionTokens 70
-                                                :messageCost (m/pred string?)
-                                                :sessionCost (m/pred string?)})
         (match-content chat-id req-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:messages [{:role "user" :content [{:type "text" :text "What files you see?"}]}
-                        {:role "assistant"
-                         :content [{:type "thinking"
-                                    :signature "enc-123"
-                                    :thinking "I should call tool eca_directory_tree"}]}
-                        {:role "assistant" :content [{:type "text" :text "I will list files"}]}
-                        {:role "assistant"
-                         :content [{:type "tool_use"
-                                    :id "tool-1"
-                                    :name "eca_directory_tree"
-                                    :input {:path (h/project-path->canon-path "resources")}}]}
-                        {:role "user"
-                         :content [{:type "tool_result"
-                                    :tool_use_id "tool-1"
-                                    :content (str "├── file1.md\n"
-                                                  "└── file2.md\n\n"
-                                                  "0 directories, 2 files\n")}]}]
+                         {:role "assistant"
+                          :content [{:type "thinking"
+                                     :signature "enc-123"
+                                     :thinking "I should call tool eca_directory_tree"}]}
+                         {:role "assistant" :content [{:type "text" :text "I will list files"}]}
+                         {:role "assistant"
+                          :content [{:type "tool_use"
+                                     :id "tool-1"
+                                     :name "eca_directory_tree"
+                                     :input {:path (h/project-path->canon-path "resources")}}]}
+                         {:role "user"
+                          :content [{:type "tool_result"
+                                     :tool_use_id "tool-1"
+                                     :content (str "├── file1.md\n"
+                                                   "└── file2.md\n\n"
+                                                   "0 directories, 2 files\n")}]}]
               :tools (m/embeds
                       [{:name "eca_directory_tree"}])
               :system (m/pred vector?)}

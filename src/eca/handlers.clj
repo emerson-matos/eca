@@ -47,7 +47,7 @@
                                             (select-keys ollama-model [:tools :reason?])))
                                    {}
                                    local-models)]
-                       (swap! db* update :models merge models))
+                       (merge all-models models))
                      all-models)]
     (swap! db* assoc :models all-models)
     (on-models-updated)))

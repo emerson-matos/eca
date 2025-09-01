@@ -10,7 +10,6 @@
    [cheshire.core :as json]
    [cheshire.factory :as json.factory]
    [clojure.core.memoize :as memoize]
-   [clojure.data :as data]
    [clojure.java.io :as io]
    [clojure.string :as string]
    [eca.logger :as logger]
