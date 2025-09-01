@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Support `chat/selectedBehaviorChanged` client notification.
+
 ## 0.42.0
 
 - New server notification `config/updated` used to notify clients when a relevant config changed (behaviors, models etc).
