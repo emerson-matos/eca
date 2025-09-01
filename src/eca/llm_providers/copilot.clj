@@ -62,7 +62,7 @@
                       url
                       user-code)}))
 
-(defmethod f.login/login-step ["github-copilot" :login/waiting-user-confirmation] [{:keys [db* chat-id provider send-msg!]}]
+(defmethod f.login/login-step ["github-copilot" :login/waiting-user-confirmation] [{:keys [db* chat-id provider send-msg!] :as ctx}]
   (let [access-token (oauth-access-token (get-in @db* [:auth provider :device-code]))
         {:keys [api-key expires-at]} (oauth-renew-token access-token)]
     (swap! db* update-in [:auth provider] merge {:step :login/done
@@ -70,6 +70,7 @@
                                                  :api-key api-key
                                                  :expires-at expires-at})
     (swap! db* update-in [:chats chat-id :status] :idle)
+    (f.login/login-done! ctx)
     (send-msg! "Login successful! You can now use the 'github-copilot' models.")))
 
 (defmethod f.login/login-step ["github-copilot" :login/renew-token] [{:keys [db* provider]}]

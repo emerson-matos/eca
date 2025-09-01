@@ -104,11 +104,14 @@
     (when (= version (:version cache))
       cache)))
 
-(defn load-db-from-cache! [db*]
-  (when-let [global-cache (read-global-cache)]
-    (swap! db* shared/deep-merge global-cache))
-  (when-let [global-by-workspace-cache (read-global-by-workspaces-cache (:workspace-folders @db*))]
-    (swap! db* shared/deep-merge global-by-workspace-cache)))
+(defn load-db-from-cache! [db* config]
+  (when-not (:pureConfig config)
+    (when-let [global-cache (read-global-cache)]
+      (logger/info logger-tag "Loading from global-cache caches...")
+      (swap! db* shared/deep-merge global-cache))
+    (when-let [global-by-workspace-cache (read-global-by-workspaces-cache (:workspace-folders @db*))]
+      (logger/info logger-tag "Loading from workspace-cache caches...")
+      (swap! db* shared/deep-merge global-by-workspace-cache))))
 
 (defn ^:private normalize-db-for-workspace-write [db]
   (-> (select-keys db [:chats])

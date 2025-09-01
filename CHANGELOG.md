@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Support `chat/selectedBehaviorChanged` client notification.
+- Update models according with supported models given its auth or key/url configuration.
 
 ## 0.42.0
 

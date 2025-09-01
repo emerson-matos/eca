@@ -2,7 +2,8 @@
   (:require
    [clojure.string :as string]
    [eca.db :as db]
-   [eca.messenger :as messenger]))
+   [eca.messenger :as messenger]
+   [eca.models :as models]))
 
 (defmulti login-step (fn [ctx] [(:provider ctx) (:step ctx)]))
 
@@ -14,7 +15,7 @@
                :provider provider
                :db* db*}))
 
-(defn continue [{:keys [message chat-id request-id]} db* messenger]
+(defn continue [{:keys [message chat-id request-id]} db* messenger config]
   (let [provider (get-in @db* [:chats chat-id :login-provider])
         step (get-in @db* [:auth provider :step])
         input (string/trim message)
@@ -22,6 +23,8 @@
              :step step
              :input input
              :db* db*
+             :config config
+             :messenger messenger
              :provider provider
              :send-msg! (fn [msg]
                           (messenger/chat-content-received
@@ -56,3 +59,12 @@
     :step :login/renew-token
     :db* db*})
   (db/update-global-cache! @db*))
+
+(defn login-done! [{:keys [db* config messenger]}]
+  (models/sync-models! db*
+                       config
+                       (fn [new-models]
+                         (messenger/config-updated
+                          messenger
+                          {:chat
+                           {:models (sort (keys new-models))}}))))

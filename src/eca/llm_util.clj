@@ -2,6 +2,7 @@
   (:require
    [cheshire.core :as json]
    [clojure.string :as string]
+   [eca.config :as config]
    [eca.logger :as logger])
   (:import
    [java.io BufferedReader]
@@ -88,3 +89,12 @@
   (let [verifier (random-verifier)]
     {:verifier verifier
      :challenge (-> verifier str->sha256 ->base64 ->base64url (string/replace "=" ""))}))
+
+(defn provider-api-key [provider provider-auth config]
+  (or (get-in config [:providers (name provider) :key])
+      (:api-key provider-auth)
+      (some-> (get-in config [:providers (name provider) :keyEnv]) config/get-env)))
+
+(defn provider-api-url [provider config]
+  (or (get-in config [:providers (name provider) :url])
+      (some-> (get-in config [:providers (name provider) :urlEnv]) config/get-env)))

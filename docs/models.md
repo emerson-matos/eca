@@ -1,8 +1,10 @@
 # Models
 
-All providers and models are configured under `providers` config.
+All providers and models are configured under `providers` config or via `/login` when supported.
 
 Models capabilities and configurations are retrieved from [models.dev](https://models.dev) API.
+
+ECA will return to clients the models configured, either via config or login.
 
 ## Built-in providers and capabilities
 

@@ -7,17 +7,20 @@
 (def base-llm-mock-url
   (str "http://localhost:" llm-mock.server/port))
 
+(def default-providers
+  {"openai" {:url (str base-llm-mock-url "/openai")
+             :key "foo-key"
+             :keyEnv "FOO"}
+   "anthropic" {:url (str base-llm-mock-url "/anthropic")
+                :key "foo-key"
+                :keyEnv "FOO"}
+   "github-copilot" {:url (str base-llm-mock-url "/github-copilot")
+                     :key "foo-key"
+                     :keyEnv "FOO"}})
+
 (def default-init-options {:pureConfig true
                            :toolCall {:approval {:byDefault "allow"}}
-                           :providers {"openai" {:url (str base-llm-mock-url "/openai")
-                                                 :key "foo-key"
-                                                 :keyEnv "FOO"}
-                                       "anthropic" {:url (str base-llm-mock-url "/anthropic")
-                                                    :key "foo-key"
-                                                    :keyEnv "FOO"}
-                                       "github-copilot" {:url (str base-llm-mock-url "/github-copilot")
-                                                         :key "foo-key"
-                                                         :keyEnv "FOO"}}})
+                           :providers default-providers})
 
 (defn initialize-request
   ([]

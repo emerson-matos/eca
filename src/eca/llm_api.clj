@@ -8,6 +8,7 @@
    [eca.llm-providers.ollama :as llm-providers.ollama]
    [eca.llm-providers.openai :as llm-providers.openai]
    [eca.llm-providers.openai-chat :as llm-providers.openai-chat]
+   [eca.llm-util :as llm-util]
    [eca.logger :as logger]))
 
 (set! *warn-on-reflection* true)
@@ -32,25 +33,6 @@
           (string/join "\n" (subvec lines start end)))
         content))))
 
-(defn ^:private provider-api-key [provider provider-auth config]
-  (or (get-in config [:providers (name provider) :key])
-      (:api-key provider-auth)
-      (some-> (get-in config [:providers (name provider) :keyEnv]) config/get-env)))
-
-(defn ^:private provider-api-url [provider config]
-  (or (get-in config [:providers (name provider) :url])
-      (some-> (get-in config [:providers (name provider) :urlEnv]) config/get-env)))
-
-(defn local-models [config]
-  (let [ollama-api-url (provider-api-url "ollama" config)]
-    (mapv
-     (fn [{:keys [model] :as ollama-model}]
-       (let [capabilities (llm-providers.ollama/model-capabilities {:api-url ollama-api-url :model model})]
-         (assoc ollama-model
-                :tools (boolean (some #(= % "tools") capabilities))
-                :reason? (boolean (some #(= % "thinking") capabilities)))))
-     (llm-providers.ollama/list-models {:api-url ollama-api-url}))))
-
 (defn default-model
   "Returns the default LLM model checking this waterfall:
   - defaultModel set
@@ -63,9 +45,9 @@
   (let [[decision model]
         (or (when-let [config-default-model (:defaultModel config)]
               [:config-default-model config-default-model])
-            (when (provider-api-key "anthropic" (get-in db [:auth "anthropic"]) config)
+            (when (llm-util/provider-api-key "anthropic" (get-in db [:auth "anthropic"]) config)
               [:api-key-found "anthropic/claude-sonnet-4-20250514"])
-            (when (provider-api-key "openai" (get-in db [:auth "openai"]) config)
+            (when (llm-util/provider-api-key "openai" (get-in db [:auth "openai"]) config)
               [:api-key-found "openai/gpt-5"])
             (when (get-in db [:auth "github-copilot" :api-key])
               [:api-key-found "github-copilot/gpt-4.1"])
@@ -109,8 +91,8 @@
         provider-config (get-in config [:providers provider])
         model-config (get-in provider-config [:models model])
         extra-payload (:extraPayload model-config)
-        api-key (provider-api-key provider provider-auth config)
-        api-url (provider-api-url provider config)
+        api-key (llm-util/provider-api-key provider provider-auth config)
+        api-url (llm-util/provider-api-url provider config)
         provider-auth-type (:type provider-auth)
         callbacks {:on-message-received on-message-received-wrapper
                    :on-error on-error-wrapper

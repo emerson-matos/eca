@@ -4,12 +4,13 @@
    [eca.config :as config]
    [eca.db :as db]
    [eca.handlers :as handlers]
+   [eca.models :as models]
    [matcher-combinators.test :refer [match?]]))
 
 (deftest initialize-test
   (testing "initializationOptions config is merged properly with default init config"
     (let [db* (atom {})]
-      (with-redefs [handlers/sync-models! (constantly nil)
+      (with-redefs [models/sync-models! (constantly nil)
                     db/load-db-from-cache! (constantly nil)]
         (is (match?
              {}

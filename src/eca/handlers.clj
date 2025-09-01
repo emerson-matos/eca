@@ -1,56 +1,17 @@
 (ns eca.handlers
   (:require
-   [clojure.string :as string]
    [eca.config :as config]
    [eca.db :as db]
    [eca.features.chat :as f.chat]
    [eca.features.login :as f.login]
    [eca.features.tools :as f.tools]
    [eca.features.tools.mcp :as f.mcp]
-   [eca.llm-api :as llm-api]
    [eca.logger :as logger]
    [eca.messenger :as messenger]
    [eca.models :as models]
    [eca.shared :as shared]))
 
 (set! *warn-on-reflection* true)
-
-(defn ^:private sync-models! [db* config on-models-updated]
-  (let [all-models (models/all)
-        all-models (reduce
-                    (fn [p [provider provider-config]]
-                      (merge p
-                             (reduce
-                              (fn [m [model _model-config]]
-                                (let [full-model (str provider "/" model)
-                                      model-capabilities (merge
-                                                          (or (get all-models full-model)
-                                                                     ;; we guess the capabilities from
-                                                                     ;; the first model with same name
-                                                              (when-let [found-full-model (first (filter #(= (shared/normalize-model-name model)
-                                                                                                             (shared/normalize-model-name (second (string/split % #"/" 2))))
-                                                                                                         (keys all-models)))]
-                                                                (get all-models found-full-model))
-                                                              {:tools true
-                                                               :reason? true
-                                                               :web-search true}))]
-                                  (assoc m full-model model-capabilities)))
-                              {}
-                              (:models provider-config))))
-                    {}
-                    (:providers config))
-        all-models (if-let [local-models (seq (llm-api/local-models config))]
-                     (let [models (reduce
-                                   (fn [models {:keys [model] :as ollama-model}]
-                                     (assoc models
-                                            (str config/ollama-model-prefix model)
-                                            (select-keys ollama-model [:tools :reason?])))
-                                   {}
-                                   local-models)]
-                       (merge all-models models))
-                     all-models)]
-    (swap! db* assoc :models all-models)
-    (on-models-updated)))
 
 (defn initialize [{:keys [db*]} params]
   (logger/logging-task
@@ -63,12 +24,12 @@
             :workspace-folders (:workspace-folders params)
             :client-capabilities (:capabilities params))
      (when-not (:pureConfig config)
-       (db/load-db-from-cache! db*))
+       (db/load-db-from-cache! db* config))
 
      ;; Deprecated
      ;; For backward compatibility,
      ;; we now return chat config via `config/updated` notification.
-     (sync-models! db* config (fn []))
+     (models/sync-models! db* config (fn [_]))
      (let [db @db*]
        {:models (sort (keys (:models db)))
         :chat-default-model (f.chat/default-model db config)
@@ -83,11 +44,11 @@
                                   (let [new-providers-hash (hash (:providers config))]
                                     (when (not= (:providers-config-hash @db*) new-providers-hash)
                                       (swap! db* assoc :providers-config-hash new-providers-hash)
-                                      (sync-models! db* config (fn []
+                                      (models/sync-models! db* config (fn [models]
                                                                  (let [db @db*]
                                                                    (config/notify-fields-changed-only!
                                                                     {:chat
-                                                                     {:models (sort (keys (:models db)))
+                                                                     {:models (sort (keys models))
                                                                       :default-model (f.chat/default-model db config)
                                                                       :behaviors (:chat-behaviors db)
                                                                       :default-behavior (or (:defaultBehavior (:chat config)) ;;legacy
@@ -122,7 +83,7 @@
   (logger/logging-task
    :eca/chat-prompt
    (case (get-in @db* [:chats (:chat-id params) :status])
-     :login (f.login/continue params db* messenger)
+     :login (f.login/continue params db* messenger config)
      (f.chat/prompt params db* messenger config))))
 
 (defn chat-query-context [{:keys [db* config]} params]
