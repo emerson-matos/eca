@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.44.0
+
 - Support `deny` tool calls via `toolCall approval deny` setting.
 
 ## 0.43.1
