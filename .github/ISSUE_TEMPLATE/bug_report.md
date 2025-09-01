@@ -23,7 +23,7 @@ Steps to reproduce the behavior:
 A clear and concise description of what you expected to happen.
 
 **Doctor**
-Paste the relevant parts of `/doctor` command in chat if applicable:
+Paste the relevant parts of `/doctor` command from chat if applicable:
 
 **Screenshots**
 If applicable, add screenshots to help explain your problem.

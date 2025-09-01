@@ -151,7 +151,7 @@
                                                             (string/includes? key "BASE"))
                                                       (str s key "=" val "\n")
                                                       s))
-                                                  ""
+                                                  "\n"
                                                   (System/getenv))))))
 
 (defn handle-command! [command args {:keys [chat-id db* config full-model instructions]}]
