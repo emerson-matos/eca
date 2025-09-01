@@ -41,8 +41,7 @@
     (db/update-workspaces-cache! @db*)))
 
 (defn ^:private assert-chat-not-stopped! [{:keys [chat-id db*] :as chat-ctx}]
-  ;; TODO: Should :stoping be :stopping?
-  (when (identical? :stoping (get-in @db* [:chats chat-id :status]))
+  (when (identical? :stopping (get-in @db* [:chats chat-id :status]))
     (finish-chat-prompt! :idle chat-ctx)
     (logger/info logger-tag "Chat prompt stopped:" chat-id)
     (throw (ex-info "Chat prompt stopped" {:silent? true
@@ -675,8 +674,7 @@
 
               (:wait-for-completion :no-action)
               nil))))
-      ;; TODO: Should :stoping be :stopping?
-      (finish-chat-prompt! :stoping chat-ctx))))
+      (finish-chat-prompt! :stopping chat-ctx))))
 
 (defn delete-chat
   [{:keys [chat-id]} db*]
