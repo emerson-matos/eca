@@ -70,7 +70,9 @@ For MCP servers configuration, use the `mcpServers` config, example:
 
 ### Tool approval / permissions
 
-By default, ECA ask to call any tool, but that's can easily be configureed in many ways via the `toolCall approval` config
+By default, ECA ask to call any tool, but that's can easily be configureed in many ways via the `toolCall approval` config.
+
+You can configure the default behavior via `byDefault` and/or configure a tool in `ask`, `allow` or `deny` configs.
 
 Check some examples:
 
@@ -128,6 +130,22 @@ Check some examples:
         "approval": {
           "byDefault": "allow",
           "allow": {
+            "eca_shell_command": {"argsMatchers" {"command" [".*rm.*",
+                                                             ".*mv.*"]}}
+          }
+        }
+      }
+    }
+    ```
+    
+=== "Denying a tool"
+
+    ```javascript
+    {
+      "toolCall": {
+        "approval": {
+          "byDefault": "allow",
+          "deny": {
             "eca_shell_command": {"argsMatchers" {"command" [".*rm.*",
                                                              ".*mv.*"]}}
           }
@@ -253,6 +271,7 @@ There are 3 possible ways to configure rules following this order of priority:
             byDefault: 'ask' | 'allow';
             allow?: {{key: string}: {argsMatchers?: {{[key]: string}: string[]}}},
             ask?: {{key: string}: {argsMatchers?: {{[key]: string}: string[]}}},
+            deny?: {{key: string}: {argsMatchers?: {{[key]: string}: string[]}}},
           };
         };
         mcpTimeoutSeconds?: number;
@@ -300,7 +319,8 @@ There are 3 possible ways to configure rules following this order of priority:
         "approval": {
           "byDefault": "ask",
           "allow": {},
-          "ask": {}
+          "ask": {},
+          "deny": {}
         }
       },
       "mcpTimeoutSeconds" : 60,

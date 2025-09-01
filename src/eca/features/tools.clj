@@ -153,37 +153,40 @@
       :else
       true)))
 
-(defn manual-approval? [all-tools tool-call-name args db config]
-  (boolean
-   (let [{:keys [server require-approval-fn]} (first (filter #(= tool-call-name (:name %))
-                                                             all-tools))
-         {:keys [allow ask byDefault]} (get-in config [:toolCall :approval])]
-     (cond
-       (and require-approval-fn (require-approval-fn args {:db db}))
-       true
+(defn approval
+  "Return the approval keyword for the specific tool call: ask, allow or deny."
+  [all-tools tool-call-name args db config]
+  (let [{:keys [server require-approval-fn]} (first (filter #(= tool-call-name (:name %))
+                                                            all-tools))
+        {:keys [allow ask deny byDefault]} (get-in config [:toolCall :approval])]
+    (cond
+      (and require-approval-fn (require-approval-fn args {:db db}))
+      :ask
 
-       (some #(approval-matches? % server tool-call-name args) ask)
-       true
+      (some #(approval-matches? % server tool-call-name args) deny)
+      :deny
 
-       (some #(approval-matches? % server tool-call-name args) allow)
-       false
+      (some #(approval-matches? % server tool-call-name args) ask)
+      :ask
 
-       (legacy-manual-approval? config tool-call-name)
-       true
+      (some #(approval-matches? % server tool-call-name args) allow)
+      :allow
 
-       (= "ask" byDefault)
-       true
+      (legacy-manual-approval? config tool-call-name)
+      :ask
 
-       (= "allow" byDefault)
-       false
+      (= "ask" byDefault)
+      :ask
 
-        ;; TODO suport :deny
-        ;; (= "deny" byDefault)
-        ;; false
+      (= "allow" byDefault)
+      :allow
 
-        ;; A config error, default to manual approve
-       :else
-       true))))
+      (= "deny" byDefault)
+      :deny
+
+      ;; Probably a config error, default to ask
+      :else
+      :ask)))
 
 (defn tool-call-summary [all-tools name args]
   (when-let [summary-fn (:summary-fn (first (filter #(= name (:name %))

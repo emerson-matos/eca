@@ -17,7 +17,7 @@
         {:keys [chat-id] :as resp}
         (with-redefs [llm-api/complete! (:api-mock mocks)
                       f.tools/call-tool! (:call-tool-mock mocks)
-                      f.tools/manual-approval? (constantly false)]
+                      f.tools/approval (constantly :allow)]
           (f.chat/prompt params (h/db*) (h/messenger) (h/config)))]
     (is (match? {:chat-id string? :status :success} resp))
     {:chat-id chat-id

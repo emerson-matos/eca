@@ -68,7 +68,8 @@
    :disabledTools []
    :toolCall {:approval {:byDefault "ask"
                          :allow {}
-                         :ask {}}}
+                         :ask {}
+                         :deny {}}}
    :mcpTimeoutSeconds 60
    :lspTimeoutSeconds 30
    :mcpServers {}
@@ -199,6 +200,8 @@
                    [:toolCall :approval :allow :ANY :argsMatchers]
                    [:toolCall :approval :ask]
                    [:toolCall :approval :ask :ANY :argsMatchers]
+                   [:toolCall :approval :deny]
+                   [:toolCall :approval :deny :ANY :argsMatchers]
                    [:mcpServers]]}
                  (deep-merge initialization-config
                              (when-not pure-config? (config-from-envvar))

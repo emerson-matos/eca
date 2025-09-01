@@ -183,8 +183,7 @@
                                                :name name
                                                :origin (tool-name->origin name all-tools)
                                                :arguments-text arguments-text
-                                               :id id
-                                               :manual-approval (f.tools/manual-approval? all-tools name nil db config)}
+                                               :id id}
                                               :summary (f.tools/tool-call-summary all-tools name nil))))
       :on-tools-called (fn [tool-calls]
                          (assert-chat-not-stopped! chat-ctx)
@@ -198,8 +197,9 @@
                                               details (f.tools/tool-call-details-before-invocation name arguments)
                                               summary (f.tools/tool-call-summary all-tools name arguments)
                                               origin (tool-name->origin name all-tools)
-                                              manual-approval? (f.tools/manual-approval? all-tools name arguments db config)]
-                                            ;; Inform UI the tool is about to run and store approval promise
+                                              approval (f.tools/approval all-tools name arguments db config)
+                                              ask? (= :ask approval)]
+                                          ;; Inform client the tool is about to run and store approval promise
                                           (send-content! chat-ctx :assistant
                                                          (assoc-some
                                                           {:type :toolCallRun
@@ -207,17 +207,17 @@
                                                            :origin (tool-name->origin name all-tools)
                                                            :arguments arguments
                                                            :id id
-                                                           :manual-approval manual-approval?}
+                                                           :manual-approval ask?}
                                                           :details details
                                                           :summary summary))
                                           (swap! db* assoc-in [:chats chat-id :tool-calls id :approved?*] approved?*)
-                                          (if manual-approval?
+                                          (if ask?
                                             (send-content! chat-ctx :system
                                                            {:type :progress
                                                             :state :running
                                                             :text "Waiting for tool call approval"})
-                                              ;; Otherwise auto approve
-                                            (deliver approved?* true))
+                                              ;; Otherwise decide approval
+                                            (deliver approved?* (= :allow approval)))
                                             ;; Execute each tool call concurrently
                                           (future
                                             (if @approved?*
@@ -246,11 +246,13 @@
                                                                    :outputs (:contents result)}
                                                                   :details details
                                                                   :summary summary))))
-                                              (do
+                                              (let [[reject-reason reject-text] (if (= :deny approval)
+                                                                                  [:user-config "Tool call denied by user config"]
+                                                                                  [:user-choice "Tool call rejected by user choice"])]
                                                 (add-to-history! {:role "tool_call" :content tool-call})
                                                 (add-to-history! {:role "tool_call_output"
                                                                   :content (assoc tool-call :output {:error true
-                                                                                                     :contents [{:text "Tool call rejected by user"
+                                                                                                     :contents [{:text reject-text
                                                                                                                  :type :text}]})})
                                                 (send-content! chat-ctx :assistant
                                                                (assoc-some
@@ -258,7 +260,7 @@
                                                                  :origin origin
                                                                  :name name
                                                                  :arguments arguments
-                                                                 :reason :user
+                                                                 :reason reject-reason
                                                                  :id id}
                                                                 :details details
                                                                 :summary summary))))))))]

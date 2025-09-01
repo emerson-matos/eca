@@ -71,37 +71,46 @@
                    {:name "request" :server "web"}
                    {:name "download" :server "web"}]]
     (testing "tool has require-approval-fn which returns true"
-      (is (true? (f.tools/manual-approval? all-tools "eca_shell" {} {} {}))))
+      (is (= :ask (f.tools/approval all-tools "eca_shell" {} {} {}))))
     (testing "tool has require-approval-fn which returns false we ignore it"
-      (is (true? (f.tools/manual-approval? all-tools "eca_plan" {} {} {}))))
+      (is (= :ask (f.tools/approval all-tools "eca_plan" {} {} {}))))
     (testing "if legacy-manual-approval present, considers it"
-      (is (true? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:manualApproval true}}))))
+      (is (= :ask (f.tools/approval all-tools "request" {} {} {:toolCall {:manualApproval true}}))))
     (testing "if approval config is provided"
-      (testing "when matches allow config, return false"
-        (is (false? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:approval {:allow {"web__request" {}}}}})))
-        (is (false? (f.tools/manual-approval? all-tools "eca_read" {} {} {:toolCall {:approval {:allow {"eca_read" {}}}}})))
-        (is (false? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:approval {:allow {"web" {}}}}}))))
-      (testing "when matches ask config, return true"
-        (is (true? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:approval {:ask {"web__request" {}}}}})))
-        (is (true? (f.tools/manual-approval? all-tools "eca_read" {} {} {:toolCall {:approval {:ask {"eca_read" {}}}}})))
-        (is (true? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:approval {:ask {"web" {}}}}}))))
+      (testing "when matches allow config"
+        (is (= :allow (f.tools/approval all-tools "request" {} {} {:toolCall {:approval {:allow {"web__request" {}}}}})))
+        (is (= :allow (f.tools/approval all-tools "eca_read" {} {} {:toolCall {:approval {:allow {"eca_read" {}}}}})))
+        (is (= :allow (f.tools/approval all-tools "request" {} {} {:toolCall {:approval {:allow {"web" {}}}}}))))
+      (testing "when matches ask config"
+        (is (= :ask (f.tools/approval all-tools "request" {} {} {:toolCall {:approval {:ask {"web__request" {}}}}})))
+        (is (= :ask (f.tools/approval all-tools "eca_read" {} {} {:toolCall {:approval {:ask {"eca_read" {}}}}})))
+        (is (= :ask (f.tools/approval all-tools "request" {} {} {:toolCall {:approval {:ask {"web" {}}}}}))))
+      (testing "when matches deny config"
+        (is (= :deny (f.tools/approval all-tools "request" {} {} {:toolCall {:approval {:deny {"web__request" {}}}}})))
+        (is (= :deny (f.tools/approval all-tools "eca_read" {} {} {:toolCall {:approval {:deny {"eca_read" {}}}}})))
+        (is (= :deny (f.tools/approval all-tools "request" {} {} {:toolCall {:approval {:deny {"web" {}}}}}))))
       (testing "when contains argsMatchers"
         (testing "has arg but not matches"
-          (is (true? (f.tools/manual-approval? all-tools "request" {"url" "http://bla.com"} {}
-                                               {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}}))))
-        (testing "has arg and matches"
-          (is (false? (f.tools/manual-approval? all-tools "request" {"url" "http://foo.com"} {}
-                                                {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}})))
-          (is (false? (f.tools/manual-approval? all-tools "request" {"url" "foobar"} {}
-                                                {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" ["foo.*"]}}}}}}))))
+          (is (= :ask (f.tools/approval all-tools "request" {"url" "http://bla.com"} {}
+                                        {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}}))))
+        (testing "has arg and matches for allow"
+          (is (= :allow (f.tools/approval all-tools "request" {"url" "http://foo.com"} {}
+                                          {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}})))
+          (is (= :allow (f.tools/approval all-tools "request" {"url" "foobar"} {}
+                                          {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" ["foo.*"]}}}}}}))))
+        (testing "has arg and matches for deny"
+          (is (= :deny (f.tools/approval all-tools "request" {"url" "http://foo.com"} {}
+                                         {:toolCall {:approval {:deny {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}})))
+          (is (= :deny (f.tools/approval all-tools "request" {"url" "foobar"} {}
+                                         {:toolCall {:approval {:deny {"web__request" {:argsMatchers {"url" ["foo.*"]}}}}}}))))
         (testing "has not that arg"
-          (is (true? (f.tools/manual-approval? all-tools "request" {"crazy-url" "http://foo.com"} {}
-                                                {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}}))))))
+          (is (= :ask (f.tools/approval all-tools "request" {"crazy-url" "http://foo.com"} {}
+                                        {:toolCall {:approval {:allow {"web__request" {:argsMatchers {"url" [".*foo.*"]}}}}}}))))))
     (testing "if no approval config matches"
       (testing "checks byDefault"
         (testing "when 'ask', return true"
-          (is (true? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:approval {:byDefault "ask"}}}))))
+          (is (= :ask (f.tools/approval all-tools "request" {} {} {:toolCall {:approval {:byDefault "ask"}}}))))
         (testing "when 'allow', return false"
-          (is (false? (f.tools/manual-approval? all-tools "request" {} {} {:toolCall {:approval {:byDefault "allow"}}})))))
+          (is (= :allow (f.tools/approval all-tools "request" {} {} {:toolCall {:approval {:byDefault "allow"}}})))))
       (testing "fallback to manual approval"
-        (is (true? (f.tools/manual-approval? all-tools "request" {} {} {})))))))
+        (is (= :ask (f.tools/approval all-tools "request" {} {} {})))))))

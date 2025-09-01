@@ -546,12 +546,7 @@ interface ToolCallPrepareContent {
     /*
      * Argument text of this tool call
      */
-    argumentsText: string;
-    
-    /**
-     * Whether this call requires manual approval from the user.
-     */
-    manualApproval: boolean;
+    argumentsText: string; 
     
     /**
      * Summary text to present about this tool call, 
@@ -689,7 +684,7 @@ interface ToolCallRejected {
     /**
      * The reason why this tool call was rejected
      */
-    reason: 'user';
+    reason: 'user-choice' | 'user-config';
     
     /**
      * Summary text to present about this tool call, 

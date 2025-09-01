@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Support `deny` tool calls via `toolCall approval deny` setting.
+
 ## 0.43.1
 
 - Safely rename `default*` -> `select*` in `config/updated`.
