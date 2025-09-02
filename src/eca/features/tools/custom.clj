@@ -5,7 +5,7 @@
 
 (set! *warn-on-reflection* true)
 
-(defn- build-tool-fn
+(defn ^:private build-tool-fn
   "Creates a function that safely executes the command from a custom tool config.
   It substitutes {{placeholders}} in the command vector with LLM-provided arguments."
   [{:keys [command]}]
