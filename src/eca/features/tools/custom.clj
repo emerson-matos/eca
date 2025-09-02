@@ -36,7 +36,7 @@
       :handler (build-tool-fn tool-config)}}))
 
 (defn definitions
-  "Loads all custom tools from the config, transforms them, and merges them into a single map."
+  "Loads all custom tools from the config."
   [config]
   (->> (get config :custom-tools {})
        (map custom-tool->tool-def)
