@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.44.1
+
 - Fix renew token regression.
 - Improve error feedback when failed to renew token.
 
