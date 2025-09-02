@@ -2,7 +2,7 @@
   "This ns centralizes all available tools for LLMs including
    eca native tools and MCP servers."
   (:require
-   [babashka.process :as p]
+   [babashka.process :as process]
    [clojure.string :as string]
    [eca.config :as config]
    [eca.features.tools.editor :as f.tools.editor]
@@ -34,7 +34,7 @@
                                   (string (get llm-args key-name "")))
                                 part))
                             command)
-          {:keys [out exit]} (p/sh resolved-command {:error-to-out true})]
+          {:keys [out exit]} (process/sh resolved-command {:error-to-out true})]
       (if (zero? exit)
         out
         (string "Error: Command failed with exit code " exit "\nOutput:\n" out)))))
