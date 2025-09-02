@@ -29,15 +29,15 @@
   (fn [llm-args _context]
     (let [resolved-command (mapv
                             (fn [part]
-                              (if (and (string? part) (str/starts-with? part "{{") (str/ends-with? part "}}"))
+                              (if (and (string? part) (string/starts-with? part "{{") (string/ends-with? part "}}"))
                                 (let [key-name (keyword (subs part 2 (- (count part) 2)))]
-                                  (string (get llm-args key-name "")))
+                                  (str (get llm-args key-name "")))
                                 part))
                             command)
           {:keys [out exit]} (process/sh resolved-command {:error-to-out true})]
       (if (zero? exit)
         out
-        (string "Error: Command failed with exit code " exit "\nOutput:\n" out)))))
+        (str "Error: Command failed with exit code " exit "\nOutput:\n" out)))))
 
 (defn- custom-tool->tool-def
   "Transforms a single custom tool from the config map into a full tool definition."
