@@ -129,7 +129,12 @@
         (send-content! chat-ctx :system {:type :progress
                                          :state :running
                                          :text "Renewing auth token"})
-        (f.login/renew-auth! provider db*)))
+        (f.login/renew-auth! provider chat-ctx
+                             {:on-error (fn [error-msg]
+                                          (send-content! chat-ctx :system {:type :text
+                                                                           :text error-msg})
+                                          (finish-chat-prompt! :idle chat-ctx)
+                                          (throw (ex-info "Auth token renew failed" {})))})))
 
     (send-content! chat-ctx :system {:type :progress
                                      :state :running

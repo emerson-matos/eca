@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.44.1
+
+- Fix renew token regression.
+- Improve error feedback when failed to renew token.
+
 ## 0.44.0
 
 - Support `deny` tool calls via `toolCall approval deny` setting.
