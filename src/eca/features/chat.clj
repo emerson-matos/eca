@@ -84,7 +84,12 @@
    Actions:
    - send-* notifications
    - promise init & delivery
-   - logging/metrics"
+   - logging/metrics
+
+   Note: all choices (i.e. conditionals) have to be made in code and result
+   in different events sent to the state machine.
+   For example, from the :check-approval state you can either get
+   a :config-ask event, a :config-allow event, or a :config-deny event."
   {;; Note: transition-tool-call! treats no existing state as :initial state
    [:initial :tool-prepare]
    {:status :preparing
@@ -98,13 +103,17 @@
    {:status :check-approval
     :actions [:init-approval-promise :send-toolCallRun]}
 
-   [:check-approval :ask-approve]
+   [:check-approval :config-ask]
    {:status :waiting-approval
     :actions [:send-progress]}
 
-   [:check-approval :auto-approve]
+   [:check-approval :config-allow]
    {:status :execution-approved
-    :actions [:deliver-default-approval]}
+    :actions [:deliver-approval-true]}
+
+   [:check-approval :config-deny]
+   {:status :rejected
+    :actions [:deliver-approval-false]}
 
    [:waiting-approval :user-approve]
    {:status :execution-approved
@@ -438,12 +447,12 @@
                                                                   :manual-approval ask?
                                                                   :details details
                                                                   :summary summary})
-                                          (if ask?
-                                            (transition-tool-call! db* chat-ctx id :ask-approve
-                                                                   {:state :running
-                                                                    :text "Waiting for tool call approval"})
-                                            (transition-tool-call! db* chat-ctx id :auto-approve
-                                                                   {:default-approval (= :allow approval)}))
+                                          (case approval
+                                            :ask (transition-tool-call! db* chat-ctx id :config-ask
+                                                                        {:state :running
+                                                                         :text "Waiting for tool call approval"})
+                                            :allow (transition-tool-call! db* chat-ctx id :config-allow)
+                                            :deny (transition-tool-call! db* chat-ctx id :config-deny))
                                           ;; Execute each tool call concurrently
                                           (future
                                             (if @approved?* ;TODO: Should there be a timeout here?  If so, what would be the state transitions?
