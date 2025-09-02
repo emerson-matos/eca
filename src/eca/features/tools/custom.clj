@@ -23,7 +23,7 @@
         out
         (str "Error: Command failed with exit code " exit "\nOutput:\n" out)))))
 
-(defn- custom-tool->tool-def
+(defn ^:private custom-tool->tool-def
   "Transforms a single custom tool from the config map into a full tool definition."
   [[tool-name tool-config]]
   (let [schema (:schema tool-config)]
