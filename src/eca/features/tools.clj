@@ -2,7 +2,9 @@
   "This ns centralizes all available tools for LLMs including
    eca native tools and MCP servers."
   (:require
+   [babashka.process :as p]
    [clojure.string :as string]
+   [eca.config :as config]
    [eca.features.tools.editor :as f.tools.editor]
    [eca.features.tools.filesystem :as f.tools.filesystem]
    [eca.features.tools.mcp :as f.mcp]
@@ -19,6 +21,43 @@
 
 (def ^:private logger-tag "[TOOLS]")
 
+(defn- build-tool-fn
+  "Creates a function that safely executes the command from a custom tool config.
+  It substitutes {{placeholders}} in the command vector with LLM-provided arguments."
+  [{:keys [command]}]
+  ;; The handler function takes arguments and a context map. We only need the arguments.
+  (fn [llm-args _context]
+    (let [resolved-command (mapv
+                            (fn [part]
+                              (if (and (string? part) (str/starts-with? part "{{") (str/ends-with? part "}}"))
+                                (let [key-name (keyword (subs part 2 (- (count part) 2)))]
+                                  (string (get llm-args key-name "")))
+                                part))
+                            command)
+          {:keys [out exit]} (p/sh resolved-command {:error-to-out true})]
+      (if (zero? exit)
+        out
+        (string "Error: Command failed with exit code " exit "\nOutput:\n" out)))))
+
+(defn- custom-tool->tool-def
+  "Transforms a single custom tool from the config map into a full tool definition."
+  [[tool-name tool-config]]
+  (let [schema (:schema tool-config)]
+    {(name tool-name)
+     {:name (name tool-name)
+      :description (:description tool-config)
+      :parameters {:type "object"
+                   :properties (update-keys (:properties schema) keyword)
+                   :required (mapv keyword (:required schema))}
+      :handler (build-tool-fn tool-config)}}))
+
+(defn- load-custom-tools
+  "Loads all custom tools from the config, transforms them, and merges them into a single map."
+  [config]
+  (->> (get config :custom-tools {})
+       (map custom-tool->tool-def)
+       (apply merge)))
+
 (defn ^:private native-definitions [db config]
   (into
    {}
@@ -33,7 +72,8 @@
           (when (get-in config [:nativeTools :shell :enabled])
             f.tools.shell/definitions)
           (when (get-in config [:nativeTools :editor :enabled])
-            f.tools.editor/definitions))))
+            f.tools.editor/definitions)
+          (load-custom-tools config))))
 
 (defn ^:private native-tools [db config]
   (mapv #(assoc % :server "eca") (vals (native-definitions db config))))
