@@ -49,18 +49,26 @@
       :content {:type :text
                 :text (str input "\n")}})
     (login-step ctx)
-    (db/update-global-cache! @db*)
     {:chat-id chat-id
      :status step}))
 
-(defn renew-auth! [provider db*]
-  (login-step
-   {:provider provider
-    :step :login/renew-token
-    :db* db*})
-  (db/update-global-cache! @db*))
+(defn renew-auth!
+  [provider
+   {:keys [db* messenger config]}
+   {:keys [on-error]}]
+  (try
+    (login-step
+     {:provider provider
+      :messenger messenger
+      :config config
+      :step :login/renew-token
+      :db* db*})
+    (db/update-global-cache! @db*)
+    (catch Exception e
+      (on-error (.getMessage e)))))
 
 (defn login-done! [{:keys [db* config messenger]}]
+  (db/update-global-cache! @db*)
   (models/sync-models! db*
                        config
                        (fn [new-models]
