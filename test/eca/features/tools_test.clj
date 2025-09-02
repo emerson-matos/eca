@@ -5,9 +5,7 @@
    [eca.features.tools.filesystem :as f.tools.filesystem]
    [eca.test-helper :as h]
    [matcher-combinators.matchers :as m]
-   [matcher-combinators.test :refer [match?]]
-   [eca.config :as config]
-   [babashka.process :as p]))
+   [matcher-combinators.test :refer [match?]]))
 
 (deftest all-tools-test
   (testing "Include mcp tools"
@@ -116,54 +114,3 @@
           (is (= :allow (f.tools/approval all-tools "request" {} {} {:toolCall {:approval {:byDefault "allow"}}})))))
       (testing "fallback to manual approval"
         (is (= :ask (f.tools/approval all-tools "request" {} {} {})))))))
-
-(deftest custom-tools-test
-  (testing "when a valid tool is configured"
-    (let [mock-custom-tools {"file-search"
-                             {:description "Finds files."
-                              :command     ["find" "{{directory}}" "-name" "{{pattern}}"]
-                              :schema      {:properties {:directory {:type "string"}
-                                                         :pattern   {:type "string"}}
-                                            :required    ["directory" "pattern"]}}}]
-      (testing "and the command executes successfully"
-        (with-redefs [p/sh (fn [command-vec & _]
-                             (is (= ["find" "/tmp" "-name" "*.clj"] command-vec))
-                             {:out "mocked-output" :exit 0})]
-          (let [config {:custom-tools mock-custom-tools}
-                native-defs (#'f.tools/native-definitions {} config)
-                custom-tool-def (get native-defs "file-search")]
-            (is (some? custom-tool-def) "The custom tool should be loaded.")
-            (let [result ((:handler custom-tool-def) {:directory "/tmp" :pattern "*.clj"} {})]
-              (is (= "mocked-output" result) "The tool should return the mocked shell output."))))))
-
-    (testing "when multiple tools are configured"
-      (let [mock-custom-tools {"git-status"
-                               {:description "Gets git status"
-                                :command ["git" "status"]}
-                               "echo-message"
-                               {:description "Echoes a message"
-                                :command ["echo" "{{message}}"]
-                                :schema {:properties {:message {:type "string"}} :required ["message"]}}}]
-        (with-redefs [p/sh (fn [command-vec & _]
-                             (condp = command-vec
-                               ["git" "status"] {:out "On branch main" :exit 0}
-                               ["echo" "Hello World"] {:out "Hello World" :exit 0}
-                               (is false "Unexpected command received by mock p/sh")))]
-          (let [config {:custom-tools mock-custom-tools}
-                native-defs (#'f.tools/native-definitions {} config)
-                git-status-handler (get-in native-defs ["git-status" :handler])
-                echo-handler (get-in native-defs ["echo-message" :handler])]
-            (is (some? git-status-handler) "Git status tool should be loaded.")
-            (is (some? echo-handler) "Echo message tool should be loaded.")
-            (is (= "On branch main" (git-status-handler {} {})))
-            (is (= "Hello World" (echo-handler {:message "Hello World"} {})))))))
-
-    (testing "when the custom tools config is empty or missing"
-      (testing "with an empty map"
-        (let [config {:custom-tools {}}
-              native-defs (#'f.tools/native-definitions {} config)]
-          (is (not (contains? native-defs "file-search")) "No custom tools should be loaded.")))
-      (testing "with the key missing from the config"
-        (let [config {}
-              native-defs (#'f.tools/native-definitions {} config)]
-          (is (not (contains? native-defs "file-search")) "No custom tools should be loaded."))))))

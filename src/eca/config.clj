@@ -79,12 +79,6 @@
            :repoMap {:maxTotalEntries 800
                      :maxEntriesPerDir 50}}})
 
-(defn custom-tools
-  "Reads the custom-defined tools from the config file.
-  Returns a map where keys are tool names."
-  []
-  (get @initial-config :custom-tools {}))
-
 (defn get-env [env] (System/getenv env))
 (defn get-property [property] (System/getProperty property))
 
