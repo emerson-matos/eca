@@ -98,7 +98,7 @@
    {:status :check-approval
     :actions [:init-approval-promise :send-toolCallRun]}
 
-   [:check-approval :manual-approve]
+   [:check-approval :ask-approve]
    {:status :waiting-approval
     :actions [:send-progress]}
 
@@ -439,7 +439,7 @@
                                                                   :details details
                                                                   :summary summary})
                                           (if ask?
-                                            (transition-tool-call! db* chat-ctx id :manual-approve
+                                            (transition-tool-call! db* chat-ctx id :ask-approve
                                                                    {:state :running
                                                                     :text "Waiting for tool call approval"})
                                             (transition-tool-call! db* chat-ctx id :auto-approve
