@@ -423,7 +423,6 @@
                                                       :origin (tool-name->origin name all-tools)
                                                       :arguments-text arguments-text
                                                       :summary (f.tools/tool-call-summary all-tools name nil)}))
-      ;; TODO: Should this be :on-tool-called instead for consistency?
       :on-tools-called (fn [tool-calls]
                          (assert-chat-not-stopped! chat-ctx)
                          ;; Flush any pending assistant text once before processing multiple tool calls
