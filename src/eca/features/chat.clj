@@ -104,7 +104,7 @@
 
    [:check-approval :auto-approve]
    {:status :execution-approved
-    :actions [:deliver-approval-true]}
+    :actions [:deliver-default-approval]}
 
    [:waiting-approval :user-approve]
    {:status :execution-approved
@@ -169,8 +169,7 @@
                      :id tool-call-id
                      :name (:name event-data)
                      :origin (:origin event-data)
-                     :arguments-text (:arguments-text event-data)
-                     :manual-approval (:manual-approval event-data)}
+                     :arguments-text (:arguments-text event-data)}
                     :summary (:summary event-data)))
 
     :send-toolCallRun
@@ -222,6 +221,10 @@
     :deliver-approval-true
     (deliver (get-in @db* [:chats (:chat-id chat-ctx) :tool-calls tool-call-id :approved?*])
              true)
+
+    :deliver-default-approval
+    (deliver (get-in @db* [:chats (:chat-id chat-ctx) :tool-calls tool-call-id :approved?*])
+             (:default-approval event-data))
 
     ;; Logging/metrics actions
     :log-rejection
@@ -410,7 +413,6 @@
                                                      {:name name
                                                       :origin (tool-name->origin name all-tools)
                                                       :arguments-text arguments-text
-                                                      :manual-approval (f.tools/manual-approval? name config)
                                                       :summary (f.tools/tool-call-summary all-tools name nil)}))
       ;; TODO: Should this be :on-tool-called instead for consistency?
       :on-tools-called (fn [tool-calls]
@@ -425,29 +427,32 @@
                                               details (f.tools/tool-call-details-before-invocation name arguments)
                                               summary (f.tools/tool-call-summary all-tools name arguments)
                                               origin (tool-name->origin name all-tools)
-                                              manual-approval? (f.tools/manual-approval? name config)]
-                                          ;; Inform UI the tool is about to run and store approval promise
+                                              approval (f.tools/approval all-tools name arguments db config)
+                                              ask? (= :ask approval)]
+                                          ;; Inform client the tool is about to run and store approval promise
                                           (transition-tool-call! db* chat-ctx id :tool-run
                                                                  {:approved?* approved?*
                                                                   :name name
                                                                   :origin (tool-name->origin name all-tools)
                                                                   :arguments arguments
-                                                                  :manual-approval manual-approval?
+                                                                  :manual-approval ask?
                                                                   :details details
                                                                   :summary summary})
-                                          (if manual-approval?
+                                          (if ask?
                                             (transition-tool-call! db* chat-ctx id :manual-approve
                                                                    {:state :running
                                                                     :text "Waiting for tool call approval"})
-                                            (transition-tool-call! db* chat-ctx id :auto-approve))
-                                          ;; Execute each tool call concurrently - this should be the return value of let
+                                            (transition-tool-call! db* chat-ctx id :auto-approve
+                                                                   {:default-approval (= :allow approval)}))
+                                          ;; Execute each tool call concurrently
                                           (future
                                             (if @approved?* ;TODO: Should there be a timeout here?  If so, what would be the state transitions?
                                               ;; assert: In :execution-approved state
                                               (do
                                                 (assert-chat-not-stopped! chat-ctx)
                                                 (transition-tool-call! db* chat-ctx id :execution-start)
-                                                (let [result (f.tools/call-tool! name arguments @db* config messenger)]
+                                                (let [result (f.tools/call-tool! name arguments @db* config messenger behavior)
+                                                      details (f.tools/tool-call-details-after-invocation name arguments details result)]
                                                   (add-to-history! {:role "tool_call" :content (assoc tool-call
                                                                                                       :details details
                                                                                                       :summary summary
@@ -467,19 +472,21 @@
                                                                           :details details
                                                                           :summary summary})))
                                               ;; assert: In :rejected state
-                                              (do
+                                              (let [[reject-reason reject-text] (if (= :deny approval)
+                                                                                  [:user-config "Tool call denied by user config"]
+                                                                                  [:user-choice "Tool call rejected by user choice"])]
                                                 (add-to-history! {:role "tool_call" :content tool-call})
                                                 (add-to-history! {:role "tool_call_output"
                                                                   :content (assoc tool-call :output {:error true
                                                                                                      :contents [{:text reject-text
                                                                                                                  :type :text}]})})
                                                 (transition-tool-call! db* chat-ctx id :send-reject
-                                                                         {:origin origin
-                                                                          :name name
-                                                                          :arguments arguments
-                                                                          :reason :user
-                                                                          :details details
-                                                                          :summary summary})))))))]
+                                                                       {:origin origin
+                                                                        :name name
+                                                                        :arguments arguments
+                                                                        :reason reject-reason
+                                                                        :details details
+                                                                        :summary summary})))))))]
                            (assert-chat-not-stopped! chat-ctx)
                            ;; Wait for all tool calls to complete before returning
                            (run! deref calls)

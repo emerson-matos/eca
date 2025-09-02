@@ -1,4 +1,5 @@
 (ns eca.features.chat-tool-call-state-test
+  "A namespace for testing the tool call state transitions."
   (:require
    [clojure.test :refer [deftest testing is]]
    [eca.features.chat :as f.chat]
@@ -6,6 +7,8 @@
    [matcher-combinators.test :refer [match?]]))
 
 (h/reset-components-before-test)
+
+;;; TODO: remove the :manual-approval's from event-data of the :tool-prepare event.  They are not needed. But may be needed in :tool-run
 
 ;;; State machine intent tests
 
@@ -71,7 +74,7 @@
           chat-ctx {:chat-id chat-id :request-id "req-1" :messenger (h/messenger)}]
 
       (#'f.chat/transition-tool-call! db* chat-ctx "tool-1" :tool-prepare
-                                      {:name "test" :origin "test" :arguments-text "{}" :manual-approval false})
+                                      {:name "test" :origin "test" :arguments-text "{}"})
 
       (is (thrown-with-msg?
            clojure.lang.ExceptionInfo
@@ -109,7 +112,6 @@
           event-data {:name "list_files"
                       :origin "filesystem"
                       :arguments-text "{\"path\": \"/tmp\"}"
-                      :manual-approval false
                       :summary "List files in directory"}]
 
       (is (nil? (#'f.chat/get-tool-call-state @db* chat-id tool-call-id))
@@ -154,12 +156,10 @@
           event-data-1 {:name "list_files"
                         :origin "filesystem"
                         :arguments-text "{\"path\": \"/tmp\"}"
-                        :manual-approval false
                         :summary "List files in directory"}
           event-data-2 {:name "list_files"
                         :origin "filesystem"
                         :arguments-text "{\"path\": \"/tmp\", \"recursive\": true}"
-                        :manual-approval false
                         :summary "List files in directory recursively"}]
 
       ;; Step 1: :initial -> :preparing
@@ -198,7 +198,6 @@
           prepare-event-data {:name "list_files"
                               :origin "filesystem"
                               :arguments-text "{\"path\": \"/tmp\"}"
-                              :manual-approval false
                               :summary "List files in directory"}
           run-event-args {:name "list_files"
                           :origin "filesystem"
@@ -259,7 +258,6 @@
           prepare-event-data {:name "dangerous_command"
                               :origin "shell"
                               :arguments-text "{\"command\": \"rm -rf /\"}"
-                              :manual-approval true
                               :summary "Execute dangerous shell command"}
           run-event-data {:approved?* approved?*
                           :name "dangerous_command"
@@ -323,7 +321,6 @@
           prepare-event-data {:name "safe_command"
                               :origin "filesystem"
                               :arguments-text "{\"path\": \"/tmp\"}"
-                              :manual-approval false
                               :summary "List safe directory"}
           run-event-data {:approved?* approved?*
                           :name "safe_command"
@@ -340,9 +337,10 @@
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run run-event-data)
 
       ;; Step 3: :check-approval -> :execution-approved (auto approval)
-      (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :auto-approve)]
+      (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :auto-approve
+                                                   {:default-approval true})]
         (is (match? {:status :execution-approved
-                     :actions [:deliver-approval-true]}
+                     :actions [:deliver-default-approval]}
                     result)
             "Expected transition to :execution-approved with deliver approval true action")
 
@@ -362,7 +360,7 @@
           approved?* (promise)]
 
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-prepare
-                                      {:name "test" :origin "test" :arguments-text "{}" :manual-approval true})
+                                      {:name "test" :origin "test" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run
                                       {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval true})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :manual-approve
@@ -397,10 +395,11 @@
           approved?* (promise)]
 
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-prepare
-                                      {:name "list_files" :origin "filesystem" :arguments-text "{\"path\": \"/tmp\"}" :manual-approval false})
+                                      {:name "list_files" :origin "filesystem" :arguments-text "{\"path\": \"/tmp\"}"})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run
                                       {:approved?* approved?* :name "list_files" :origin "filesystem" :arguments {:path "/tmp"} :manual-approval false})
-      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :auto-approve)
+      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :auto-approve
+                                      {:default-approval true})
 
       (let [tool-state (#'f.chat/get-tool-call-state @db* chat-id tool-call-id)]
         (is (= :execution-approved (:status tool-state))
@@ -475,7 +474,7 @@
       (testing ":check-approval -> :stopped"
         (let [approved?* (promise)]
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-check" :tool-prepare
-                                          {:name "test" :origin "test" :arguments-text "{}" :manual-approval false})
+                                          {:name "test" :origin "test" :arguments-text "{}"})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-check" :tool-run
                                           {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
 
@@ -489,10 +488,11 @@
       (testing ":completed -> :stopped (should handle gracefully)"
         (let [approved?* (promise)]
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-completed" :tool-prepare
-                                          {:name "test" :origin "test" :arguments-text "{}" :manual-approval false})
+                                          {:name "test" :origin "test" :arguments-text "{}"})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-completed" :tool-run
                                           {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
-          (#'f.chat/transition-tool-call! db* chat-ctx "tool-completed" :auto-approve)
+          (#'f.chat/transition-tool-call! db* chat-ctx "tool-completed" :auto-approve
+                                          {:default-approval true})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-completed" :execution-start
                                           {:name "test" :origin "test" :arguments {}})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-completed" :execution-end
@@ -509,7 +509,7 @@
       (testing ":rejected -> :stopped (should handle gracefully)"
         (let [approved?* (promise)]
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-rejected" :tool-prepare
-                                          {:name "test" :origin "test" :arguments-text "{}" :manual-approval true})
+                                          {:name "test" :origin "test" :arguments-text "{}"})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-rejected" :tool-run
                                           {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval true})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-rejected" :manual-approve
@@ -532,7 +532,7 @@
 
       (testing ":preparing -> :stopped"
         (#'f.chat/transition-tool-call! db* chat-ctx "tool-1" :tool-prepare
-                                        {:name "test" :origin "test" :arguments-text "{}" :manual-approval false})
+                                        {:name "test" :origin "test" :arguments-text "{}"})
 
         (let [result (#'f.chat/transition-tool-call! db* chat-ctx "tool-1" :stop-requested)]
           (is (match? {:status :stopped
@@ -545,7 +545,7 @@
       (testing ":waiting-approval -> :stopped"
         (let [approved?* (promise)]
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-2" :tool-prepare
-                                          {:name "test" :origin "test" :arguments-text "{}" :manual-approval true})
+                                          {:name "test" :origin "test" :arguments-text "{}"})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-2" :tool-run
                                           {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval true})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-2" :manual-approve
@@ -564,10 +564,11 @@
       (testing ":execution-approved -> :stopped"
         (let [approved?* (promise)]
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-3" :tool-prepare
-                                          {:name "test" :origin "test" :arguments-text "{}" :manual-approval false})
+                                          {:name "test" :origin "test" :arguments-text "{}"})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-3" :tool-run
                                           {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
-          (#'f.chat/transition-tool-call! db* chat-ctx "tool-3" :auto-approve)
+          (#'f.chat/transition-tool-call! db* chat-ctx "tool-3" :auto-approve
+                                          {:default-approval true})
 
           (let [result (#'f.chat/transition-tool-call! db* chat-ctx "tool-3" :stop-requested)]
             (is (match? {:status :stopped
@@ -590,9 +591,9 @@
               :current-request-id "req-123"})
 
       (#'f.chat/transition-tool-call! db* chat-ctx "tool-1" :tool-prepare
-                                      {:name "list_files" :origin "filesystem" :arguments-text "{}" :manual-approval false})
+                                      {:name "list_files" :origin "filesystem" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx "tool-2" :tool-prepare
-                                      {:name "read_file" :origin "filesystem" :arguments-text "{}" :manual-approval false})
+                                      {:name "read_file" :origin "filesystem" :arguments-text "{}"})
 
       (f.chat/prompt-stop {:chat-id chat-id} db* (h/messenger))
 
@@ -621,7 +622,7 @@
               :current-request-id "req-123"})
 
       (#'f.chat/transition-tool-call! db* chat-ctx "tool-1" :tool-prepare
-                                      {:name "list_files" :origin "filesystem" :arguments-text "{}" :manual-approval false})
+                                      {:name "list_files" :origin "filesystem" :arguments-text "{}"})
 
       (f.chat/prompt-stop {:chat-id chat-id} db* (h/messenger))
 
@@ -642,7 +643,7 @@
               :current-request-id "req-123"})
 
       (#'f.chat/transition-tool-call! db* chat-ctx "tool-1" :tool-prepare
-                                      {:name "list_files" :origin "filesystem" :arguments-text "{}" :manual-approval false})
+                                      {:name "list_files" :origin "filesystem" :arguments-text "{}"})
 
       (f.chat/prompt-stop {:chat-id chat-id} db* (h/messenger))
 
@@ -681,9 +682,9 @@
               :current-request-id "req-123"})
 
       (#'f.chat/transition-tool-call! db* chat-ctx "tool-1" :tool-prepare
-                                      {:name "list_files" :origin "filesystem" :arguments-text "{}" :manual-approval false})
+                                      {:name "list_files" :origin "filesystem" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx "tool-2" :tool-prepare
-                                      {:name "read_file" :origin "filesystem" :arguments-text "{}" :manual-approval false})
+                                      {:name "read_file" :origin "filesystem" :arguments-text "{}"})
 
       (f.chat/prompt-stop {:chat-id chat-id} db* (h/messenger))
 
@@ -726,13 +727,14 @@
           approved?* (promise)]
 
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-prepare
-                                      {:name "test" :origin "test" :arguments-text "{}" :manual-approval false})
+                                      {:name "test" :origin "test" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run
                                       {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
 
-      (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :auto-approve)]
+      (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :auto-approve
+                                                   {:default-approval true})]
         (is (match? {:status :execution-approved
-                     :actions [:deliver-approval-true]}
+                     :actions [:deliver-default-approval]}
                     result)
             "Expected transition to :execution-approved with deliver approval true action")
 
@@ -753,10 +755,11 @@
           approved?* (promise)]
 
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-prepare
-                                      {:name "test" :origin "test" :arguments-text "{}" :manual-approval false})
+                                      {:name "test" :origin "test" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run
                                       {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
-      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :auto-approve)
+      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :auto-approve
+                                      {:default-approval true})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :execution-start
                                       {:name "test" :origin "test" :arguments {}})
 
@@ -800,10 +803,11 @@
           approved?* (promise)]
 
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-prepare
-                                      {:name "test" :origin "test" :arguments-text "{}" :manual-approval false})
+                                      {:name "test" :origin "test" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run
                                       {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
-      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :auto-approve)
+      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :auto-approve
+                                      {:default-approval true})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :execution-start
                                       {:name "test" :origin "test" :arguments {}})
 
@@ -843,7 +847,7 @@
 
       ;; Create a complete tool call and verify state at each step
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-prepare
-                                      {:name "test" :origin "test" :arguments-text "{\"arg\": \"value\"}" :manual-approval false})
+                                      {:name "test" :origin "test" :arguments-text "{\"arg\": \"value\"}"})
 
       (let [state-after-prepare (#'f.chat/get-tool-call-state @db* chat-id tool-call-id)]
         (is (= :preparing (:status state-after-prepare))
@@ -858,7 +862,8 @@
         (is (identical? approved?* (:approved?* state-after-run))
             "Expected same promise to be stored in state"))
 
-      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :auto-approve)
+      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :auto-approve
+                                      {:default-approval true})
 
       (let [state-after-approve (#'f.chat/get-tool-call-state @db* chat-id tool-call-id)]
         (is (= :execution-approved (:status state-after-approve))
@@ -881,14 +886,15 @@
 
       ;; Tool 1
       (#'f.chat/transition-tool-call! db* chat-ctx-1 tool-call-id :tool-prepare
-                                      {:name "test1" :origin "test" :arguments-text "{}" :manual-approval false})
+                                      {:name "test1" :origin "test" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx-1 tool-call-id :tool-run
                                       {:approved?* approved-1* :name "test1" :origin "test" :arguments {} :manual-approval false})
-      (#'f.chat/transition-tool-call! db* chat-ctx-1 tool-call-id :auto-approve)
+      (#'f.chat/transition-tool-call! db* chat-ctx-1 tool-call-id :auto-approve
+                                      {:default-approval true})
 
       ;; Tool 2
       (#'f.chat/transition-tool-call! db* chat-ctx-2 tool-call-id :tool-prepare
-                                      {:name "test2" :origin "test" :arguments-text "{}" :manual-approval true})
+                                      {:name "test2" :origin "test" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx-2 tool-call-id :tool-run
                                       {:approved?* approved-2* :name "test2" :origin "test" :arguments {} :manual-approval true})
 
@@ -919,7 +925,7 @@
       ;; which would fail with nil messenger, but the state should still transition
       (is (thrown? Exception
                    (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-prepare
-                                                   {:name "test" :origin "test" :arguments-text "{}" :manual-approval false}))
+                                                   {:name "test" :origin "test" :arguments-text "{}"}))
           "Expected exception when messenger is nil or appropriate error handling"))))
 
 (deftest transition-tool-call-promise-timeout-test
@@ -934,7 +940,7 @@
 
       ;; Set up tool call with promise but don't approve/reject
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-prepare
-                                      {:name "test" :origin "test" :arguments-text "{}" :manual-approval true})
+                                      {:name "test" :origin "test" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run
                                       {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval true})
 
