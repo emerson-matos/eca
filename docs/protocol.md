@@ -346,7 +346,10 @@ interface ChatPromptResponse {
      */
     model: ChatModel;
     
-    status: 'success';
+    /**
+     * What the server is doing after receing this prompt
+     */
+    status: 'prompting' | 'login';
 }
 ```
 

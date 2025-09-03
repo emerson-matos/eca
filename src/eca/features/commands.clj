@@ -135,15 +135,15 @@
                (str "Default model: " model)
                ""
                (str "Login providers: " (reduce
-                                          (fn [s [provider auth]]
-                                            (str s provider ": " (-> auth
-                                                                     (update-some :verifier shared/obfuscate)
-                                                                     (update-some :device-code shared/obfuscate)
-                                                                     (update-some :access-token shared/obfuscate)
-                                                                     (update-some :refresh-token shared/obfuscate)
-                                                                     (update-some :api-key shared/obfuscate)) "\n"))
-                                          "\n"
-                                          (:auth db)))
+                                         (fn [s [provider auth]]
+                                           (str s provider ": " (-> auth
+                                                                    (update-some :verifier shared/obfuscate)
+                                                                    (update-some :device-code shared/obfuscate)
+                                                                    (update-some :access-token shared/obfuscate)
+                                                                    (update-some :refresh-token shared/obfuscate)
+                                                                    (update-some :api-key shared/obfuscate)) "\n"))
+                                         "\n"
+                                         (:auth db)))
                (str "Relevant env vars: " (reduce (fn [s [key val]]
                                                     (if (or (string/includes? key "KEY")
                                                             (string/includes? key "API")
@@ -154,24 +154,20 @@
                                                   "\n"
                                                   (System/getenv))))))
 
-(defn handle-command! [command args {:keys [chat-id db* config full-model instructions]}]
+(defn handle-command! [command args {:keys [chat-id db* config messenger full-model instructions]}]
   (let [db @db*
         custom-cmds (custom-commands config (:workspace-folders db))]
     (case command
       "init" {:type :send-prompt
               :clear-history-after-finished? true
               :prompt (f.prompt/build-init-prompt db)}
-      "login" (let [[msg error?] (if-let [provider (first args)]
-                                   (let [{:keys [message error]} (f.login/start chat-id provider db*)]
-                                     (if error
-                                       [error true]
-                                       [message]))
-                                   ["Inform the provider-id (Ex: anthropic, github-copilot)" true])]
-                {:type :chat-messages
-                 :status (when-not error? :login)
-                 :skip-finish? true
-                 :chats {chat-id (->> [{:role "system" :content [{:type :text :text msg}]}]
-                                      (remove nil?))}})
+      "login" (do (f.login/handle-step {:message (or (first args) "")
+                                        :chat-id chat-id}
+                                       db*
+                                       messenger
+                                       config)
+                  {:type :new-chat-status
+                   :status :login})
       "resume" (let [chats (:chats db)]
                  ;; Override current chat with first chat
                  (when-let [first-chat (second (first chats))]

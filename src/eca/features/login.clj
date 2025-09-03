@@ -7,17 +7,26 @@
 
 (defmulti login-step (fn [ctx] [(:provider ctx) (:step ctx)]))
 
-(defmethod login-step :default [_] {:error "Unkown provider-id"})
+(defmethod login-step :default [{:keys [send-msg!]}]
+  (send-msg! "Error: Unknown login step"))
 
-(defn start [chat-id provider db*]
-  (login-step {:chat-id chat-id
-               :step :login/start
-               :provider provider
-               :db* db*}))
+;; No provider selected
+(defmethod login-step [nil :login/start] [{:keys [db* chat-id input send-msg!] :as ctx}]
+  (let [provider (string/trim input)
+        providers (->> @db* :auth keys sort)]
+    (if (get-in @db* [:auth provider])
+      (do (swap! db* assoc-in [:chats chat-id :login-provider] provider)
+          (swap! db* assoc-in [:auth provider] {:step :login/start})
+          (login-step (assoc ctx :provider provider)))
+      (send-msg! (reduce
+                  (fn [s provider]
+                    (str s "- " provider "\n"))
+                  "Choose a provider:\n"
+                  providers)))))
 
-(defn continue [{:keys [message chat-id]} db* messenger config]
+(defn handle-step [{:keys [message chat-id]} db* messenger config]
   (let [provider (get-in @db* [:chats chat-id :login-provider])
-        step (get-in @db* [:auth provider :step])
+        step (get-in @db* [:auth provider :step] :login/start)
         input (string/trim message)
         ctx {:chat-id chat-id
              :step step
@@ -47,7 +56,7 @@
                 :text (str input "\n")}})
     (login-step ctx)
     {:chat-id chat-id
-     :status step}))
+     :status :login}))
 
 (defn renew-auth!
   [provider
@@ -64,7 +73,7 @@
     (catch Exception e
       (on-error (.getMessage e)))))
 
-(defn login-done! [{:keys [db* config messenger]}]
+(defn login-done! [{:keys [chat-id db* config messenger provider send-msg!]} & [silent]]
   (db/update-global-cache! @db*)
   (models/sync-models! db*
                        config
@@ -72,4 +81,8 @@
                          (messenger/config-updated
                           messenger
                           {:chat
-                           {:models (sort (keys new-models))}}))))
+                           {:models (sort (keys new-models))}})))
+  (swap! db* assoc-in [:chats chat-id :login-provider] nil)
+  (swap! db* assoc-in [:chats chat-id :status] :idle)
+  (when-not silent
+    (send-msg! (format "Login successful! You can now use the '%s' models." provider))))

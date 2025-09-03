@@ -30,7 +30,8 @@
 
    ;; cacheable, bump cache when changing
    :chats {}
-   :auth {}})
+   :auth {"anthropic" {}
+          "github-copilot" {}}})
 
 (defonce db* (atom initial-db))
 

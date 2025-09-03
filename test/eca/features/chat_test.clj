@@ -18,7 +18,7 @@
                       f.tools/call-tool! (:call-tool-mock mocks)
                       f.tools/approval (constantly :allow)]
           (f.chat/prompt params (h/db*) (h/messenger) (h/config)))]
-    (is (match? {:chat-id string? :status :success} resp))
+    (is (match? {:chat-id string? :status :prompting} resp))
     {:chat-id chat-id}))
 
 (deftest prompt-basic-test

@@ -349,7 +349,8 @@
                            (send-content! (assoc chat-ctx :chat-id chat-id)
                                           (:role message)
                                           (message-content->chat-content (:role message) (:content message)))))
-                       (finish-chat-prompt! (or (:status result) :idle) chat-ctx))
+                       (finish-chat-prompt! :idle chat-ctx))
+      :new-chat-status (finish-chat-prompt! (:status result) chat-ctx)
       :send-prompt (prompt-messages! [{:role "user" :content (:prompt result)}] (:clear-history-after-finished? result) chat-ctx)
       nil)))
 
@@ -393,7 +394,7 @@
       :prompt-message (prompt-messages! [{:role "user" :content [{:type :text :text message}]}] false chat-ctx))
     {:chat-id chat-id
      :model full-model
-     :status :success}))
+     :status :prompting}))
 
 (defn tool-call-approve [{:keys [chat-id tool-call-id]} db*]
   (deliver (get-in @db* [:chats chat-id :tool-calls tool-call-id :approved?*]) true))

@@ -53,28 +53,28 @@
                       {:status status
                        :body body})))))
 
-(defmethod f.login/login-step ["github-copilot" :login/start] [{:keys [db* chat-id provider]}]
+(defmethod f.login/login-step ["github-copilot" :login/start] [{:keys [db* chat-id provider send-msg!]}]
   (let [{:keys [user-code device-code url]} (oauth-url)]
     (swap! db* assoc-in [:chats chat-id :login-provider] provider)
     (swap! db* assoc-in [:auth provider] {:step :login/waiting-user-confirmation
                                           :device-code device-code})
-    {:message (format "Open your browser at `%s` and authenticate using the code: `%s`\nThen type anything in the chat and send it to continue the authentication."
-                      url
-                      user-code)}))
+    (send-msg! (format "Open your browser at `%s` and authenticate using the code: `%s`\nThen type anything in the chat and send it to continue the authentication."
+                       url
+                       user-code))))
 
-(defmethod f.login/login-step ["github-copilot" :login/waiting-user-confirmation] [{:keys [db* chat-id provider send-msg!] :as ctx}]
+(defmethod f.login/login-step ["github-copilot" :login/waiting-user-confirmation] [{:keys [db* provider] :as ctx}]
   (let [access-token (oauth-access-token (get-in @db* [:auth provider :device-code]))
         {:keys [api-key expires-at]} (oauth-renew-token access-token)]
     (swap! db* update-in [:auth provider] merge {:step :login/done
                                                  :access-token access-token
                                                  :api-key api-key
                                                  :expires-at expires-at})
-    (swap! db* update-in [:chats chat-id :status] :idle)
-    (f.login/login-done! ctx)
-    (send-msg! "Login successful! You can now use the 'github-copilot' models.")))
 
-(defmethod f.login/login-step ["github-copilot" :login/renew-token] [{:keys [db* provider]}]
+    (f.login/login-done! ctx)))
+
+(defmethod f.login/login-step ["github-copilot" :login/renew-token] [{:keys [db* provider] :as ctx}]
   (let [access-token (get-in @db* [:auth provider :access-token])
         {:keys [api-key expires-at]} (oauth-renew-token access-token)]
     (swap! db* update-in [:auth provider] merge {:api-key api-key
-                                                 :expires-at expires-at})))
+                                                 :expires-at expires-at})
+    (f.login/login-done! ctx true)))

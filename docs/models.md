@@ -123,16 +123,18 @@ Only set this when your provider uses a different path or expects query paramete
 
 === "Anthropic"
     
-    1. Login to Anthropic via the chat command `/login anthropic`.
-    2. Type the chosen method
-    3. Authenticate in your browser, copy the code.
-    4. Paste and send the code and done!
+    1. Login to Anthropic via the chat command `/login`.
+    2. Type 'anthropic' and send it.
+    3. Type the chosen method
+    4. Authenticate in your browser, copy the code.
+    5. Paste and send the code and done!
 
 === "Github Copilot"
     
-    1. Login to Github copilot via the chat command `/login github-copilot`.
-    2. Authenticate in Github in your browser with the given code.
-    3. Type anything in the chat to continue and done!
+    1. Login to Github copilot via the chat command `/login`.
+    2. Type 'github-copilot' and send it.
+    3. Authenticate in Github in your browser with the given code.
+    4. Type anything in the chat to continue and done!
     
     _Tip: check [Your Copilot plan](https://github.com/settings/copilot/features) to enable models to your account._
 

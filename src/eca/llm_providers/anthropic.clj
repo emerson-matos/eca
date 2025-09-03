@@ -274,14 +274,14 @@
                       {:status status
                        :body body})))))
 
-(defmethod f.login/login-step ["anthropic" :login/start] [{:keys [db* chat-id provider]}]
+(defmethod f.login/login-step ["anthropic" :login/start] [{:keys [db* chat-id provider send-msg!]}]
   (swap! db* assoc-in [:chats chat-id :login-provider] provider)
   (swap! db* assoc-in [:auth provider] {:step :login/waiting-login-method})
-  {:message (multi-str "Now, inform the login method:"
-                       ""
-                       "max: Claude Pro/Max"
-                       "console: Create API Key"
-                       "manual: Manually enter API Key")})
+  (send-msg! (multi-str "Now, inform the login method:"
+                        ""
+                        "max: Claude Pro/Max"
+                        "console: Create API Key"
+                        "manual: Manually enter API Key")))
 
 (defmethod f.login/login-step ["anthropic" :login/waiting-login-method] [{:keys [db* input provider send-msg!]}]
   (case input
@@ -306,7 +306,7 @@
       (send-msg! "Paste your Anthropic API Key"))
     (send-msg! (format "Unknown login method '%s'. Inform one of the options: max, console, manual" input))))
 
-(defmethod f.login/login-step ["anthropic" :login/waiting-provider-code] [{:keys [db* input chat-id provider send-msg!] :as ctx}]
+(defmethod f.login/login-step ["anthropic" :login/waiting-provider-code] [{:keys [db* input provider] :as ctx}]
   (let [provider-code input
         {:keys [mode verifier]} (get-in @db* [:auth provider])]
     (case mode
@@ -316,9 +316,7 @@
         (swap! db* update-in [:auth provider] merge {:step :login/done
                                                      :type :auth/token
                                                      :api-key api-key})
-        (swap! db* update-in [:chats chat-id :status] :idle)
-        (f.login/login-done! ctx)
-        (send-msg! "Login successful! You can now use the 'anthropic' models."))
+        (f.login/login-done! ctx))
       :max
       (let [{:keys [access-token refresh-token expires-at]} (oauth-authorize provider-code verifier)]
         (swap! db* update-in [:auth provider] merge {:step :login/done
@@ -326,19 +324,15 @@
                                                      :refresh-token refresh-token
                                                      :api-key access-token
                                                      :expires-at expires-at})
-        (swap! db* update-in [:chats chat-id :status] :idle)
-        (f.login/login-done! ctx)
-        (send-msg! "Login successful! You can now use the 'anthropic' models.")))))
+        (f.login/login-done! ctx)))))
 
-(defmethod f.login/login-step ["anthropic" :login/waiting-api-key] [{:keys [db* input chat-id provider send-msg!] :as ctx}]
+(defmethod f.login/login-step ["anthropic" :login/waiting-api-key] [{:keys [db* input provider send-msg!] :as ctx}]
   (if (string/starts-with? input "sk-")
     (do (swap! db* assoc-in [:auth provider] {:step :login/done
                                               :type :auth/token
                                               :mode :manual
                                               :api-key input})
-        (swap! db* update-in [:chats chat-id :status] :idle)
-        (f.login/login-done! ctx)
-        (send-msg! (format "Login successful! You can now use the '%s' models." provider)))
+        (f.login/login-done! ctx))
     (send-msg! (format "Invalid API key '%s'" input))))
 
 (defmethod f.login/login-step ["anthropic" :login/renew-token] [{:keys [db* provider] :as ctx}]
@@ -349,4 +343,4 @@
                                                  :refresh-token refresh-token
                                                  :api-key access-token
                                                  :expires-at expires-at})
-    (f.login/login-done! ctx)))
+    (f.login/login-done! ctx true)))

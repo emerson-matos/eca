@@ -85,7 +85,7 @@ Eca supports commands that usually are triggered via shash (`/`) in the chat, co
 The built-in commands are:
 
 `/init`: Create/update the AGENTS.md file with details about the workspace for best LLM output quality.
-`/login`: Log into a provider. Ex: `/login github-copilot`, `/login anthropic`
+`/login`: Log into a provider. Ex: `github-copilot`, `anthropic`.
 `/costs`: Show costs about current session.
 `/resume`: Resume a chat from previous session of this workspace folder.
 `/config`: Show ECA config for troubleshooting.
@@ -99,7 +99,7 @@ It's possible to configure custom command prompts, for more details check [its c
 
 ### Login
 
-It's possible to login to some providers using `/login <provider>`, ECA will ask and give instructions on how to authenticate in that provider and save the login info globally in its cache `~/.cache/eca/db.transit.json`.
+It's possible to login to some providers using `/login` command, ECA will ask and give instructions on how to authenticate in the chosen provider and save the login info globally in its cache `~/.cache/eca/db.transit.json`.
 
 Current supported providers with login:
 - `anthropic`: with options to login to Claude Max/Pro or create API keys.

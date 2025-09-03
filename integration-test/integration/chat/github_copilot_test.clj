@@ -26,7 +26,7 @@
         (is (match?
              {:chatId (m/pred string?)
               :model "github-copilot/gpt-5"
-              :status "success"}
+              :status "prompting"}
              resp))
 
         (match-content chat-id "user" {:type "text" :text "Tell me a joke!\n"})
@@ -51,7 +51,7 @@
         (is (match?
              {:chatId (m/pred string?)
               :model "github-copilot/gpt-5"
-              :status "success"}
+              :status "prompting"}
              resp))
 
         (match-content chat-id "user" {:type "text" :text "Who's there?\n"})
@@ -77,7 +77,7 @@
         (is (match?
              {:chatId (m/pred string?)
               :model "github-copilot/gpt-5"
-              :status "success"}
+              :status "prompting"}
              resp))
 
         (match-content chat-id "user" {:type "text" :text "What foo?\n"})
@@ -114,7 +114,7 @@
           (is (match?
                {:chatId (m/pred string?)
                 :model "github-copilot/gpt-5"
-                :status "success"}
+                :status "prompting"}
                resp))
 
           (match-content chat-id "user" {:type "text" :text "hello!\n"})
@@ -149,7 +149,7 @@
           (is (match?
                {:chatId (m/pred string?)
                 :model "github-copilot/gpt-5"
-                :status "success"}
+                :status "prompting"}
                resp))
 
           (match-content chat-id "user" {:type "text" :text "how are you?\n"})
@@ -198,7 +198,7 @@
           (is (match?
                {:chatId (m/pred string?)
                 :model "github-copilot/gpt-5"
-                :status "success"}
+                :status "prompting"}
                resp))
 
           (match-content chat-id "user" {:type "text" :text "What files you see?\n"})

@@ -87,7 +87,7 @@
   (logger/logging-task
    :eca/chat-prompt
    (case (get-in @db* [:chats (:chat-id params) :status])
-     :login (f.login/continue params db* messenger config)
+     :login (f.login/handle-step params db* messenger config)
      (f.chat/prompt params db* messenger config))))
 
 (defn chat-query-context [{:keys [db* config]} params]
