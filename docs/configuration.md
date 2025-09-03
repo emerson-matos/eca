@@ -56,19 +56,36 @@ For providers and models configuration check the [dedicated models section](./mo
 
 ### MCP
 
-For MCP servers configuration, use the `mcpServers` config, example:
+For MCP servers configuration, use the `mcpServers` config, examples:
 
-`.eca/config.json`
-```javascript
-{
-  "mcpServers": {
-    "memory": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-memory"]
+=== "Example 1"
+
+    `~/.config/eca/config.json`
+    ```javascript
+    {
+      "mcpServers": {
+        "memory": {
+          "command": "npx",
+          "args": ["-y", "@modelcontextprotocol/server-memory"]
+        }
+      }
     }
-  }
-}
-```
+    ```
+    
+=== "Example 2"
+
+    `~/.config/eca/config.json`
+    ```javascript
+    {
+      "mcpServers": {
+        "cool-mcp": {
+          "command": "bash",
+          "args": ["-c", "my-cool-mcp"],
+          "env": {"FOO" "bar"}
+        }
+      }
+    }
+    ```
 
 ### Approval / permissions
 
