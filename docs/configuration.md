@@ -174,8 +174,9 @@ The `customTools` value is an object where each key is the name of your tool. Ea
 
 Placeholders in the format `{{argument_name}}` within the `command` string will be replaced by the values provided by the LLM.
 
-=== "Example config.json"
+=== "Example 1"
 
+    `~/.config/eca/config.json`
     ```javascript
     {
       "customTools": {
@@ -191,7 +192,17 @@ Placeholders in the format `{{argument_name}}` within the `command` string will 
             },
             "required": ["url"]
           }
-        },
+        }
+      }
+    }
+    ```
+
+=== "Example 2"
+
+    `~/.config/eca/config.json`
+    ```javascript
+    {
+      "customTools": {
         "file-search": {
           "description": "Finds files within a directory that match a specific name pattern.",
           "command": "find {{directory}} -name {{pattern}}",
@@ -212,7 +223,6 @@ Placeholders in the format `{{argument_name}}` within the `command` string will 
       }
     }
     ```
-
 
 ## Custom command prompts
 
