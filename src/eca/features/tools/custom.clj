@@ -1,27 +1,53 @@
 (ns eca.features.tools.custom
   (:require
-   [babashka.process :as process]
-   [clojure.string :as string]))
+   [babashka.process :as p]
+   [clojure.string :as string]
+   [eca.features.tools.util :as tools.util]
+   [eca.logger :as logger]
+   [eca.shared :as shared]))
 
 (set! *warn-on-reflection* true)
+
+(def ^:private logger-tag "[CUSTOM-TOOLS]")
 
 (defn ^:private build-tool-fn
   "Creates a function that safely executes the command from a custom tool config.
   It substitutes {{placeholders}} in the command vector with LLM-provided arguments."
   [{:keys [command]}]
-  ;; The handler function takes arguments and a context map. We only need the arguments.
-  (fn [llm-args _context]
-    (let [resolved-command (mapv
-                            (fn [part]
-                              (if (and (string? part) (string/starts-with? part "{{") (string/ends-with? part "}}"))
-                                (let [key-name (keyword (subs part 2 (- (count part) 2)))]
-                                  (str (get llm-args key-name "")))
-                                part))
-                            command)
-          {:keys [out exit]} (process/sh resolved-command {:error-to-out true})]
+  (fn [args {:keys [db]}]
+    (let [resolved-command (reduce
+                            (fn [s [arg-name arg-value]]
+                              (string/replace s (str "{{" arg-name "}}") arg-value))
+                            command
+                            args)
+          work-dir (some-> (:workspace-folders db)
+                           first
+                           :uri
+                           shared/uri->filename)
+          _ (logger/debug logger-tag "Running custom tool:" resolved-command)
+          result (try
+                   (p/shell {:dir work-dir
+                             :out :string
+                             :err :string
+                             :continue true} "bash -c" resolved-command)
+                   (catch Exception e
+                     {:exit 1 :err (.getMessage e)}))
+          exit (:exit result)
+          err (some-> (:err result) string/trim)
+          out (some-> (:out result) string/trim)]
+      (logger/debug logger-tag "custom tool executed:" result)
       (if (zero? exit)
-        out
-        (str "Error: Command failed with exit code " exit "\nOutput:\n" out)))))
+        (tools.util/single-text-content out)
+        {:error true
+         :contents (remove nil?
+                           (concat [{:type :text
+                                     :text (str "Exit code " exit)}]
+                                   (when-not (string/blank? err)
+                                     [{:type :text
+                                       :text (str "Stderr:\n" err)}])
+                                   (when-not (string/blank? out)
+                                     [{:type :text
+                                       :text (str "Stdout:\n" out)}])))}))))
 
 (defn ^:private custom-tool->tool-def
   "Transforms a single custom tool from the config map into a full tool definition."

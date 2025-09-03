@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Support user configured custom tools.
+- Support user configured custom tools via `customTools` config.
 
 ## 0.44.1
 
