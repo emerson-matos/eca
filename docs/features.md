@@ -24,11 +24,11 @@ It supports both MCP server tools + ECA native tools.
 
     By default, ECA ask to approve any tool, you can easily configure that, check `toolCall approval` [config](./config.md) or try the `plan` behavior.
 
-### Native tools
+#### Native tools
 
 ECA support built-in tools to avoid user extra installation and configuration, these tools are always included on models requests that support tools and can be [disabled/configured via config](./configuration.md) `nativeTools`.
 
-#### Filesystem
+##### Filesystem
 
 Provides access to filesystem under workspace root, listing, reading and writing files, important for agentic operations.
 
@@ -40,13 +40,13 @@ Provides access to filesystem under workspace root, listing, reading and writing
 - `eca_move_file`: move/rename a file.
 - `eca_grep`: ripgrep/grep for paths with specified content.
 
-#### Shell
+##### Shell
 
 Provides access to run shell commands, useful to run build tools, tests, and other common commands, supports exclude/include commands. 
 
 - `eca_shell_command`: run shell command. Supports configs to exclude commands via `:nativeTools :shell :excludeCommands`.
 
-#### Editor
+##### Editor
 
 Provides access to get information from editor workspaces.
 
