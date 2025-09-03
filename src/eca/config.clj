@@ -67,7 +67,11 @@
                  :editor {:enabled true}}
    :disabledTools []
    :toolCall {:approval {:byDefault "ask"
-                         :allow {}
+                         :allow {"eca_preview_file_change" {}
+                                 "eca_read_file" {}
+                                 "eca_directory_tree" {}
+                                 "eca_grep" {}
+                                 "eca_editor_diagnostics" {}}
                          :ask {}
                          :deny {}}}
    :mcpTimeoutSeconds 60

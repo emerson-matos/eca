@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Support user configured custom tools via `customTools` config. #92
+- Fix default approval for read only tools to be `allow` instead of `ask`.
 
 ## 0.44.1
 
