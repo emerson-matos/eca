@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.46.0
+
 - Remove the need to pass `requestId` on prompt messages.
 - Support empty `/login` command to ask what provider to login.
 
