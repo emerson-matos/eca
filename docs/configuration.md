@@ -165,12 +165,12 @@ You can define your own command-line tools that the LLM can use. These are confi
 The `customTools` value is an object where each key is the name of your tool. Each tool definition has the following properties:
 
 -   `description`: A clear description of what the tool does. This is crucial for the LLM to decide when to use it.
--   `command`: An array of strings representing the command and its static arguments.
+-   `command`: An string representing the command and its static arguments.
 -   `schema`: An object that defines the parameters the LLM can provide.
     -   `properties`: An object where each key is an argument name.
     -   `required`: An array of required argument names.
 
-Placeholders in the format `{{argument_name}}` within the `command` array will be replaced by the values provided by the LLM.
+Placeholders in the format `{{argument_name}}` within the `command` string will be replaced by the values provided by the LLM.
 
 === "Example config.json"
 
@@ -179,7 +179,7 @@ Placeholders in the format `{{argument_name}}` within the `command` array will b
       "customTools": {
         "web-search": {
           "description": "Fetches the content of a URL and returns it in Markdown format.",
-          "command": ["trafilatura", "--output-format=markdown", "-u", "{{url}}"],
+          "command": "trafilatura --output-format=markdown -u {{url}}",
           "schema": {
             "properties": {
               "url": {
@@ -192,7 +192,7 @@ Placeholders in the format `{{argument_name}}` within the `command` array will b
         },
         "file-search": {
           "description": "Finds files within a directory that match a specific name pattern.",
-          "command": ["find", "{{directory}}", "-name", "{{pattern}}"],
+          "command": "find {{directory}} -name {{pattern}}",
           "schema": {
             "properties": {
               "directory": {
@@ -321,7 +321,7 @@ There are 3 possible ways to configure rules following this order of priority:
         };
         customTools?: {[key: string]: {
             description: string;
-            command: string[];
+            command: string;
             schema: {
                 properties: {[key: string]: {
                     type: string;
