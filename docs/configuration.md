@@ -412,7 +412,11 @@ There are 3 possible ways to configure rules following this order of priority:
       "toolCall": {
         "approval": {
           "byDefault": "ask",
-          "allow": {},
+          "allow": {"eca_directory_tree": {},
+                    "eca_read_file": {},
+                    "eca_grep": {},
+                    "eca_preview_file_change": {},
+                    "eca_editor_diagnostics": {}},
           "ask": {},
           "deny": {}
         }
