@@ -4,6 +4,7 @@
 
 - Support more providers login via `/login`.
   - openai
+  - openrouter
 
 ## 0.46.0
 

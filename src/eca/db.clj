@@ -32,7 +32,8 @@
    :chats {}
    :auth {"anthropic" {}
           "github-copilot" {}
-          "openai" {}}})
+          "openai" {}
+          "openrouter" {}}})
 
 (defonce db* (atom initial-db))
 

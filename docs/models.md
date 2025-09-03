@@ -157,8 +157,16 @@ Only set this when your provider uses a different path or expects query paramete
     ```
 
 === "OpenRouter"
-
+    
     [OpenRouter](https://openrouter.ai) provides access to many models through a unified API:
+
+    1. Login via the chat command `/login`.
+    2. Type 'openrouter' and send it.
+    3. Specify your Openrouter API key.
+    4. Inform at least a model, ex: `openai/gpt-5`
+    5. Done, it should be saved to your global config.
+
+    or manually via config:
     
     ```javascript
     {
