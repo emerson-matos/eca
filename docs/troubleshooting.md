@@ -1,8 +1,24 @@
 # Troubleshooting
 
-## Server logs
+## Server logs (stderr)
 
-ECA works with clients (editors) sending and receiving messages to server, a process, you can start server with `--log-level debug` or `--verbose` which should log helpful information to `stderr` buffer like what is being sent to LLMs or what ECA is responding to editors, all supported editors have options to set the __server args___ to help with that.
+ECA works with clients (editors) sending and receiving messages to server, a process, you can start server with `--log-level debug` or `--verbose` which should log helpful information to `stderr` buffer like what is being sent to LLMs or what ECA is responding to editors, all supported editors have options to set the __server args___ to help with that and options to check the server logs.
+
+=== "Emacs"
+
+    `M-x` `eca-show-stderr`
+    
+=== "VsCode"
+
+    Check the output channel `ECA stderr`.
+   
+=== "IntelliJ"
+
+    Via action 'ECA: Show server logs'.
+    
+=== "Nvim"
+
+    `EcaShowLogs` 
 
 ## Doctor command
 
