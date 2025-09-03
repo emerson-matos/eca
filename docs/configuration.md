@@ -52,7 +52,9 @@ There are multiples ways to configure ECA:
 
 For providers and models configuration check the [dedicated models section](./models.md#custom-providers).
 
-## MCP
+## Tools
+
+### MCP
 
 For MCP servers configuration, use the `mcpServers` config, example:
 
@@ -68,7 +70,7 @@ For MCP servers configuration, use the `mcpServers` config, example:
 }
 ```
 
-### Tool approval / permissions
+### Approval / permissions
 
 By default, ECA ask to call any tool, but that's can easily be configureed in many ways via the `toolCall approval` config.
 
@@ -158,7 +160,7 @@ Also check the `plan` behavior which is safer.
 
 __The `manualApproval` setting was deprecated and replaced by the `approval` one without breaking changes__
 
-## Custom Tools
+### Custom Tools
 
 You can define your own command-line tools that the LLM can use. These are configured via the `customTools` key in your `config.json`.
 
