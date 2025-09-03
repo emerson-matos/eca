@@ -1,6 +1,7 @@
 (ns eca.features.login
   (:require
    [clojure.string :as string]
+   [eca.config :as config]
    [eca.db :as db]
    [eca.messenger :as messenger]
    [eca.models :as models]))
@@ -73,10 +74,10 @@
     (catch Exception e
       (on-error (.getMessage e)))))
 
-(defn login-done! [{:keys [chat-id db* config messenger provider send-msg!]} & [silent]]
+(defn login-done! [{:keys [chat-id db* messenger provider send-msg!]} & [silent]]
   (db/update-global-cache! @db*)
   (models/sync-models! db*
-                       config
+                       (config/all @db*) ;; force get updated config
                        (fn [new-models]
                          (messenger/config-updated
                           messenger

@@ -109,8 +109,11 @@
                             (io/file (get-property "user.home") ".config"))]
     (io/file xdg-config-home "eca")))
 
+(defn global-config-file ^File []
+  (io/file (global-config-dir) "config.json"))
+
 (defn ^:private config-from-global-file* []
-  (let [config-file (io/file (global-config-dir) "config.json")]
+  (let [config-file (global-config-file)]
     (when (.exists config-file)
       (safe-read-json-string (slurp config-file) (var *global-config-error*)))))
 
@@ -190,25 +193,28 @@
                           :else m*))]
     (normalize-map [] m)))
 
+(def ^:private eca-config-normalization-rules
+  {:kebab-case
+   [[:providers]]
+   :stringfy
+   [[:providers]
+    [:providers :ANY :models]
+    [:toolCall :approval :allow]
+    [:toolCall :approval :allow :ANY :argsMatchers]
+    [:toolCall :approval :ask]
+    [:toolCall :approval :ask :ANY :argsMatchers]
+    [:toolCall :approval :deny]
+    [:toolCall :approval :deny :ANY :argsMatchers]
+    [:customTools]
+    [:customTools :ANY :schema :properties]
+    [:mcpServers]]})
+
 (defn all [db]
   (let [initialization-config @initialization-config*
         pure-config? (:pureConfig initialization-config)]
     (deep-merge initial-config
                 (normalize-fields
-                 {:kebab-case
-                  [[:providers]]
-                  :stringfy
-                  [[:providers]
-                   [:providers :ANY :models]
-                   [:toolCall :approval :allow]
-                   [:toolCall :approval :allow :ANY :argsMatchers]
-                   [:toolCall :approval :ask]
-                   [:toolCall :approval :ask :ANY :argsMatchers]
-                   [:toolCall :approval :deny]
-                   [:toolCall :approval :deny :ANY :argsMatchers]
-                   [:customTools]
-                   [:customTools :ANY :schema :properties]
-                   [:mcpServers]]}
+                 eca-config-normalization-rules
                  (deep-merge initialization-config
                              (when-not pure-config? (config-from-envvar))
                              (when-not pure-config? (config-from-global-file))
@@ -285,3 +291,12 @@
     (when (seq config-to-notify)
       (swap! db* update :last-config-notified shared/deep-merge config-to-notify)
       (messenger/config-updated messenger config-to-notify))))
+
+(defn update-global-config! [config]
+  (let [global-config-file (global-config-file)
+        current-config (normalize-fields eca-config-normalization-rules (config-from-global-file))
+        new-config (deep-merge current-config
+                               (normalize-fields eca-config-normalization-rules config))
+        new-config-json (json/generate-string new-config {:pretty true})]
+    (io/make-parents global-config-file)
+    (spit global-config-file new-config-json)))

@@ -3,6 +3,8 @@
    [cheshire.core :as json]
    [clojure.java.io :as io]
    [clojure.string :as string]
+   [eca.config :as config]
+   [eca.features.login :as f.login]
    [eca.llm-util :as llm-util]
    [eca.logger :as logger]
    [hato.client :as http]))
@@ -194,3 +196,18 @@
       :api-key api-key
       :on-error on-error
       :on-response on-response-fn})))
+
+(defmethod f.login/login-step ["openai" :login/start] [{:keys [db* chat-id provider send-msg!]}]
+  (swap! db* assoc-in [:chats chat-id :login-provider] provider)
+  (swap! db* assoc-in [:auth provider] {:step :login/waiting-api-key})
+  (send-msg! "Paste your API Key"))
+
+(defmethod f.login/login-step ["openai" :login/waiting-api-key] [{:keys [input db* provider send-msg!] :as ctx}]
+  (if (string/starts-with? input "sk-")
+    (do (swap! db* assoc-in [:auth provider] {:step :login/done
+                                              :type :auth/token
+                                              :api-key input})
+        (config/update-global-config! {:providers {"openai" {:key input}}})
+        (send-msg! (str "API key saved in " (.getCanonicalPath (config/global-config-file))))
+        (f.login/login-done! ctx))
+    (send-msg! (format "Invalid API key '%s'" input))))
