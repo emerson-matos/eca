@@ -149,8 +149,8 @@ Check some examples:
         "approval": {
           "byDefault": "allow",
           "allow": {
-            "eca_shell_command": {"argsMatchers" {"command" [".*rm.*",
-                                                             ".*mv.*"]}}
+            "eca_shell_command": {"argsMatchers": {"command": [".*rm.*",
+                                                               ".*mv.*"]}}
           }
         }
       }
@@ -165,8 +165,8 @@ Check some examples:
         "approval": {
           "byDefault": "allow",
           "deny": {
-            "eca_shell_command": {"argsMatchers" {"command" [".*rm.*",
-                                                             ".*mv.*"]}}
+            "eca_shell_command": {"argsMatchers": {"command": [".*rm.*",
+                                                               ".*mv.*"]}}
           }
         }
       }

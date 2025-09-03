@@ -182,7 +182,7 @@ Only set this when your provider uses a different path or expects query paramete
     ```javascript
     {
       "providers": {
-        "openrouter": {
+        "deepseek": {
           "api": "openai-chat",
           "url": "https://api.deepseek.com", // or "urlEnv"
           "key": "your-api-key", // or "keyEnv"
