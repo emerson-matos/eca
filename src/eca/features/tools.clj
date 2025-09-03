@@ -3,6 +3,7 @@
    eca native tools and MCP servers."
   (:require
    [clojure.string :as string]
+   [eca.features.tools.custom :as f.tools.custom]
    [eca.features.tools.editor :as f.tools.editor]
    [eca.features.tools.filesystem :as f.tools.filesystem]
    [eca.features.tools.mcp :as f.mcp]
@@ -33,7 +34,8 @@
           (when (get-in config [:nativeTools :shell :enabled])
             f.tools.shell/definitions)
           (when (get-in config [:nativeTools :editor :enabled])
-            f.tools.editor/definitions))))
+            f.tools.editor/definitions)
+          (f.tools.custom/definitions config))))
 
 (defn ^:private native-tools [db config]
   (mapv #(assoc % :server "eca") (vals (native-definitions db config))))

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Support user configured custom tools.
+
 ## 0.44.1
 
 - Fix renew token regression.

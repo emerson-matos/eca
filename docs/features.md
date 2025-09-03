@@ -52,6 +52,12 @@ Provides access to get information from editor workspaces.
 
 - `eca_editor_diagnostics`: Ask client about the diagnostics (like LSP diagnostics).
 
+#### Custom Tools
+
+Besides the built-in native tools, ECA allows you to define your own tools by wrapping any command-line executable. This feature enables you to extend ECA's capabilities to match your specific workflows, such as running custom scripts, interacting with internal services, or using your favorite CLI tools.
+
+Custom tools are configured in your `config.json` file. For a detailed guide on how to set them up, check the [Custom Tools configuration documentation](./configuration.md#custom-tools).
+
 ### Contexts
 
 ![](./images/features/contexts.png)

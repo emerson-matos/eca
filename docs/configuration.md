@@ -158,6 +158,60 @@ Also check the `plan` behavior which is safer.
 
 __The `manualApproval` setting was deprecated and replaced by the `approval` one without breaking changes__
 
+## Custom Tools
+
+You can define your own command-line tools that the LLM can use. These are configured via the `custom-tools` key in your `config.json`.
+
+The `custom-tools` value is an object where each key is the name of your tool. Each tool definition has the following properties:
+
+-   `description`: A clear description of what the tool does. This is crucial for the LLM to decide when to use it.
+-   `command`: An array of strings representing the command and its static arguments.
+-   `schema`: An object that defines the parameters the LLM can provide.
+    -   `properties`: An object where each key is an argument name.
+    -   `required`: An array of required argument names.
+
+Placeholders in the format `{{argument_name}}` within the `command` array will be replaced by the values provided by the LLM.
+
+=== "Example config.json"
+
+    ```javascript
+    {
+      "custom-tools": {
+        "web-search": {
+          "description": "Fetches the content of a URL and returns it in Markdown format.",
+          "command": ["trafilatura", "--output-format=markdown", "-u", "{{url}}"],
+          "schema": {
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "The URL to fetch content from."
+              }
+            },
+            "required": ["url"]
+          }
+        },
+        "file-search": {
+          "description": "Finds files within a directory that match a specific name pattern.",
+          "command": ["find", "{{directory}}", "-name", "{{pattern}}"],
+          "schema": {
+            "properties": {
+              "directory": {
+                "type": "string",
+                "description": "The directory to start the search from."
+              },
+              "pattern": {
+                "type": "string",
+                "description": "The search pattern for the filename (e.g., '*.clj')."
+              }
+            },
+            "required": ["directory", "pattern"]
+          }
+        }
+      }
+    }
+    ```
+
+
 ## Custom command prompts
 
 You can configure custom command prompts for project, global or via `commands` config pointing to the path of the commands.
@@ -265,6 +319,17 @@ There are 3 possible ways to configure rules following this order of priority:
                     excludeCommands: string[]};
             editor: {enabled: boolean,};
         };
+        customTools?: {[key: string]: {
+            description: string;
+            command: string[];
+            schema: {
+                properties: {[key: string]: {
+                    type: string;
+                    description: string;
+                }};
+                required: string[];
+            };
+        }};
         disabledTools?: string[],
         toolCall?: {
           approval?: {
