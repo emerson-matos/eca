@@ -5,6 +5,7 @@
 - Support more providers login via `/login`.
   - openai
   - openrouter
+  - deepseek
 
 ## 0.46.0
 

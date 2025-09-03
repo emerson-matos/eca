@@ -189,6 +189,14 @@ Only set this when your provider uses a different path or expects query paramete
 
     [DeepSeek](https://deepseek.com) offers powerful reasoning and coding models:
     
+    1. Login via the chat command `/login`.
+    2. Type 'deepseek' and send it.
+    3. Specify your Deepseek API key.
+    4. Inform at least a model, ex: `deepseek-chat`
+    5. Done, it should be saved to your global config.
+    
+    or manually via config:
+    
     ```javascript
     {
       "providers": {

@@ -33,7 +33,8 @@
    :auth {"anthropic" {}
           "github-copilot" {}
           "openai" {}
-          "openrouter" {}}})
+          "openrouter" {}
+          "deepseek" {}}})
 
 (defonce db* (atom initial-db))
 
