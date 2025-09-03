@@ -24,11 +24,10 @@
 (defn default-model [db config]
   (llm-api/default-model db config))
 
-(defn ^:private send-content! [{:keys [messenger chat-id request-id]} role content]
+(defn ^:private send-content! [{:keys [messenger chat-id]} role content]
   (messenger/chat-content-received
    messenger
    {:chat-id chat-id
-    :request-id request-id
     :role role
     :content content}))
 
@@ -355,7 +354,7 @@
       nil)))
 
 (defn prompt
-  [{:keys [message model behavior contexts chat-id request-id]}
+  [{:keys [message model behavior contexts chat-id]}
    db*
    messenger
    config]
@@ -377,7 +376,6 @@
                                                       (-> config :defaultBehavior))
                                                   config)
         chat-ctx {:chat-id chat-id
-                  :request-id request-id
                   :contexts contexts
                   :behavior behavior
                   :instructions instructions
@@ -386,7 +384,6 @@
                   :config config
                   :messenger messenger}
         decision (message->decision message)]
-    (swap! db* assoc-in [:chats chat-id :current-request-id] request-id)
     (swap! db* assoc-in [:chats chat-id :status] :running)
     (send-content! chat-ctx :user {:type :text
                                    :text (str message "\n")})
@@ -429,9 +426,7 @@
 (defn prompt-stop
   [{:keys [chat-id]} db* messenger]
   (when (identical? :running (get-in @db* [:chats chat-id :status]))
-    (let [request-id (get-in @db* [:chats chat-id :current-request-id])
-          chat-ctx {:chat-id chat-id
-                    :request-id request-id
+    (let [chat-ctx {:chat-id chat-id
                     :db* db*
                     :messenger messenger}]
       (send-content! chat-ctx :system {:type :text

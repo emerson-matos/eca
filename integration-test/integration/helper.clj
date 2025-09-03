@@ -50,10 +50,9 @@
                         (last args)))
          maps))
 
-(defn match-content [chat-id request-id role content]
+(defn match-content [chat-id role content]
   (is (match?
         {:chatId chat-id
-         :requestId request-id
          :role role
          :content content}
         (eca/client-awaits-server-notification :chat/contentReceived))))

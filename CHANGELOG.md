@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Remove the need to pass `requestId` on prompt messages.
+
 ## 0.45.0
 
 - Support user configured custom tools via `customTools` config. #92

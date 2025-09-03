@@ -15,7 +15,7 @@
                :provider provider
                :db* db*}))
 
-(defn continue [{:keys [message chat-id request-id]} db* messenger config]
+(defn continue [{:keys [message chat-id]} db* messenger config]
   (let [provider (get-in @db* [:chats chat-id :login-provider])
         step (get-in @db* [:auth provider :step])
         input (string/trim message)
@@ -30,21 +30,18 @@
                           (messenger/chat-content-received
                            messenger
                            {:chat-id chat-id
-                            :request-id request-id
                             :role "system"
                             :content {:type :text
                                       :text msg}})
                           (messenger/chat-content-received
                            messenger
                            {:chat-id chat-id
-                            :request-id request-id
                             :role "system"
                             :content {:type :progress
                                       :state :finished}}))}]
     (messenger/chat-content-received
      messenger
      {:chat-id chat-id
-      :request-id request-id
       :role "user"
       :content {:type :text
                 :text (str input "\n")}})

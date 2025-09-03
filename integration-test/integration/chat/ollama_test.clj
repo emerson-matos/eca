@@ -26,10 +26,8 @@
   (let [chat-id* (atom nil)]
     (testing "We send a simple hello message"
       (llm.mocks/set-case! :simple-text-0)
-      (let [req-id 0
-            resp (eca/request! (fixture/chat-prompt-request
-                                {:request-id req-id
-                                 :model "ollama/qwen3"
+      (let [resp (eca/request! (fixture/chat-prompt-request
+                                {:model "ollama/qwen3"
                                  :message "Tell me a joke!"}))
             chat-id (reset! chat-id* (:chatId resp))]
 
@@ -39,12 +37,12 @@
               :status "success"}
              resp))
 
-        (match-content chat-id req-id "user" {:type "text" :text "Tell me a joke!\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Waiting model"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "Knock"})
-        (match-content chat-id req-id "assistant" {:type "text" :text " knock!"})
-        (match-content chat-id req-id "system" {:type "progress" :state "finished"})
+        (match-content chat-id "user" {:type "text" :text "Tell me a joke!\n"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
+        (match-content chat-id "assistant" {:type "text" :text "Knock"})
+        (match-content chat-id "assistant" {:type "text" :text " knock!"})
+        (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:model "qwen3"
               :messages [{:role "system" :content (m/pred string?)}
@@ -53,10 +51,8 @@
 
     (testing "We reply"
       (llm.mocks/set-case! :simple-text-1)
-      (let [req-id 1
-            resp (eca/request! (fixture/chat-prompt-request
+      (let [resp (eca/request! (fixture/chat-prompt-request
                                 {:chat-id @chat-id*
-                                 :request-id req-id
                                  :model "ollama/qwen3"
                                  :message "Who's there?"}))
             chat-id @chat-id*]
@@ -67,18 +63,16 @@
               :status "success"}
              resp))
 
-        (match-content chat-id req-id "user" {:type "text" :text "Who's there?\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Waiting model"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "Foo"})
-        (match-content chat-id req-id "system" {:type "progress" :state "finished"})))
+        (match-content chat-id "user" {:type "text" :text "Who's there?\n"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
+        (match-content chat-id "assistant" {:type "text" :text "Foo"})
+        (match-content chat-id "system" {:type "progress" :state "finished"})))
 
     (testing "model reply again keeping context"
       (llm.mocks/set-case! :simple-text-2)
-      (let [req-id 2
-            resp (eca/request! (fixture/chat-prompt-request
+      (let [resp (eca/request! (fixture/chat-prompt-request
                                 {:chat-id @chat-id*
-                                 :request-id req-id
                                  :model "ollama/qwen3"
                                  :message "What foo?"}))
             chat-id @chat-id*]
@@ -89,14 +83,14 @@
               :status "success"}
              resp))
 
-        (match-content chat-id req-id "user" {:type "text" :text "What foo?\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Waiting model"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "Foo"})
-        (match-content chat-id req-id "assistant" {:type "text" :text " bar!"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "\n\n"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "Ha!"})
-        (match-content chat-id req-id "system" {:type "progress" :state "finished"})
+        (match-content chat-id "user" {:type "text" :text "What foo?\n"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
+        (match-content chat-id "assistant" {:type "text" :text "Foo"})
+        (match-content chat-id "assistant" {:type "text" :text " bar!"})
+        (match-content chat-id "assistant" {:type "text" :text "\n\n"})
+        (match-content chat-id "assistant" {:type "text" :text "Ha!"})
+        (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:model "qwen3"
               :messages [{:role "system" :content (m/pred string?)}
@@ -123,10 +117,8 @@
   (let [chat-id* (atom nil)]
     (testing "We send a hello message"
       (llm.mocks/set-case! :reasoning-0)
-      (let [req-id 0
-            resp (eca/request! (fixture/chat-prompt-request
-                                {:request-id req-id
-                                 :model "ollama/qwen3"
+      (let [resp (eca/request! (fixture/chat-prompt-request
+                                {:model "ollama/qwen3"
                                  :message "hello!"}))
             chat-id (reset! chat-id* (:chatId resp))]
 
@@ -136,16 +128,16 @@
               :status "success"}
              resp))
 
-        (match-content chat-id req-id "user" {:type "text" :text "hello!\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Waiting model"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id req-id "assistant" {:type "reasonStarted" :id (m/pred string?)})
-        (match-content chat-id req-id "assistant" {:type "reasonText" :id (m/pred string?) :text "I should say"})
-        (match-content chat-id req-id "assistant" {:type "reasonText" :id (m/pred string?) :text " hello"})
-        (match-content chat-id req-id "assistant" {:type "reasonFinished" :id (m/pred string?)})
-        (match-content chat-id req-id "assistant" {:type "text" :text "hello"})
-        (match-content chat-id req-id "assistant" {:type "text" :text " there!"})
-        (match-content chat-id req-id "system" {:type "progress" :state "finished"})
+        (match-content chat-id "user" {:type "text" :text "hello!\n"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
+        (match-content chat-id "assistant" {:type "reasonStarted" :id (m/pred string?)})
+        (match-content chat-id "assistant" {:type "reasonText" :id (m/pred string?) :text "I should say"})
+        (match-content chat-id "assistant" {:type "reasonText" :id (m/pred string?) :text " hello"})
+        (match-content chat-id "assistant" {:type "reasonFinished" :id (m/pred string?)})
+        (match-content chat-id "assistant" {:type "text" :text "hello"})
+        (match-content chat-id "assistant" {:type "text" :text " there!"})
+        (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:model "qwen3"
               :messages [{:role "system" :content (m/pred string?)}
@@ -154,10 +146,8 @@
 
     (testing "We reply"
       (llm.mocks/set-case! :reasoning-1)
-      (let [req-id 1
-            resp (eca/request! (fixture/chat-prompt-request
-                                {:request-id req-id
-                                 :chat-id @chat-id*
+      (let [resp (eca/request! (fixture/chat-prompt-request
+                                {:chat-id @chat-id*
                                  :model "ollama/qwen3"
                                  :message "how are you?"}))
             chat-id @chat-id*]
@@ -168,16 +158,16 @@
               :status "success"}
              resp))
 
-        (match-content chat-id req-id "user" {:type "text" :text "how are you?\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Waiting model"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id req-id "assistant" {:type "reasonStarted" :id (m/pred string?)})
-        (match-content chat-id req-id "assistant" {:type "reasonText" :id (m/pred string?) :text "I should say"})
-        (match-content chat-id req-id "assistant" {:type "reasonText" :id (m/pred string?) :text " fine"})
-        (match-content chat-id req-id "assistant" {:type "reasonFinished" :id (m/pred string?)})
-        (match-content chat-id req-id "assistant" {:type "text" :text "I'm "})
-        (match-content chat-id req-id "assistant" {:type "text" :text " fine"})
-        (match-content chat-id req-id "system" {:type "progress" :state "finished"})
+        (match-content chat-id "user" {:type "text" :text "how are you?\n"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
+        (match-content chat-id "assistant" {:type "reasonStarted" :id (m/pred string?)})
+        (match-content chat-id "assistant" {:type "reasonText" :id (m/pred string?) :text "I should say"})
+        (match-content chat-id "assistant" {:type "reasonText" :id (m/pred string?) :text " fine"})
+        (match-content chat-id "assistant" {:type "reasonFinished" :id (m/pred string?)})
+        (match-content chat-id "assistant" {:type "text" :text "I'm "})
+        (match-content chat-id "assistant" {:type "text" :text " fine"})
+        (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:model "qwen3"
               :messages [{:role "system" :content (m/pred string?)}
@@ -203,10 +193,8 @@
   (let [chat-id* (atom nil)]
     (testing "We ask what files LLM see"
       (llm.mocks/set-case! :tool-calling-0)
-      (let [req-id 0
-            resp (eca/request! (fixture/chat-prompt-request
-                                {:request-id req-id
-                                 :model "ollama/qwen3"
+      (let [resp (eca/request! (fixture/chat-prompt-request
+                                {:model "ollama/qwen3"
                                  :message "What files you see?"}))
             chat-id (reset! chat-id* (:chatId resp))]
 
@@ -216,36 +204,36 @@
               :status "success"}
              resp))
 
-        (match-content chat-id req-id "user" {:type "text" :text "What files you see?\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Waiting model"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "I will list files"})
-        (match-content chat-id req-id "assistant" {:type "toolCallPrepare"
-                                                   :origin "native"
-                                                   :id (m/pred string?)
-                                                   :name "eca_directory_tree"
-                                                   :argumentsText ""
-                                                   :summary "Listing file tree"})
-        (match-content chat-id req-id "assistant" {:type "toolCallRun"
-                                                   :origin "native"
-                                                   :id (m/pred string?)
-                                                   :name "eca_directory_tree"
-                                                   :arguments {:path (h/project-path->canon-path "resources")}
-                                                   :manualApproval false
-                                                   :summary "Listing file tree"})
-        (match-content chat-id req-id "assistant" {:type "toolCalled"
-                                                   :origin "native"
-                                                   :id (m/pred string?)
-                                                   :name "eca_directory_tree"
-                                                   :arguments {:path (h/project-path->canon-path "resources")}
-                                                   :summary "Listing file tree"
-                                                   :error false
-                                                   :outputs [{:type "text" :text (str "├── file1.md\n"
-                                                                                      "└── file2.md\n\n"
-                                                                                      "0 directories, 2 files")}]})
-        (match-content chat-id req-id "assistant" {:type "text" :text "The files I see:\n"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "file1\nfile2\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "finished"})
+        (match-content chat-id "user" {:type "text" :text "What files you see?\n"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
+        (match-content chat-id "assistant" {:type "text" :text "I will list files"})
+        (match-content chat-id "assistant" {:type "toolCallPrepare"
+                                            :origin "native"
+                                            :id (m/pred string?)
+                                            :name "eca_directory_tree"
+                                            :argumentsText ""
+                                            :summary "Listing file tree"})
+        (match-content chat-id "assistant" {:type "toolCallRun"
+                                            :origin "native"
+                                            :id (m/pred string?)
+                                            :name "eca_directory_tree"
+                                            :arguments {:path (h/project-path->canon-path "resources")}
+                                            :manualApproval false
+                                            :summary "Listing file tree"})
+        (match-content chat-id "assistant" {:type "toolCalled"
+                                            :origin "native"
+                                            :id (m/pred string?)
+                                            :name "eca_directory_tree"
+                                            :arguments {:path (h/project-path->canon-path "resources")}
+                                            :summary "Listing file tree"
+                                            :error false
+                                            :outputs [{:type "text" :text (str "├── file1.md\n"
+                                                                               "└── file2.md\n\n"
+                                                                               "0 directories, 2 files")}]})
+        (match-content chat-id "assistant" {:type "text" :text "The files I see:\n"})
+        (match-content chat-id "assistant" {:type "text" :text "file1\nfile2\n"})
+        (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:model "qwen3"
               :messages [{:role "user" :content "What files you see?"}

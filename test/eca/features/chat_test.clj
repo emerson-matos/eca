@@ -13,23 +13,20 @@
 (h/reset-components-before-test)
 
 (defn ^:private complete! [params mocks]
-  (let [req-id (:request-id params)
-        {:keys [chat-id] :as resp}
+  (let [{:keys [chat-id] :as resp}
         (with-redefs [llm-api/complete! (:api-mock mocks)
                       f.tools/call-tool! (:call-tool-mock mocks)
                       f.tools/approval (constantly :allow)]
           (f.chat/prompt params (h/db*) (h/messenger) (h/config)))]
     (is (match? {:chat-id string? :status :success} resp))
-    {:chat-id chat-id
-     :req-id req-id}))
+    {:chat-id chat-id}))
 
 (deftest prompt-basic-test
   (testing "Simple hello"
     (h/reset-components!)
-    (let [{:keys [chat-id req-id]}
+    (let [{:keys [chat-id]}
           (complete!
-           {:message "Hey!"
-            :request-id "1"}
+           {:message "Hey!"}
            {:api-mock
             (fn [{:keys [on-first-response-received
                          on-message-received]}]
@@ -45,36 +42,29 @@
       (is (match?
            {:chat-content-received
             [{:chat-id chat-id
-              :request-id req-id
               :content {:type :text :text "Hey!\n"}
               :role :user}
              {:chat-id chat-id
-              :request-id req-id
               :content {:type :progress :state :running :text "Waiting model"}
               :role :system}
              {:chat-id chat-id
-              :request-id req-id
               :content {:type :progress :state :running :text "Generating"}
               :role :system}
              {:chat-id chat-id
-              :request-id req-id
               :content {:type :text :text "Hey"}
               :role :assistant}
              {:chat-id chat-id
-              :request-id req-id
               :content {:type :text :text " you!"}
               :role :assistant}
              {:chat-id chat-id
-              :request-id req-id
               :content {:state :finished :type :progress}
               :role :system}]}
            (h/messages)))))
   (testing "LLM error"
     (h/reset-components!)
-    (let [{:keys [chat-id req-id]}
+    (let [{:keys [chat-id]}
           (complete!
-           {:message "Hey!"
-            :request-id "1"}
+           {:message "Hey!"}
            {:api-mock
             (fn [{:keys [on-error]}]
               (on-error {:message "Error from mocked API"}))})]
@@ -84,19 +74,15 @@
       (is (match?
            {:chat-content-received
             [{:chat-id chat-id
-              :request-id req-id
               :content {:type :text :text "Hey!\n"}
               :role :user}
              {:chat-id chat-id
-              :request-id req-id
               :content {:type :progress :state :running :text "Waiting model"}
               :role :system}
              {:chat-id chat-id
-              :request-id req-id
               :content {:type :text :text "Error from mocked API"}
               :role :system}
              {:chat-id chat-id
-              :request-id req-id
               :content {:state :finished :type :progress}
               :role :system}]}
            (h/messages))))))
@@ -106,8 +92,7 @@
     (h/reset-components!)
     (let [res-1
           (complete!
-           {:message "Count with me: 1 mississippi"
-            :request-id "1"}
+           {:message "Count with me: 1 mississippi"}
            {:api-mock
             (fn [{:keys [on-first-response-received
                          on-message-received]}]
@@ -115,8 +100,7 @@
               (on-message-received {:type :text :text "2"})
               (on-message-received {:type :text :text " mississippi"})
               (on-message-received {:type :finish}))})
-          chat-id-1 (:chat-id res-1)
-          req-id-1 (:req-id res-1)]
+          chat-id-1 (:chat-id res-1)]
       (is (match?
            {chat-id-1 {:id chat-id-1
                        :messages [{:role "user" :content [{:type :text :text "Count with me: 1 mississippi"}]}
@@ -125,27 +109,21 @@
       (is (match?
            {:chat-content-received
             [{:chat-id chat-id-1
-              :request-id req-id-1
               :content {:type :text :text "Count with me: 1 mississippi\n"}
               :role :user}
              {:chat-id chat-id-1
-              :request-id req-id-1
               :content {:type :progress :state :running :text "Waiting model"}
               :role :system}
              {:chat-id chat-id-1
-              :request-id req-id-1
               :content {:type :progress :state :running :text "Generating"}
               :role :system}
              {:chat-id chat-id-1
-              :request-id req-id-1
               :content {:type :text :text "2"}
               :role :assistant}
              {:chat-id chat-id-1
-              :request-id req-id-1
               :content {:type :text :text " mississippi"}
               :role :assistant}
              {:chat-id chat-id-1
-              :request-id req-id-1
               :content {:state :finished :type :progress}
               :role :system}]}
            (h/messages)))
@@ -153,8 +131,7 @@
       (let [res-2
             (complete!
              {:message "3 mississippi"
-              :chat-id chat-id-1
-              :request-id "2"}
+              :chat-id chat-id-1}
              {:api-mock
               (fn [{:keys [on-first-response-received
                            on-message-received]}]
@@ -162,8 +139,7 @@
                 (on-message-received {:type :text :text "4"})
                 (on-message-received {:type :text :text " mississippi"})
                 (on-message-received {:type :finish}))})
-            chat-id-2 (:chat-id res-2)
-            req-id-2 (:req-id res-2)]
+            chat-id-2 (:chat-id res-2)]
         (is (match?
              {chat-id-2 {:id chat-id-2
                          :messages [{:role "user" :content [{:type :text :text "Count with me: 1 mississippi"}]}
@@ -174,27 +150,21 @@
         (is (match?
              {:chat-content-received
               [{:chat-id chat-id-2
-                :request-id req-id-2
                 :content {:type :text :text "3 mississippi\n"}
                 :role :user}
                {:chat-id chat-id-2
-                :request-id req-id-2
                 :content {:type :progress :state :running :text "Waiting model"}
                 :role :system}
                {:chat-id chat-id-2
-                :request-id req-id-2
                 :content {:type :progress :state :running :text "Generating"}
                 :role :system}
                {:chat-id chat-id-2
-                :request-id req-id-2
                 :content {:type :text :text "4"}
                 :role :assistant}
                {:chat-id chat-id-2
-                :request-id req-id-2
                 :content {:type :text :text " mississippi"}
                 :role :assistant}
                {:chat-id chat-id-2
-                :request-id req-id-2
                 :content {:state :finished :type :progress}
                 :role :system}]}
              (h/messages)))))))
@@ -204,8 +174,7 @@
     (h/reset-components!)
     (let [{:keys [chat-id]}
           (complete!
-           {:message "List the files you are allowed to see"
-            :request-id "1"}
+           {:message "List the files you are allowed to see"}
            {:api-mock
             (fn [{:keys [on-first-response-received
                          on-message-received

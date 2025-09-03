@@ -34,10 +34,8 @@
   (let [chat-id* (atom nil)]
     (testing "We send a simple hello message"
       (llm.mocks/set-case! :simple-text-0)
-      (let [req-id 0
-            resp (eca/request! (fixture/chat-prompt-request
-                                {:request-id req-id
-                                 :model "my-provider/foo1"
+      (let [resp (eca/request! (fixture/chat-prompt-request
+                                {:model "my-provider/foo1"
                                  :message "Tell me a joke!"}))
             chat-id (reset! chat-id* (:chatId resp))]
 
@@ -47,16 +45,16 @@
               :status "success"}
              resp))
 
-        (match-content chat-id req-id "user" {:type "text" :text "Tell me a joke!\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Waiting model"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "Knock"})
-        (match-content chat-id req-id "assistant" {:type "text" :text " knock!"})
-        (match-content chat-id req-id "system" {:type "usage"
-                                                :sessionTokens 30
-                                                :lastMessageCost m/absent
-                                                :sessionCost m/absent})
-        (match-content chat-id req-id "system" {:type "progress" :state "finished"})
+        (match-content chat-id "user" {:type "text" :text "Tell me a joke!\n"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
+        (match-content chat-id "assistant" {:type "text" :text "Knock"})
+        (match-content chat-id "assistant" {:type "text" :text " knock!"})
+        (match-content chat-id "system" {:type "usage"
+                                         :sessionTokens 30
+                                         :lastMessageCost m/absent
+                                         :sessionCost m/absent})
+        (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:input [{:role "user" :content [{:type "input_text" :text "Tell me a joke!"}]}]
               :instructions (m/pred string?)}
@@ -64,10 +62,8 @@
 
     (testing "We reply"
       (llm.mocks/set-case! :simple-text-1)
-      (let [req-id 1
-            resp (eca/request! (fixture/chat-prompt-request
+      (let [resp (eca/request! (fixture/chat-prompt-request
                                 {:chat-id @chat-id*
-                                 :request-id req-id
                                  :model "my-provider/foo1"
                                  :message "Who's there?"}))
             chat-id @chat-id*]
@@ -78,15 +74,15 @@
               :status "success"}
              resp))
 
-        (match-content chat-id req-id "user" {:type "text" :text "Who's there?\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Waiting model"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "Foo"})
-        (match-content chat-id req-id "system" {:type "usage"
-                                                :sessionTokens 15
-                                                :lastMessageCost m/absent
-                                                :sessionCost m/absent})
-        (match-content chat-id req-id "system" {:type "progress" :state "finished"})
+        (match-content chat-id "user" {:type "text" :text "Who's there?\n"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
+        (match-content chat-id "assistant" {:type "text" :text "Foo"})
+        (match-content chat-id "system" {:type "usage"
+                                         :sessionTokens 15
+                                         :lastMessageCost m/absent
+                                         :sessionCost m/absent})
+        (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:input [{:role "user" :content [{:type "input_text" :text "Tell me a joke!"}]}
                       {:role "assistant" :content [{:type "output_text" :text "Knock knock!"}]}
@@ -95,10 +91,8 @@
 
     (testing "model reply again keeping context"
       (llm.mocks/set-case! :simple-text-2)
-      (let [req-id 2
-            resp (eca/request! (fixture/chat-prompt-request
+      (let [resp (eca/request! (fixture/chat-prompt-request
                                 {:chat-id @chat-id*
-                                 :request-id req-id
                                  :model "my-provider/foo1"
                                  :message "What foo?"}))
             chat-id @chat-id*]
@@ -109,18 +103,18 @@
               :status "success"}
              resp))
 
-        (match-content chat-id req-id "user" {:type "text" :text "What foo?\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Waiting model"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "Foo"})
-        (match-content chat-id req-id "assistant" {:type "text" :text " bar!"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "\n\n"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "Ha!"})
-        (match-content chat-id req-id "system" {:type "usage"
-                                                :sessionTokens 20
-                                                :lastMessageCost m/absent
-                                                :sessionCost m/absent})
-        (match-content chat-id req-id "system" {:type "progress" :state "finished"})
+        (match-content chat-id "user" {:type "text" :text "What foo?\n"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
+        (match-content chat-id "assistant" {:type "text" :text "Foo"})
+        (match-content chat-id "assistant" {:type "text" :text " bar!"})
+        (match-content chat-id "assistant" {:type "text" :text "\n\n"})
+        (match-content chat-id "assistant" {:type "text" :text "Ha!"})
+        (match-content chat-id "system" {:type "usage"
+                                         :sessionTokens 20
+                                         :lastMessageCost m/absent
+                                         :sessionCost m/absent})
+        (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:input [{:role "user" :content [{:type "input_text" :text "Tell me a joke!"}]}
                       {:role "assistant" :content [{:type "output_text" :text "Knock knock!"}]}
@@ -152,10 +146,8 @@
   (let [chat-id* (atom nil)]
     (testing "We send a simple hello message"
       (llm.mocks/set-case! :simple-text-0)
-      (let [req-id 0
-            resp (eca/request! (fixture/chat-prompt-request
-                                {:request-id req-id
-                                 :model "my-provider/deepseekcoder"
+      (let [resp (eca/request! (fixture/chat-prompt-request
+                                {:model "my-provider/deepseekcoder"
                                  :message "Tell me a joke!"}))
             chat-id (reset! chat-id* (:chatId resp))]
 
@@ -165,12 +157,12 @@
               :status "success"}
              resp))
 
-        (match-content chat-id req-id "user" {:type "text" :text "Tell me a joke!\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Waiting model"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "Knock"})
-        (match-content chat-id req-id "assistant" {:type "text" :text " knock!"})
-        (match-content chat-id req-id "system" {:type "progress" :state "finished"})
+        (match-content chat-id "user" {:type "text" :text "Tell me a joke!\n"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
+        (match-content chat-id "assistant" {:type "text" :text "Knock"})
+        (match-content chat-id "assistant" {:type "text" :text " knock!"})
+        (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:input [{:role "user" :content [{:type "input_text" :text "Tell me a joke!"}]}]
               :instructions (m/pred string?)}
@@ -178,10 +170,8 @@
 
     (testing "We reply"
       (llm.mocks/set-case! :simple-text-1)
-      (let [req-id 1
-            resp (eca/request! (fixture/chat-prompt-request
+      (let [resp (eca/request! (fixture/chat-prompt-request
                                 {:chat-id @chat-id*
-                                 :request-id req-id
                                  :model "my-provider/deepseekcoder"
                                  :message "Who's there?"}))
             chat-id @chat-id*]
@@ -192,11 +182,11 @@
               :status "success"}
              resp))
 
-        (match-content chat-id req-id "user" {:type "text" :text "Who's there?\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Waiting model"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "Foo"})
-        (match-content chat-id req-id "system" {:type "progress" :state "finished"})
+        (match-content chat-id "user" {:type "text" :text "Who's there?\n"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
+        (match-content chat-id "assistant" {:type "text" :text "Foo"})
+        (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:input [{:role "user" :content [{:type "input_text" :text "Tell me a joke!"}]}
                       {:role "assistant" :content [{:type "output_text" :text "Knock knock!"}]}
@@ -205,10 +195,8 @@
 
     (testing "model reply again keeping context"
       (llm.mocks/set-case! :simple-text-2)
-      (let [req-id 2
-            resp (eca/request! (fixture/chat-prompt-request
+      (let [resp (eca/request! (fixture/chat-prompt-request
                                 {:chat-id @chat-id*
-                                 :request-id req-id
                                  :model "my-provider/deepseekcoder"
                                  :message "What foo?"}))
             chat-id @chat-id*]
@@ -219,14 +207,14 @@
               :status "success"}
              resp))
 
-        (match-content chat-id req-id "user" {:type "text" :text "What foo?\n"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Waiting model"})
-        (match-content chat-id req-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "Foo"})
-        (match-content chat-id req-id "assistant" {:type "text" :text " bar!"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "\n\n"})
-        (match-content chat-id req-id "assistant" {:type "text" :text "Ha!"})
-        (match-content chat-id req-id "system" {:type "progress" :state "finished"})
+        (match-content chat-id "user" {:type "text" :text "What foo?\n"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
+        (match-content chat-id "assistant" {:type "text" :text "Foo"})
+        (match-content chat-id "assistant" {:type "text" :text " bar!"})
+        (match-content chat-id "assistant" {:type "text" :text "\n\n"})
+        (match-content chat-id "assistant" {:type "text" :text "Ha!"})
+        (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:input [{:role "user" :content [{:type "input_text" :text "Tell me a joke!"}]}
                       {:role "assistant" :content [{:type "output_text" :text "Knock knock!"}]}
