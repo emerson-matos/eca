@@ -390,7 +390,8 @@ type ChatContent =
     | ReasonFinishedContent 
     | ToolCallPrepareContent
     | ToolCallRunContent
-    | ToolCalledContent;
+    | ToolCalledContent
+    | ToolCallRejectedContent;
 
 /**
  * Simple text message from the LLM
@@ -656,7 +657,7 @@ interface ToolCalledContent {
 /**
  * Tool call rejected, sent once per id.
  */
-interface ToolCallRejected {
+interface ToolCallRejectedContent {
     type: 'toolCallRejected';
     
     origin: ToolCallOrigin;
