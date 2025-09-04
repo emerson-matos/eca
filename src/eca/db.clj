@@ -35,7 +35,8 @@
           "deepseek" {}
           "github-copilot" {}
           "openai" {}
-          "openrouter" {}}})
+          "openrouter" {}
+          "z-ai" {}}})
 
 (defonce db* (atom initial-db))
 

@@ -243,6 +243,14 @@ Only set this when your provider uses a different path or expects query paramete
 
 === "Z.ai"
 
+    1. Login via the chat command `/login`.
+    2. Type 'azure' and send it.
+    3. Specify your API key.
+    4. Inform at least a model, ex: `GLM-4.5`
+    5. Done, it should be saved to your global config.
+    
+    or manually via config:
+
     ```javascript
     {
       "providers": {

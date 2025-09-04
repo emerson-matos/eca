@@ -64,24 +64,13 @@ Install the plugin for your editor and ECA server will be downloaded and started
 
 ### 2. Set up your first model
 
-To use ECA, you need to configure at least one model with your API key (_tip: Github Copilot offer free models!_). See the [Models documentation](https://eca.dev/models#adding-and-configuring-models) for detailed instructions on:
+To use ECA, you need to configure at least one model / provider (_tip: Github Copilot offer free models!_). See the [Models documentation](https://eca.dev/models#adding-and-configuring-models) for detailed instructions:
 
-- Setting up API keys for OpenAI, Anthropic, Copilot or Ollama
-- Adding and customizing models
-- Configuring custom providers
+1. Type in the chat `/login`.
+2. Chose your provider
+3. Follow the steps to configure the key or auth for your provider.
 
-**Quick start**: Create a `~/.config/eca/config.json` file with your API key:
-
-```javascript
-{
-  "providers": {
-    "openai": {"key": "your-openai-api-key-here"},
-    "anthropic": {"key": "your-anthropic-api-key-here"}
-  }
-}
-```
-
-**Note**: For other providers or custom models, see the [custom providers documentation](https://eca.dev/models#setting-up-a-custom-provider).
+**Note**: For other providers or custom models, see the [custom providers documentation](https://eca.dev/models#custom-providers).
 
 ### 3. Start chatting
 

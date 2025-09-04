@@ -11,6 +11,7 @@
    [eca.llm-providers.openai :as llm-providers.openai]
    [eca.llm-providers.openai-chat :as llm-providers.openai-chat]
    [eca.llm-providers.openrouter]
+   [eca.llm-providers.z-ai]
    [eca.llm-util :as llm-util]
    [eca.logger :as logger]))
 
