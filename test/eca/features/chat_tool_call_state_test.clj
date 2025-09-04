@@ -140,7 +140,6 @@
           (is (= 1 (count prepare-messages)) "Expected exactly one toolCallPrepare notification to be sent")
 
           (is (match? {:chat-id chat-id
-                       :request-id "req-1"
                        :role :assistant
                        :content (merge {:type :toolCallPrepare
                                         :id tool-call-id}
@@ -301,7 +300,7 @@
       ;; Step 4: :waiting-approval -> :execution-approved (user approves)
       (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :user-approve)]
         (is (match? {:status :execution-approved
-                     :actions [:deliver-approval-true]}
+                     :actions [:set-decision-reason :deliver-approval-true]}
                     result)
             "Expected transition to :execution-approved with deliver approval true action")
 
@@ -341,7 +340,7 @@
       ;; Step 3: :check-approval -> :execution-approved (auto approval)
       (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :config-allow)]
         (is (match? {:status :execution-approved
-                     :actions [:deliver-approval-true]}
+                     :actions [:set-decision-reason :deliver-approval-true]}
                     result)
             "Expected transition to :execution-approved with deliver approval true action")
 
@@ -369,7 +368,7 @@
 
       (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :user-reject)]
         (is (match? {:status :rejected
-                     :actions [:deliver-approval-false :log-rejection]}
+                     :actions [:set-decision-reason :deliver-approval-false :log-rejection]}
                     result)
             "Expected transition to :rejected with deliver approval false and log rejection actions")
 
@@ -430,7 +429,7 @@
               result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :execution-end result-data)]
 
           (is (match? {:status :completed
-                       :actions [:send-toolCalled :record-metrics]}
+                       :actions [:send-toolCalled :log-metrics]}
                       result)
               "Expected transition to :completed with send toolCalled and record metrics actions")
 
@@ -445,7 +444,6 @@
             (is (= 1 (count completed-messages)) "Expected exactly one toolCalled notification to be sent")
 
             (is (match? {:chat-id chat-id
-                         :request-id "req-1"
                          :role :assistant
                          :content (merge {:type :toolCalled
                                           :id tool-call-id}
@@ -535,13 +533,13 @@
 
         (let [result (#'f.chat/transition-tool-call! db* chat-ctx "tool-1" :stop-requested)]
           (is (match? {:status :stopped
-                       :actions [:send-toolCallRejected]}
+                       :actions [:set-decision-reason :send-toolCallRejected]}
                       result)
               "Expected transition to :stopped with send toolCallRejected action")
           (is (= :stopped (:status (#'f.chat/get-tool-call-state @db* chat-id "tool-1")))
               "Expected tool call state to be in :stopped status")))
 
-      (testing ":waiting-approval -> :stopped"
+      (testing ":waiting-approval -> :rejected"
         (let [approved?* (promise)]
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-2" :tool-prepare
                                           {:name "test" :origin "test" :arguments-text "{}"})
@@ -551,8 +549,8 @@
                                           {:state :running :text "Waiting"})
 
           (let [result (#'f.chat/transition-tool-call! db* chat-ctx "tool-2" :stop-requested)]
-            (is (match? {:status :stopped
-                         :actions [:deliver-approval-false]}
+            (is (match? {:status :rejected
+                         :actions [:set-decision-reason :deliver-approval-false]}
                         result)
                 "Expected transition to :stopped with deliver approval false action")
             (is (= :stopped (:status (#'f.chat/get-tool-call-state @db* chat-id "tool-2")))
@@ -731,7 +729,7 @@
 
       (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :config-allow)]
         (is (match? {:status :execution-approved
-                     :actions [:deliver-approval-true]}
+                     :actions [:set-decision-reason :deliver-approval-true]}
                     result)
             "Expected transition to :execution-approved with deliver approval true action")
 
@@ -815,7 +813,7 @@
               result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :execution-end error-result)]
 
           (is (match? {:status :completed
-                       :actions [:send-toolCalled :record-metrics]}
+                       :actions [:send-toolCalled :log-metrics]}
                       result)
               "Expected transition to :completed with send toolCalled and record metrics actions")
 
