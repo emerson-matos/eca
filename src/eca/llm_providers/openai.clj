@@ -204,10 +204,9 @@
 
 (defmethod f.login/login-step ["openai" :login/waiting-api-key] [{:keys [input db* provider send-msg!] :as ctx}]
   (if (string/starts-with? input "sk-")
-    (do (swap! db* assoc-in [:auth provider] {:step :login/done
-                                              :type :auth/token
-                                              :api-key input})
-        (config/update-global-config! {:providers {"openai" {:key input}}})
+    (do (config/update-global-config! {:providers {"openai" {:key input}}})
+        (swap! db* assoc-in [:auth provider] nil)
         (send-msg! (str "API key saved in " (.getCanonicalPath (config/global-config-file))))
-        (f.login/login-done! ctx))
+
+        (f.login/login-done! ctx :update-cache? false))
     (send-msg! (format "Invalid API key '%s'" input))))

@@ -343,4 +343,4 @@
                                                  :refresh-token refresh-token
                                                  :api-key access-token
                                                  :expires-at expires-at})
-    (f.login/login-done! ctx true)))
+    (f.login/login-done! ctx :silent? true)))

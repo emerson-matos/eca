@@ -4,10 +4,14 @@
    [clojure.string :as string]
    [eca.config :as config]
    [eca.llm-providers.anthropic :as llm-providers.anthropic]
+   [eca.llm-providers.azure]
    [eca.llm-providers.copilot]
+   [eca.llm-providers.deepseek]
    [eca.llm-providers.ollama :as llm-providers.ollama]
    [eca.llm-providers.openai :as llm-providers.openai]
    [eca.llm-providers.openai-chat :as llm-providers.openai-chat]
+   [eca.llm-providers.openrouter]
+   [eca.llm-providers.z-ai]
    [eca.llm-util :as llm-util]
    [eca.logger :as logger]))
 

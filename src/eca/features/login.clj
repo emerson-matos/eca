@@ -74,8 +74,10 @@
     (catch Exception e
       (on-error (.getMessage e)))))
 
-(defn login-done! [{:keys [chat-id db* messenger provider send-msg!]} & [silent]]
-  (db/update-global-cache! @db*)
+(defn login-done! [{:keys [chat-id db* messenger provider send-msg!]} & {:keys [silent?]
+                                                                         :or {silent? false}}]
+  (when (get-in @db* [:auth provider])
+    (db/update-global-cache! @db*))
   (models/sync-models! db*
                        (config/all @db*) ;; force get updated config
                        (fn [new-models]
@@ -85,5 +87,5 @@
                            {:models (sort (keys new-models))}})))
   (swap! db* assoc-in [:chats chat-id :login-provider] nil)
   (swap! db* assoc-in [:chats chat-id :status] :idle)
-  (when-not silent
+  (when-not silent?
     (send-msg! (format "Login successful! You can now use the '%s' models." provider))))

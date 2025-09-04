@@ -2,8 +2,16 @@
 
 ## Unreleased
 
+- Add nix flake build.
+
+## 0.47.0
+
 - Support more providers login via `/login`.
   - openai
+  - openrouter
+  - deepseek
+  - azure
+  - z-ai
 
 - Addressed issue #65 - Stop prompt does not change the status of the last running toolCall.
 

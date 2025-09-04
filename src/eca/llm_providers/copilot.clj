@@ -77,4 +77,4 @@
         {:keys [api-key expires-at]} (oauth-renew-token access-token)]
     (swap! db* update-in [:auth provider] merge {:api-key api-key
                                                  :expires-at expires-at})
-    (f.login/login-done! ctx true)))
+    (f.login/login-done! ctx :silent? true)))

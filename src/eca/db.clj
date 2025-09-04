@@ -31,8 +31,12 @@
    ;; cacheable, bump cache when changing
    :chats {}
    :auth {"anthropic" {}
+          "azure" {}
+          "deepseek" {}
           "github-copilot" {}
-          "openai" {}}})
+          "openai" {}
+          "openrouter" {}
+          "z-ai" {}}})
 
 (defonce db* (atom initial-db))
 

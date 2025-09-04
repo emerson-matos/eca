@@ -1,6 +1,8 @@
 # Models
 
-All providers and models are configured under `providers` config or via `/login` when supported.
+!!! info Login
+
+    Most providers can be configured via `/login` command, otherwise via `providers` config.
 
 Models capabilities and configurations are retrieved from [models.dev](https://models.dev) API.
 
@@ -157,8 +159,16 @@ Only set this when your provider uses a different path or expects query paramete
     ```
 
 === "OpenRouter"
-
+    
     [OpenRouter](https://openrouter.ai) provides access to many models through a unified API:
+
+    1. Login via the chat command `/login`.
+    2. Type 'openrouter' and send it.
+    3. Specify your Openrouter API key.
+    4. Inform at least a model, ex: `openai/gpt-5`
+    5. Done, it should be saved to your global config.
+
+    or manually via config:
     
     ```javascript
     {
@@ -181,6 +191,14 @@ Only set this when your provider uses a different path or expects query paramete
 
     [DeepSeek](https://deepseek.com) offers powerful reasoning and coding models:
     
+    1. Login via the chat command `/login`.
+    2. Type 'deepseek' and send it.
+    3. Specify your Deepseek API key.
+    4. Inform at least a model, ex: `deepseek-chat`
+    5. Done, it should be saved to your global config.
+    
+    or manually via config:
+    
     ```javascript
     {
       "providers": {
@@ -200,6 +218,15 @@ Only set this when your provider uses a different path or expects query paramete
 
 === "Azure OpenAI"
 
+    1. Login via the chat command `/login`.
+    2. Type 'azure' and send it.
+    3. Specify your API key.
+    4. Specify your API url with your resource, ex: 'https://your-resource-name.openai.azure.com'.
+    5. Inform at least a model, ex: `gpt-5`
+    6. Done, it should be saved to your global config.
+    
+    or manually via config:
+
     ```javascript
     {
       "providers": {
@@ -217,6 +244,14 @@ Only set this when your provider uses a different path or expects query paramete
     ```
 
 === "Z.ai"
+
+    1. Login via the chat command `/login`.
+    2. Type 'azure' and send it.
+    3. Specify your API key.
+    4. Inform at least a model, ex: `GLM-4.5`
+    5. Done, it should be saved to your global config.
+    
+    or manually via config:
 
     ```javascript
     {
