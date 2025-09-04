@@ -1,6 +1,8 @@
 # Models
 
-All providers and models are configured under `providers` config or via `/login` when supported.
+!!! info Login
+
+    Most providers can be configured via `/login` command, otherwise via `providers` config.
 
 Models capabilities and configurations are retrieved from [models.dev](https://models.dev) API.
 
