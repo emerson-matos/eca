@@ -13,6 +13,8 @@
   - azure
   - z-ai
 
+- Addressed issue #65 - Stop prompt does not change the status of the last running toolCall.
+
 ## 0.46.0
 
 - Remove the need to pass `requestId` on prompt messages.
