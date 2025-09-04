@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.47.0
+
 - Support more providers login via `/login`.
   - openai
   - openrouter
