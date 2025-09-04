@@ -6,6 +6,7 @@
   - openai
   - openrouter
   - deepseek
+  - azure
 
 ## 0.46.0
 
