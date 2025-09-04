@@ -86,6 +86,8 @@
    - promise init & delivery
    - logging/metrics
 
+   Note: all actions are run in the order specified.
+
    Note: all choices (i.e. conditionals) have to be made in code and result
    in different events sent to the state machine.
    For example, from the :check-approval state you can either get
@@ -151,7 +153,7 @@
 
    [:check-approval :stop-requested]
    {:status :rejected
-    :actions [:set-decision-reason :send-toolCallRejected]}
+    :actions [:set-decision-reason :deliver-approval-false]}
 
    [:preparing :stop-requested]
    {:status :stopped
@@ -215,7 +217,7 @@
                      :origin (:origin event-data)
                      :name (:name event-data)
                      :arguments (:arguments event-data)
-                     :reason (:reason event-data :user)}
+                     :reason (:code (:reason event-data) :user))}
                     :details (:details event-data)
                     :summary (:summary event-data)))
 
