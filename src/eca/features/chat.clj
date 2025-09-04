@@ -500,19 +500,18 @@
                                                                           :details details
                                                                           :summary summary})))
                                               ;; assert: In :rejected state
-                                              (let [[reject-reason reject-text] (if (= :deny approval)
-                                                                                  [:user-config "Tool call denied by user config"]
-                                                                                  [:user-choice "Tool call rejected by user choice"])]
+                                              (let [tool-call-state (get-tool-call-state @db* chat-id id)
+                                                    {:keys [code text]} (:decision-reason tool-call-state)]
                                                 (add-to-history! {:role "tool_call" :content tool-call})
                                                 (add-to-history! {:role "tool_call_output"
                                                                   :content (assoc tool-call :output {:error true
-                                                                                                     :contents [{:text reject-text
+                                                                                                     :contents [{:text text
                                                                                                                  :type :text}]})})
                                                 (transition-tool-call! db* chat-ctx id :send-reject
                                                                        {:origin origin
                                                                         :name name
                                                                         :arguments arguments
-                                                                        :reason reject-reason
+                                                                        :reason code
                                                                         :details details
                                                                         :summary summary})))))))]
                            (assert-chat-not-stopped! chat-ctx)
