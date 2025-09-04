@@ -216,6 +216,15 @@ Only set this when your provider uses a different path or expects query paramete
 
 === "Azure OpenAI"
 
+    1. Login via the chat command `/login`.
+    2. Type 'azure' and send it.
+    3. Specify your API key.
+    4. Specify your API url with your resource, ex: 'https://your-resource-name.openai.azure.com'.
+    5. Inform at least a model, ex: `gpt-5`
+    6. Done, it should be saved to your global config.
+    
+    or manually via config:
+
     ```javascript
     {
       "providers": {
