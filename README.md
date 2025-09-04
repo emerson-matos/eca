@@ -32,7 +32,7 @@ src="https://img.shields.io/github/stars/editor-code-assistant/eca?style=flat-sq
 - :loop: **Chat** interface: ask questions, review code, work together to code.
 - :coffee: **Agentic**: let LLM work as an agent with its native tools and MCPs you can configure.
 - :syringe: **Context**: support: giving more details about your code to the LLM, including MCP resources and prompts.
-- :rocket: **Multi models**: OpenAI, Anthropic, Copilot, Ollama local models, and custom user config models.
+- :rocket: **Multi models**: Login to OpenAI, Anthropic, Copilot, Ollama local models and many more.
 
 ## Rationale 
 
