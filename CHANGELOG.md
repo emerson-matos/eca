@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add nix flake build.
+
 ## 0.47.0
 
 - Support more providers login via `/login`.
