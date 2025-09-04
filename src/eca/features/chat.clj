@@ -217,7 +217,7 @@
                      :origin (:origin event-data)
                      :name (:name event-data)
                      :arguments (:arguments event-data)
-                     :reason (:code (:reason event-data) :user))}
+                     :reason (:code (:reason event-data) :user)}
                     :details (:details event-data)
                     :summary (:summary event-data)))
 
