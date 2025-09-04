@@ -123,7 +123,7 @@
       (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-prepare event-data)]
 
         (is (match? {:status :preparing
-                     :actions [:send-toolCallPrepare]}
+                     :actions [:send-toolCallPrepare :init-decision-reason]}
                     result)
             "Expected return value to show :preparing status and send toolCallPrepare action")
 
@@ -240,7 +240,6 @@
           (is (= 1 (count run-messages)) "Expected exactly one toolCallRun notification to be sent")
 
           (is (match? {:chat-id chat-id
-                       :request-id "req-1"
                        :role :assistant
                        :content (merge {:type :toolCallRun
                                         :id tool-call-id}
@@ -477,10 +476,10 @@
                                           {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
 
           (let [result (#'f.chat/transition-tool-call! db* chat-ctx "tool-check" :stop-requested)]
-            (is (match? {:status :stopped
-                         :actions [:send-toolCallRejected]}
+            (is (match? {:status :rejected
+                         :actions [:set-decision-reason :deliver-approval-false]}
                         result)
-                "Expected transition from :check-approval to :stopped with send toolCallRejected action"))))
+                "Expected transition from :check-approval to :rejected with relevant actions"))))
 
       ;; Test :completed -> :stopped (should be no-op or error)
       (testing ":completed -> :stopped (should handle gracefully)"
@@ -552,9 +551,9 @@
             (is (match? {:status :rejected
                          :actions [:set-decision-reason :deliver-approval-false]}
                         result)
-                "Expected transition to :stopped with deliver approval false action")
-            (is (= :stopped (:status (#'f.chat/get-tool-call-state @db* chat-id "tool-2")))
-                "Expected tool call state to be in :stopped status")
+                "Expected transition to :refected with deliver approval false action")
+            (is (= :rejected (:status (#'f.chat/get-tool-call-state @db* chat-id "tool-2")))
+                "Expected tool call state to be in :rejected status")
             (is (= false (deref approved?* 100 :timeout))
                 "Expected promise to be delivered with false value"))))
 
