@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add nix flake build.
+- Stop prompt does not change the status of the last running toolCall. #65
 
 ## 0.47.0
 
@@ -12,8 +13,6 @@
   - deepseek
   - azure
   - z-ai
-
-- Addressed issue #65 - Stop prompt does not change the status of the last running toolCall.
 
 ## 0.46.0
 
