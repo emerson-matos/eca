@@ -147,3 +147,15 @@ jobs:
 
       - name: Run integration tests
         run: bb integration-test
+
+  nix-build:
+    needs: unit-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+      - run: nix develop --command deps-lock-update
+      - run: |
+          echo "checking if deps-lock.json is up to date"
+          git diff --exit-code
+      - run: nix build

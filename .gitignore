@@ -36,3 +36,4 @@ docs/CHANGELOG.md
 docs/images/
 
 integration-test/stderr.txt
+reachability-metadata.json
