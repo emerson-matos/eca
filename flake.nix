@@ -4,64 +4,77 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    clj-nix = {
+      url = "github:jlesquembre/clj-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, clj-nix }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        cljpkgs = clj-nix.packages."${system}";
+
         jdk = pkgs.jdk24_headless;
         graalvm = pkgs.graalvmPackages.graalvm-ce;
-        clojure = pkgs.clojure.override { jdk = pkgs.jdk_headless; };
+        clojure = pkgs.clojure.override { jdk = pkgs.jdk24_headless; };
 
       in
       {
-        devShells.default = pkgs.mkShell {
-          packages = with pkgs; [
-            jdk
-            clojure
-            clojure-lsp
-            babashka
-            graalvm
-            git
-          ];
+        devShells.default =
+          let
+            deps-lock-update = pkgs.writeShellApplication {
+              name = "deps-lock-update";
+              runtimeInputs = [ cljpkgs.deps-lock ];
+              text = "deps-lock --bb --alias-exclude debug";
+            };
+          in
+            pkgs.mkShell
+              {
+                packages = [ deps-lock-update ];
+                nativeBuildInputs = with pkgs; [
+                  babashka
+                  graalvm
+                  jdk
+                  clojure
+                  clojure-lsp
+                  git
+                ];
 
-          env = {
-            JAVA_HOME = "${jdk}";
-            GRAALVM_HOME = "${graalvm}";
+                env = {
+                  GRAALVM_HOME = "${graalvm}";
+                  JAVA_HOME = "${jdk}";
+                };
+              };
 
+        packages = rec {
+          default = eca;
+
+          eca-jdk = cljpkgs.mkCljBin {
+            projectSrc = ./.;
+            name = "com.github.editor-code-assistant/eca";
+            main-ns = "eca.main";
+            buildInputs = [ pkgs.babashka ];
+
+            jdkRunner = jdk;
+            buildCommand =
+              ''
+                bb prod-jar
+                export jarPath=eca.jar
+              '';
+            doCheck = true;
+            checkPhase = "bb test";
           };
 
+          eca = cljpkgs.mkGraalBin {
+            cljDrv = self.packages."${system}".eca-jdk;
+          };
         };
 
-        packages.default = pkgs.stdenv.mkDerivation {
-          pname = "eca";
-          version = "0.1.0";
-          src = ./.;
-
-          nativeBuildInputs = with pkgs; [
-            jdk
-            clojure
-            babashka
-            graalvm
-            git
-          ];
-
-          CLJ_CONFIG = "${placeholder "out"}/.clojure";
-          CLJ_CACHE = "${placeholder "out"}/.cpcache";
-
-          configurePhase = ''
-            mkdir -p $CLJ_CONFIG $CLJ_CACHE
-          '';
-
-          buildPhase = ''
-            bb native-cli
-          '';
-
-          installPhase = ''
-            cp eca $out/bin/
-          '';
-        };
-      }
-    );
+      }) // {
+        overlays.default = (final: prev: {
+          eca = self.packages.${final.system}.default;
+        });
+      };
 }
