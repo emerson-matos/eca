@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.49.0
+
 - Add `totalTimeMs` to reason and toolCall content blocks.
 
 ## 0.48.0
