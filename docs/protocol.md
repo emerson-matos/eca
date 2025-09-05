@@ -393,6 +393,7 @@ type ChatContent =
     | ReasonFinishedContent 
     | ToolCallPrepareContent
     | ToolCallRunContent
+    | ToolCallRunningContent
     | ToolCalledContent
     | ToolCallRejectedContent;
 
@@ -561,7 +562,7 @@ interface ToolCallPrepareContent {
 }
 
 /**
- * Tool call final request that LLM may trigger, sent once per id.
+ * Tool call that LLM will run, sent once per id.
  */
 interface ToolCallRunContent {
     type: 'toolCallRun';
@@ -588,6 +589,42 @@ interface ToolCallRunContent {
      */
     manualApproval: boolean;
      
+    /**
+     * Summary text to present about this tool call, 
+     * ex: 'Reading file "foo"...'.
+     */
+    summary?: string;
+    
+    /**
+     * Extra details about this call. 
+     * Clients may use this to present different UX for this tool call.
+     */
+    details?: ToolCallDetails;
+}
+
+/**
+ * Tool call that server is running to report to LLM later, sent once per id.
+ */
+interface ToolCallRunningContent {
+    type: 'toolCallRunning';
+    
+    origin: ToolCallOrigin;
+    
+    /**
+     * id of the tool call
+     */
+    id: string;
+    
+    /**
+     * Name of the tool
+     */
+    name: string;
+    
+    /*
+     * Arguments of this tool call
+     */
+    arguments: {[key: string]: string};
+    
     /**
      * Summary text to present about this tool call, 
      * ex: 'Reading file "foo"...'.

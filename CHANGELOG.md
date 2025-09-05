@@ -4,6 +4,7 @@
 
 - Add nix flake build.
 - Stop prompt does not change the status of the last running toolCall. #65
+- Add `toolCallRunning` content to `chat/contentReceived`.
 
 ## 0.47.0
 

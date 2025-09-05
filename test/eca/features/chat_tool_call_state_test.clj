@@ -1,7 +1,8 @@
 (ns eca.features.chat-tool-call-state-test
   "A namespace for testing the tool call state transitions."
   (:require
-   [clojure.test :refer [deftest testing is]]
+   [clojure.string :as s]
+   [clojure.test :refer [deftest is testing]]
    [eca.features.chat :as f.chat]
    [eca.test-helper :as h]
    [matcher-combinators.test :refer [match?]]))
@@ -13,13 +14,10 @@
 ;;; State machine intent tests
 
 (deftest transition-tool-call-state-machine-completeness-test
-  "Test that all intended state transitions are defined"
+  ;; Test that all intended state transitions are defined
   (testing "All intended state machine transitions are defined"
     (h/reset-components!)
-    (let [db* (h/db*)
-          chat-id "test-chat"
-          chat-ctx {:chat-id chat-id :request-id "req-1" :messenger (h/messenger)}
-          state-machine (deref #'f.chat/tool-call-state-machine)]
+    (let [state-machine (deref #'f.chat/tool-call-state-machine)]
 
       ;; Verify state machine has expected transitions
       (is (contains? state-machine [:initial :tool-prepare])
@@ -28,12 +26,12 @@
           "Expected state machine to contain [:preparing :tool-prepare] transition")
       (is (contains? state-machine [:preparing :tool-run])
           "Expected state machine to contain [:preparing :tool-run] transition")
-      (is (contains? state-machine [:check-approval :config-ask])
-          "Expected state machine to contain [:check-approval :config-ask] transition")
-      (is (contains? state-machine [:check-approval :config-allow])
-          "Expected state machine to contain [:check-approval :config-allow] transition")
-      (is (contains? state-machine [:check-approval :config-deny])
-          "Expected state machine to contain [:check-approval :config-deny] transition")
+      (is (contains? state-machine [:check-approval :approval-ask])
+          "Expected state machine to contain [:check-approval :approval-ask] transition")
+      (is (contains? state-machine [:check-approval :approval-allow])
+          "Expected state machine to contain [:check-approval :approval-allow] transition")
+      (is (contains? state-machine [:check-approval :approval-deny])
+          "Expected state machine to contain [:check-approval :approval-deny] transition")
       (is (contains? state-machine [:waiting-approval :user-approve])
           "Expected state machine to contain [:waiting-approval :user-approve] transition")
       (is (contains? state-machine [:waiting-approval :user-reject])
@@ -286,7 +284,7 @@
               "Expected the exact promise passed in to be stored")))
 
       ;; Step 3: :check-approval -> :waiting-approval (manual approval needed)
-      (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :config-ask manual-approve-event-data)]
+      (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :approval-ask manual-approve-event-data)]
         (is (match? {:status :waiting-approval
                      :actions [:send-progress]}
                     result)
@@ -337,7 +335,7 @@
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run run-event-data)
 
       ;; Step 3: :check-approval -> :execution-approved (auto approval)
-      (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :config-allow)]
+      (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :approval-allow)]
         (is (match? {:status :execution-approved
                      :actions [:set-decision-reason :deliver-approval-true]}
                     result)
@@ -362,7 +360,7 @@
                                       {:name "test" :origin "test" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run
                                       {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval true})
-      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :config-ask
+      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :approval-ask
                                       {:state :running :text "Waiting"})
 
       (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :user-reject)]
@@ -397,7 +395,7 @@
                                       {:name "list_files" :origin "filesystem" :arguments-text "{\"path\": \"/tmp\"}"})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run
                                       {:approved?* approved?* :name "list_files" :origin "filesystem" :arguments {:path "/tmp"} :manual-approval false})
-      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :config-allow)
+      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :approval-allow)
 
       (let [tool-state (#'f.chat/get-tool-call-state @db* chat-id tool-call-id)]
         (is (= :execution-approved (:status tool-state))
@@ -453,7 +451,7 @@
 ;;; Tests for stop-prompt functionality.
 
 (deftest transition-tool-call-all-states-to-stop-test
-  "Test stopping from all possible states"
+  ;; Test stopping from all possible states
   (testing "Should be able to stop from any state"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -488,7 +486,7 @@
                                           {:name "test" :origin "test" :arguments-text "{}"})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-completed" :tool-run
                                           {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
-          (#'f.chat/transition-tool-call! db* chat-ctx "tool-completed" :config-allow)
+          (#'f.chat/transition-tool-call! db* chat-ctx "tool-completed" :approval-allow)
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-completed" :execution-start
                                           {:name "test" :origin "test" :arguments {}})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-completed" :execution-end
@@ -508,7 +506,7 @@
                                           {:name "test" :origin "test" :arguments-text "{}"})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-rejected" :tool-run
                                           {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval true})
-          (#'f.chat/transition-tool-call! db* chat-ctx "tool-rejected" :config-ask
+          (#'f.chat/transition-tool-call! db* chat-ctx "tool-rejected" :approval-ask
                                           {:state :running :text "Waiting"})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-rejected" :user-reject)
 
@@ -544,7 +542,7 @@
                                           {:name "test" :origin "test" :arguments-text "{}"})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-2" :tool-run
                                           {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval true})
-          (#'f.chat/transition-tool-call! db* chat-ctx "tool-2" :config-ask
+          (#'f.chat/transition-tool-call! db* chat-ctx "tool-2" :approval-ask
                                           {:state :running :text "Waiting"})
 
           (let [result (#'f.chat/transition-tool-call! db* chat-ctx "tool-2" :stop-requested)]
@@ -563,7 +561,7 @@
                                           {:name "test" :origin "test" :arguments-text "{}"})
           (#'f.chat/transition-tool-call! db* chat-ctx "tool-3" :tool-run
                                           {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
-          (#'f.chat/transition-tool-call! db* chat-ctx "tool-3" :config-allow)
+          (#'f.chat/transition-tool-call! db* chat-ctx "tool-3" :approval-allow)
 
           (let [result (#'f.chat/transition-tool-call! db* chat-ctx "tool-3" :stop-requested)]
             (is (match? {:status :stopped
@@ -574,7 +572,7 @@
                 "Expected tool call state to be in :stopped status")))))))
 
 (deftest test-stop-prompt-messages
-  "Test what messages are sent when stop-prompt is called"
+  ;; Test what messages are sent when stop-prompt is called
   (testing "should send toolCallRejected for active tool calls"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -598,14 +596,14 @@
             tool-reject-messages (filter #(= :toolCallRejected (get-in % [:content :type])) chat-messages)]
 
         (is (< 0 (count system-messages)) "Expected at least one system stop message to be sent")
-        (is (some #(clojure.string/includes? (get-in % [:content :text]) "stopped") system-messages)
+        (is (some #(s/includes? (get-in % [:content :text]) "stopped") system-messages)
             "Expected system message to contain 'stopped' text")
 
         (is (< 0 (count tool-reject-messages))
             "Expected at least one toolCallRejected notification to be sent for active tool calls")))))
 
 (deftest test-stop-prompt-message-count
-  "Test that stop-prompt sends appropriate number of messages"
+  ;; Test that stop-prompt sends appropriate number of messages
   (testing "should send messages including tool call rejections when tool calls exist"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -626,7 +624,7 @@
             "Expected more than 1 message when tool calls exist (stop + rejections)")))))
 
 (deftest test-stop-prompt-notification-types
-  "Test what types of notifications are sent on prompt-stop."
+  ;; Test what types of notifications are sent on prompt-stop.
   (testing "should send toolCallRejected in addition to progress/text messages"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -648,7 +646,7 @@
             "Expected toolCallRejected notifications when stopping with active tool calls")))))
 
 (deftest test-stop-prompt-with-non-running-chat
-  "Test stop-prompt behavior when chat is not running."
+  ;; Test stop-prompt behavior when chat is not running.
   (testing "should handle non-running chats gracefully without sending messages"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -665,7 +663,7 @@
       (is (= :idle (get-in @db* [:chats chat-id :status])) "Expected status to remain unchanged"))))
 
 (deftest test-stop-prompt-logic-behavior-only
-  "Pure logic test - what the function should do for enhanced behavior."
+  ;; Pure logic test - what the function should do for enhanced behavior.
   (testing "should analyze and handle individual tool calls when stopping"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -688,7 +686,7 @@
         (is (< 1 (count chat-messages))
             "Expected multiple actions (handle tool calls + send stop message)")
 
-        (is (some #(clojure.string/includes? (get-in % [:content :text] "") "stopped") chat-messages)
+        (is (some #(s/includes? (get-in % [:content :text] "") "stopped") chat-messages)
             "Expected stop message to be sent")
 
         (is (some #(= :toolCallRejected (get-in % [:content :type])) chat-messages)
@@ -696,7 +694,7 @@
 
 ;; TODO: This is not really a tool-call state test.  Perhaps move it elsewhere?
 (deftest test-stop-prompt-status-change
-  "Test that chat status changes appropriately."
+  ;; Test that chat status changes appropriately.
   (testing "should change status to :stopping after handling tool calls"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -712,7 +710,7 @@
 ;;; Edge Cases and Comprehensive Coverage
 
 (deftest transition-tool-call-promise-already-delivered-test
-  "Test edge case when promise is already delivered before transition"
+  ;; Test edge case when promise is already delivered before transition
   (testing "Should handle already-delivered promises gracefully"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -726,7 +724,7 @@
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run
                                       {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
 
-      (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :config-allow)]
+      (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :approval-allow)]
         (is (match? {:status :execution-approved
                      :actions [:set-decision-reason :deliver-approval-true]}
                     result)
@@ -739,7 +737,7 @@
               "Expected promise to be delivered with true value"))))))
 
 (deftest transition-tool-call-stop-during-execution-test
-  "Test stopping during execution state"
+  ;; Test stopping during execution state
   (testing ":executing -> :stopped transition"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -752,7 +750,7 @@
                                       {:name "test" :origin "test" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run
                                       {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
-      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :config-allow)
+      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :approval-allow)
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :execution-start
                                       {:name "test" :origin "test" :arguments {}})
 
@@ -770,7 +768,7 @@
           "Expected exception as executing->stop not currently supported"))))
 
 (deftest transition-tool-call-nonexistent-tool-call-operations-test
-  "Test operations on nonexistent tool calls"
+  ;; Test operations on nonexistent tool calls
   (testing "Should handle operations on tool calls that don't exist"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -786,7 +784,7 @@
             "Expected exception for nonexistent tool call")))))
 
 (deftest transition-tool-call-execution-error-handling-test
-  "Test error scenarios during execution"
+  ;; Test error scenarios during execution
   (testing "Tool execution with error results"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -799,7 +797,7 @@
                                       {:name "test" :origin "test" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run
                                       {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
-      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :config-allow)
+      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :approval-allow)
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :execution-start
                                       {:name "test" :origin "test" :arguments {}})
 
@@ -828,7 +826,7 @@
                 "Expected toolCalled message to contain error details")))))))
 
 (deftest transition-tool-call-state-persistence-test
-  "Test that state changes persist correctly across operations"
+  ;; Test that state changes persist correctly across operations
   (testing "State should be maintained across database operations"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -854,7 +852,7 @@
         (is (identical? approved?* (:approved?* state-after-run))
             "Expected same promise to be stored in state"))
 
-      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :config-allow)
+      (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :approval-allow)
 
       (let [state-after-approve (#'f.chat/get-tool-call-state @db* chat-id tool-call-id)]
         (is (= :execution-approved (:status state-after-approve))
@@ -863,7 +861,7 @@
             "Expected promise to be delivered with true value")))))
 
 (deftest transition-tool-call-multiple-chats-isolation-test
-  "Test that tool calls in different chats are properly isolated"
+  ;; Test that tool calls in different chats are properly isolated
   (testing "Tool calls with same ID in different chats should be independent"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -880,7 +878,7 @@
                                       {:name "test1" :origin "test" :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx-1 tool-call-id :tool-run
                                       {:approved?* approved-1* :name "test1" :origin "test" :arguments {} :manual-approval false})
-      (#'f.chat/transition-tool-call! db* chat-ctx-1 tool-call-id :config-allow)
+      (#'f.chat/transition-tool-call! db* chat-ctx-1 tool-call-id :approval-allow)
 
       ;; Tool 2
       (#'f.chat/transition-tool-call! db* chat-ctx-2 tool-call-id :tool-prepare
@@ -902,7 +900,7 @@
             "Expected second chat's promise to not be realized yet")))))
 
 (deftest transition-tool-call-action-execution-errors-test
-  "Test error handling during action execution"
+  ;; Test error handling during action execution
   (testing "Should handle action execution failures gracefully"
     (h/reset-components!)
     (let [db* (h/db*)
@@ -919,7 +917,7 @@
           "Expected exception when messenger is nil or appropriate error handling"))))
 
 (deftest transition-tool-call-promise-timeout-test
-  "Test promise timeout behavior"
+  ;; Test promise timeout behavior
   (testing "Should handle promise timeouts appropriately"
     (h/reset-components!)
     (let [db* (h/db*)

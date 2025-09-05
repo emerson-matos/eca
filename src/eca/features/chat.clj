@@ -91,7 +91,7 @@
    Note: all choices (i.e. conditionals) have to be made in code and result
    in different events sent to the state machine.
    For example, from the :check-approval state you can either get
-   a :config-ask event, a :config-allow event, or a :config-deny event."
+   a :approval-ask event, a :approval-allow event, or a :approval-deny event."
   {;; Note: transition-tool-call! treats no existing state as :initial state
    [:initial :tool-prepare]
    {:status :preparing
@@ -106,15 +106,15 @@
     :actions [:init-approval-promise :send-toolCallRun]}
    ;; TODO: What happens if the promise is created, but no deref happens since the call is stopped?
 
-   [:check-approval :config-ask]
+   [:check-approval :approval-ask]
    {:status :waiting-approval
     :actions [:send-progress]}
 
-   [:check-approval :config-allow]
+   [:check-approval :approval-allow]
    {:status :execution-approved
     :actions [:set-decision-reason :deliver-approval-true]}
 
-   [:check-approval :config-deny]
+   [:check-approval :approval-deny]
    {:status :rejected
     :actions [:set-decision-reason :deliver-approval-false]}
 
@@ -132,7 +132,7 @@
 
    [:execution-approved :execution-start]
    {:status :executing
-    :actions []}
+    :actions [:send-toolCallRunning]}
 
    [:executing :execution-end]
    {:status :completed
@@ -193,6 +193,17 @@
                      :origin (:origin event-data)
                      :arguments (:arguments event-data)
                      :manual-approval (:manual-approval event-data)}
+                    :details (:details event-data)
+                    :summary (:summary event-data)))
+
+    :send-toolCallRunning
+    (send-content! chat-ctx :assistant
+                   (assoc-some
+                    {:type :toolCallRunning
+                     :id tool-call-id
+                     :name (:name event-data)
+                     :origin (:origin event-data)
+                     :arguments (:arguments event-data)}
                     :details (:details event-data)
                     :summary (:summary event-data)))
 
@@ -462,13 +473,13 @@
                                           ;; assert: In: :check-approval or :stopped
                                           (when-not (#{:stopped} (:status (get-tool-call-state @db* chat-id id)))
                                             (case approval
-                                              :ask (transition-tool-call! db* chat-ctx id :config-ask
+                                              :ask (transition-tool-call! db* chat-ctx id :approval-ask
                                                                           {:state :running
                                                                            :text "Waiting for tool call approval"})
-                                              :allow (transition-tool-call! db* chat-ctx id :config-allow
+                                              :allow (transition-tool-call! db* chat-ctx id :approval-allow
                                                                             {:reason {:code :user-config-allow
                                                                                       :text "Tool call allowed by user config"}})
-                                              :deny (transition-tool-call! db* chat-ctx id :config-deny
+                                              :deny (transition-tool-call! db* chat-ctx id :approval-deny
                                                                            {:reason {:code :user-config-deny
                                                                                      :text "Tool call denied by user config"}})
                                               (logger/warn logger-tag "Unknown value of approval in config"
@@ -479,7 +490,12 @@
                                               ;; assert: In :execution-approved or :stopped
                                               (when-not (#{:stopped} (:status (get-tool-call-state @db* chat-id id)))
                                                 (assert-chat-not-stopped! chat-ctx)
-                                                (transition-tool-call! db* chat-ctx id :execution-start)
+                                                (transition-tool-call! db* chat-ctx id :execution-start
+                                                                       {:origin origin
+                                                                        :name name
+                                                                        :arguments arguments
+                                                                        :details details
+                                                                        :summary summary})
                                                 ;; assert: In :executing
                                                 (let [result (f.tools/call-tool! name arguments @db* config messenger behavior)
                                                       details (f.tools/tool-call-details-after-invocation name arguments details result)]
