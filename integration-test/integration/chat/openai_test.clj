@@ -240,6 +240,12 @@
                                             :arguments {:path (h/project-path->canon-path "resources")}
                                             :manualApproval false
                                             :summary "Listing file tree"})
+        (match-content chat-id "assistant" {:type "toolCallRunning"
+                                            :origin "native"
+                                            :id "tool-1"
+                                            :name "eca_directory_tree"
+                                            :arguments {:path (h/project-path->canon-path "resources")}
+                                            :summary "Listing file tree"})
         (match-content chat-id "assistant" {:type "toolCalled"
                                             :origin "native"
                                             :id "tool-1"
