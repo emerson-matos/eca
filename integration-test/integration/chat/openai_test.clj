@@ -132,7 +132,7 @@
         (match-content chat-id "assistant" {:type "reasonStarted" :id "123"})
         (match-content chat-id "assistant" {:type "reasonText" :id "123" :text "I should say"})
         (match-content chat-id "assistant" {:type "reasonText" :id "123" :text " hello"})
-        (match-content chat-id "assistant" {:type "reasonFinished" :id "123"})
+        (match-content chat-id "assistant" {:type "reasonFinished" :id "123" :totalTimeMs (m/pred number?)})
         (match-content chat-id "assistant" {:type "text" :text "hello"})
         (match-content chat-id "assistant" {:type "text" :text " there!"})
         (match-content chat-id "system" {:type "usage"
@@ -165,7 +165,7 @@
         (match-content chat-id "assistant" {:type "reasonStarted" :id "234"})
         (match-content chat-id "assistant" {:type "reasonText" :id "234" :text "I should say"})
         (match-content chat-id "assistant" {:type "reasonText" :id "234" :text " fine"})
-        (match-content chat-id "assistant" {:type "reasonFinished" :id "234"})
+        (match-content chat-id "assistant" {:type "reasonFinished" :id "234" :totalTimeMs (m/pred number?)})
         (match-content chat-id "assistant" {:type "text" :text "I'm "})
         (match-content chat-id "assistant" {:type "text" :text " fine"})
         (match-content chat-id "system" {:type "usage"
@@ -209,7 +209,7 @@
         (match-content chat-id "assistant" {:type "reasonStarted" :id "123"})
         (match-content chat-id "assistant" {:type "reasonText" :id "123" :text "I should call tool"})
         (match-content chat-id "assistant" {:type "reasonText" :id "123" :text " eca_directory_tree"})
-        (match-content chat-id "assistant" {:type "reasonFinished" :id "123"})
+        (match-content chat-id "assistant" {:type "reasonFinished" :id "123" :totalTimeMs (m/pred number?)})
         (match-content chat-id "assistant" {:type "text" :text "I will list files"})
         (match-content chat-id "assistant" {:type "toolCallPrepare"
                                             :origin "native"
@@ -252,6 +252,7 @@
                                             :name "eca_directory_tree"
                                             :arguments {:path (h/project-path->canon-path "resources")}
                                             :summary "Listing file tree"
+                                            :totalTimeMs (m/pred number?)
                                             :error false
                                             :outputs [{:type "text" :text (str "├── file1.md\n"
                                                                                "└── file2.md\n\n"

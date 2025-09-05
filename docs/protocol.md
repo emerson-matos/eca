@@ -468,6 +468,11 @@ interface ReasonFinishedContent {
      * The id of this reason
      */
     id: string; 
+
+    /**
+     * The total time the reason took in milliseconds.
+     */
+    totalTimeMs: number;
 }
 
 /**
@@ -680,6 +685,11 @@ interface ToolCalledContent {
          */
         text: string; 
     }];
+    
+    /**
+     * The total time the call took in milliseconds.
+     */
+    totalTimeMs: number;
     
     /**
      * Summary text to present about this tool call, 

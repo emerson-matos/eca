@@ -134,7 +134,7 @@
         (match-content chat-id "assistant" {:type "reasonStarted" :id (m/pred string?)})
         (match-content chat-id "assistant" {:type "reasonText" :id (m/pred string?) :text "I should say"})
         (match-content chat-id "assistant" {:type "reasonText" :id (m/pred string?) :text " hello"})
-        (match-content chat-id "assistant" {:type "reasonFinished" :id (m/pred string?)})
+        (match-content chat-id "assistant" {:type "reasonFinished" :id (m/pred string?) :totalTimeMs (m/pred number?)})
         (match-content chat-id "assistant" {:type "text" :text "hello"})
         (match-content chat-id "assistant" {:type "text" :text " there!"})
         (match-content chat-id "system" {:type "progress" :state "finished"})
@@ -164,7 +164,7 @@
         (match-content chat-id "assistant" {:type "reasonStarted" :id (m/pred string?)})
         (match-content chat-id "assistant" {:type "reasonText" :id (m/pred string?) :text "I should say"})
         (match-content chat-id "assistant" {:type "reasonText" :id (m/pred string?) :text " fine"})
-        (match-content chat-id "assistant" {:type "reasonFinished" :id (m/pred string?)})
+        (match-content chat-id "assistant" {:type "reasonFinished" :id (m/pred string?) :totalTimeMs (m/pred number?)})
         (match-content chat-id "assistant" {:type "text" :text "I'm "})
         (match-content chat-id "assistant" {:type "text" :text " fine"})
         (match-content chat-id "system" {:type "progress" :state "finished"})
@@ -233,6 +233,7 @@
                                             :name "eca_directory_tree"
                                             :arguments {:path (h/project-path->canon-path "resources")}
                                             :summary "Listing file tree"
+                                            :totalTimeMs (m/pred number?)
                                             :error false
                                             :outputs [{:type "text" :text (str "├── file1.md\n"
                                                                                "└── file2.md\n\n"

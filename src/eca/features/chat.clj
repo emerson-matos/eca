@@ -132,7 +132,7 @@
 
    [:execution-approved :execution-start]
    {:status :executing
-    :actions [:send-toolCallRunning]}
+    :actions [:set-start-time :send-toolCallRunning]}
 
    [:executing :execution-end]
    {:status :completed
@@ -216,6 +216,7 @@
                      :name (:name event-data)
                      :arguments (:arguments event-data)
                      :error (:error event-data)
+                     :total-time-ms (:total-time-ms event-data)
                      :outputs (:outputs event-data)}
                     :details (:details event-data)
                     :summary (:summary event-data)))
@@ -253,6 +254,10 @@
     :set-decision-reason
     (swap! db* assoc-in [:chats (:chat-id chat-ctx) :tool-calls tool-call-id :decision-reason]
            (:reason event-data))
+
+    :set-start-time
+    (swap! db* assoc-in [:chats (:chat-id chat-ctx) :tool-calls tool-call-id :start-time]
+           (:start-time event-data))
 
     ;; Logging actions
     :log-rejection
@@ -379,7 +384,7 @@
         past-messages (get-in db [:chats chat-id :messages] [])
         all-tools (f.tools/all-tools behavior @db* config)
         received-msgs* (atom "")
-        received-thinking* (atom "")
+        reasonings* (atom {})
         add-to-history! (fn [msg]
                           (swap! db* update-in [:chats chat-id :messages] (fnil conj []) msg))]
     (when-let [expires-at (get-in db [:auth provider :expires-at])]
@@ -494,11 +499,13 @@
                                                                        {:origin origin
                                                                         :name name
                                                                         :arguments arguments
+                                                                        :start-time (System/currentTimeMillis)
                                                                         :details details
                                                                         :summary summary})
                                                 ;; assert: In :executing
                                                 (let [result (f.tools/call-tool! name arguments @db* config messenger behavior)
-                                                      details (f.tools/tool-call-details-after-invocation name arguments details result)]
+                                                      details (f.tools/tool-call-details-after-invocation name arguments details result)
+                                                      {:keys [start-time]} (get-tool-call-state @db* chat-id id)]
                                                   (add-to-history! {:role "tool_call" :content (assoc tool-call
                                                                                                       :details details
                                                                                                       :summary summary
@@ -515,6 +522,7 @@
                                                                           :arguments arguments
                                                                           :error (:error result)
                                                                           :outputs (:contents result)
+                                                                          :total-time-ms (- (System/currentTimeMillis) start-time)
                                                                           :details details
                                                                           :summary summary})))
                                               ;; assert: In :rejected state
@@ -540,11 +548,13 @@
       :on-reason (fn [{:keys [status id text external-id]}]
                    (assert-chat-not-stopped! chat-ctx)
                    (case status
-                     :started (send-content! chat-ctx :assistant
-                                             {:type :reasonStarted
-                                              :id id})
+                     :started (do
+                                (swap! reasonings* assoc-in [id :start-time] (System/currentTimeMillis))
+                                (send-content! chat-ctx :assistant
+                                               {:type :reasonStarted
+                                                :id id}))
                      :thinking (do
-                                 (swap! received-thinking* str text)
+                                 (swap! reasonings* update-in [id :text] str text)
                                  (send-content! chat-ctx :assistant
                                                 {:type :reasonText
                                                  :id id
@@ -552,9 +562,10 @@
                      :finished (do
                                  (add-to-history! {:role "reason" :content {:id id
                                                                             :external-id external-id
-                                                                            :text @received-thinking*}})
+                                                                            :text (get-in @reasonings* [id :text])}})
                                  (send-content! chat-ctx :assistant
                                                 {:type :reasonFinished
+                                                 :total-time-ms (- (System/currentTimeMillis) (get-in @reasonings* [id :start-time]))
                                                  :id id}))
                      nil))
       :on-error (fn [{:keys [message exception]}]

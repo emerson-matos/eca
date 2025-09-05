@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add `totalTimeMs` to reason and toolCall content blocks.
+
 ## 0.48.0
 
 - Add nix flake build.
