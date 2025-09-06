@@ -248,20 +248,20 @@
              true)
 
     :init-tool-call-state
-    (swap! db* assoc-in [:chats (:chat-id chat-ctx) :tool-calls tool-call-id]
-           {;; :status is initialized by the state transition machinery
-            ;; :approval* is initialized by the :init-approval-promise action
-            ;; :arguments is initialized by the :init-arguments action
-            ;; :start-time is initialized by the :set-start-time action
-            :name (:name event-data)
-            :arguments (:arguments event-data)
-            :origin (:origin event-data)
-            :decision-reason {:code :none
-                              :text "No reason"}})
+    (swap! db* update-in [:chats (:chat-id chat-ctx) :tool-calls tool-call-id] assoc
+           ;; :status is initialized by the state transition machinery
+           ;; :approval* is initialized by the :init-approval-promise action
+           ;; :arguments is initialized by the :init-arguments action
+           ;; :start-time is initialized by the :set-start-time action
+           :name (:name event-data)
+           :arguments (:arguments event-data)
+           :origin (:origin event-data)
+           :decision-reason {:code :none
+                             :text "No reason"})
 
     :init-arguments
-    (swap! db* assoc-in [:chats (:chat-id chat-ctx) :tool-calls tool-call-id]
-           :arguments (:arguments event-data))
+    (swap! db* assoc-in [:chats (:chat-id chat-ctx) :tool-calls tool-call-id :arguments]
+           (:arguments event-data))
 
     :set-decision-reason
     (swap! db* assoc-in [:chats (:chat-id chat-ctx) :tool-calls tool-call-id :decision-reason]
