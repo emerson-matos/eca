@@ -121,7 +121,7 @@
       (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-prepare event-data)]
 
         (is (match? {:status :preparing
-                     :actions [:send-toolCallPrepare :init-decision-reason]}
+                     :actions [:init-tool-call-state :send-toolCallPrepare]}
                     result)
             "Expected return value to show :preparing status and send toolCallPrepare action")
 
@@ -218,7 +218,7 @@
       (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run run-event-data)]
 
         (is (match? {:status :check-approval
-                     :actions [:init-approval-promise :send-toolCallRun]}
+                     :actions [:init-arguments :init-approval-promise :send-toolCallRun]}
                     result)
             "Expected next state to be :check-approval with actions of :init-approval-promise and :send-toolCallRun")
 
@@ -273,7 +273,7 @@
       ;; Step 2: :preparing -> :check-approval
       (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run run-event-data)]
         (is (match? {:status :check-approval
-                     :actions [:init-approval-promise :send-toolCallRun]}
+                     :actions [:init-arguments :init-approval-promise :send-toolCallRun]}
                     result)
             "Expected transition to :check-approval with init promise and send run actions")
 
@@ -517,6 +517,7 @@
                (#'f.chat/transition-tool-call! db* chat-ctx "tool-rejected" :stop-requested))
               "Expected exception as already rejected tool calls cannot be stopped"))))))
 
+;; TODO: This test and the previous test seem to be testing similar things.  Clean up.
 (deftest transition-tool-call-stop-transitions-test
   (testing "Stop transitions from various states"
     (h/reset-components!)
