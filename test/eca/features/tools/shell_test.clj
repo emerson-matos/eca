@@ -51,29 +51,7 @@
             {"command" "ls -lh"
              "working_directory" (h/file-path "/project/foo/src")}
             {:db {:workspace-folders [{:uri (h/file-uri "file:///project/foo") :name "foo"}]}})))))
-  (testing "command does not fails if not in excluded config"
-    (is (match?
-         {:error false
-          :contents [{:type :text
-                      :text "Some text"}]}
-         (with-redefs [fs/exists? (constantly true)
-                       p/shell (constantly {:exit 0 :out "Some text" :err "Other text"})]
-           ((get-in f.tools.shell/definitions ["eca_shell_command" :handler])
-            {"command" "rm -r /project/foo/src"}
-            {:db {:workspace-folders [{:uri (h/file-uri "file:///project/foo") :name "foo"}]}
-             :config {:nativeTools {:shell {:enabled true
-                                            :excludeCommands ["ls" "cd"]}}}})))))
-  (testing "command fails if in excluded config"
-    (is (match?
-         {:error true
-          :contents [{:type :text
-                      :text "Command 'rm -r /project/foo/src' is excluded by configuration"}]}
-         (with-redefs [fs/exists? (constantly true)]
-           ((get-in f.tools.shell/definitions ["eca_shell_command" :handler])
-            {"command" "rm -r /project/foo/src"}
-            {:db {:workspace-folders [{:uri (h/file-uri "file:///project/foo") :name "foo"}]}
-             :config {:nativeTools {:shell {:enabled true
-                                            :excludeCommands ["ls" "rm"]}}}}))))))
+)
 
 (deftest shell-require-approval-fn-test
   (let [approval-fn (get-in f.tools.shell/definitions ["eca_shell_command" :require-approval-fn])

@@ -342,12 +342,6 @@ There are 3 possible ways to configure rules following this order of priority:
         rules?: [{path: string;}];
         commands?: [{path: string;}];
         systemPromptTemplateFile?: string;
-        nativeTools?: {
-            filesystem: {enabled: boolean};
-            shell: {enabled: boolean,
-                    excludeCommands: string[]};
-            editor: {enabled: boolean,};
-        };
         customTools?: {[key: string]: {
             description: string;
             command: string;
@@ -404,10 +398,6 @@ There are 3 possible ways to configure rules following this order of priority:
       "defaultModel": null, // let ECA decides the default model.
       "rules" : [],
       "commands" : [],
-      "nativeTools": {"filesystem": {"enabled": true},
-                      "shell": {"enabled": true,
-                                "excludeCommands": []},
-                       "editor": {"enabled": true}},
       "disabledTools": [],
       "toolCall": {
         "approval": {

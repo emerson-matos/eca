@@ -61,10 +61,6 @@
    :defaultModel nil
    :rules []
    :commands []
-   :nativeTools {:filesystem {:enabled true}
-                 :shell {:enabled true
-                         :excludeCommands []}
-                 :editor {:enabled true}}
    :disabledTools []
    :toolCall {:approval {:byDefault "ask"
                          :allow {"eca_preview_file_change" {}

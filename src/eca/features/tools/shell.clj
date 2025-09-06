@@ -39,7 +39,6 @@
   (let [command-args (get arguments "command")
         command (first (string/split command-args #"\s+"))
         user-work-dir (get arguments "working_directory")
-        exclude-cmds (-> config :nativeTools :shell :excludeCommands set)
         plan-mode? (= "plan" behavior)]
     (or (tools.util/invalid-arguments arguments [["working_directory" #(or (nil? %)
                                                                            (fs/exists? %)) "working directory $working_directory does not exist"]
