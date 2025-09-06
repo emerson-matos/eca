@@ -223,16 +223,20 @@
                     :summary (:summary event-data)))
 
     :send-toolCallRejected
-    (send-content! chat-ctx :assistant
-                   (assoc-some
-                    {:type :toolCallRejected
-                     :id tool-call-id
-                     :origin (:origin event-data)
-                     :name (:name event-data)
-                     :arguments (:arguments event-data)
-                     :reason (:code (:reason event-data) :user)}
-                    :details (:details event-data)
-                    :summary (:summary event-data)))
+    (let [tool-call-state (get-tool-call-state @db* (:chat-id chat-ctx) tool-call-id)
+          name (:name tool-call-state)
+          origin (:origin tool-call-state)
+          arguments (:arguments tool-call-state)]
+      (send-content! chat-ctx :assistant
+                     (assoc-some
+                      {:type :toolCallRejected
+                       :id tool-call-id
+                       :origin (or (:origin event-data) origin)
+                       :name (or (:name event-data) name)
+                       :arguments (or (:arguments event-data) arguments)
+                       :reason (:code (:reason event-data) :user)}
+                      :details (:details event-data)
+                      :summary (:summary event-data))))
 
     ;; State management actions
     :init-approval-promise
@@ -487,8 +491,8 @@
                                                                     :manual-approval ask?
                                                                     :details details
                                                                     :summary summary}))
-                                          ;; assert: In: :check-approval or :stopped
-                                          (when-not (#{:stopped} (:status (get-tool-call-state @db* chat-id id)))
+                                          ;; assert: In: :check-approval or :stopped or :rejected
+                                          (when-not (#{:stopped :rejected} (:status (get-tool-call-state @db* chat-id id)))
                                             (case approval
                                               :ask (transition-tool-call! db* chat-ctx id :approval-ask
                                                                           {:state :running
