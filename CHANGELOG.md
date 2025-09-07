@@ -3,6 +3,12 @@
 ## Unreleased
 
 - Added missing parameters to `toolCallRejected` where possible.  PR #109
+- Add custom behavior configuration support. #79
+  - Behaviors can now define `defaultModel`, `disabledTools`, `systemPromptFile`, and `toolCall` approval rules.
+  - Built-in `agent` and `plan` behaviors are pre-configured.
+  - Replace `systemPromptTemplateFile` with `systemPromptFile` for complete prompt files instead of templates.
+- Remove `nativeTools` configuration in favor of `toolCall` approval and `disabledTools`.
+  - Native tools are now always enabled by default, controlled via `disabledTools` and `toolCall` approval.
 
 ## 0.49.0
 
