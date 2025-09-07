@@ -58,6 +58,7 @@
                                           "claude-sonnet-4" {}}}
                "ollama" {:url "http://localhost:11434"
                          :urlEnv "OLLAMA_API_URL"}}
+   :defaultBehavior "agent"
    :behavior {"agent" {:systemPromptFile "prompts/agent_behavior.md"
                        :disabledTools ["eca_preview_file_change"]}
               "plan" {:systemPromptFile "prompts/plan_behavior.md"
@@ -86,7 +87,6 @@
    :mcpTimeoutSeconds 60
    :lspTimeoutSeconds 30
    :mcpServers {}
-   :defaultBehavior "agent"
    :welcomeMessage "Welcome to ECA!\n\nType '/' for commands\n\n"
    :index {:ignoreFiles [{:type :gitignore}]
            :repoMap {:maxTotalEntries 800

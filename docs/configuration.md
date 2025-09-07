@@ -320,6 +320,22 @@ There are 3 possible ways to configure rules following this order of priority:
       "rules": [{"path": "my-rule.md"}]
     }
     ```
+    
+## Behaviors / prompts
+
+ECA allows to totally customize the prompt sent to LLM via the `behavior` config, allowing to have multiple behaviors for different tasks or workflows.
+
+=== "Example: my-behavior"
+
+    ```javascript
+    {
+      "behavior": {
+        "my-behavior": {
+          "systemPromptFile": "/path/to/my-behavior-prompt.md"
+        }
+      }
+    }
+    ```
 
 ## All configs
 
@@ -426,6 +442,21 @@ There are 3 possible ways to configure rules following this order of priority:
       "mcpTimeoutSeconds" : 60,
       "lspTimeoutSeconds" : 30,
       "mcpServers" : {},
+      "behavior" {
+        "agent": {"systemPromptFile": "prompts/agent_behavior.md",
+                  "disabledTools": ["eca_preview_file_change"]},
+        "plan": {"systemPromptFile": "prompts/plan_behavior.md",
+                  "disabledTools": ["eca_edit_file", "eca_write_file", "eca_move_file"],
+                  "toolCall": {"approval": {"deny": {"eca_shell_command":
+                                                     {"argsMatchers": {"command" [".*>.*",
+                                                                                  ".*\\|\\s*(tee|dd|xargs).*",
+                                                                                  ".*\\b(sed|awk|perl)\\s+.*-i.*",
+                                                                                  ".*\\b(rm|mv|cp|touch|mkdir)\\b.*",
+                                                                                  ".*git\\s+(add|commit|push).*",
+                                                                                  ".*npm\\s+install.*",
+                                                                                  ".*-c\\s+[\"'].*open.*[\"']w[\"'].*",
+                                                                                  ".*bash.*-c.*>.*"]}}}}}}
+      }
       "defaultBehavior": "agent"
       "welcomeMessage" : "Welcome to ECA!\n\nType '/' for commands\n\n"
       "index" : {
