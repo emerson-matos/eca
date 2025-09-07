@@ -40,7 +40,7 @@ extra_css:
   - stylesheets/layout.css
 
 markdown_extensions:
-  - pymdownx.superfences
+  - pymdownx.superfences:
       custom_fences:
         - name: mermaid
           class: mermaid
