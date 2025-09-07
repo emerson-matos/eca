@@ -168,6 +168,22 @@ _Notification:_
 interface InitializedParams {}
 ```
 
+#### Sequence diagram: Initialize
+
+The following timeline illustrates the typical initialize handshake between client and server, including the config update sent after initialization is acknowledged by the client.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client / Editor
+    participant S as ECA Server
+    C->>S: initialize (request)
+    S-->>C: initialize (response)
+    C->>S: initialized (notification)
+    S-->>C: config/updated (notification)
+    S-->>C: tool/serverUpdated (notification)
+```
+
 ### Shutdown (↩️)
 
 A request sent from the client to the server to gracefully shut down the connection. This message:
