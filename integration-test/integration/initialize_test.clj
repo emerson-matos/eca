@@ -30,6 +30,7 @@
       (is (match?
            {:models models
             :chatDefaultModel "anthropic/claude-sonnet-4-20250514"
+            :chatBehaviors ["agent" "plan"]
             :chatDefaultBehavior "plan"
             :chatWelcomeMessage "Welcome to ECA!\n\nType '/' for commands\n\n"}
            (eca/request! (fixture/initialize-request
@@ -87,6 +88,7 @@
       (is (match?
            {:models models
             :chatDefaultModel "my-custom/bar-2"
+            :chatBehaviors ["agent" "plan"]
             :chatDefaultBehavior "agent"
             :chatWelcomeMessage "Welcome to ECA!\n\nType '/' for commands\n\n"}
            (eca/request! (fixture/initialize-request
