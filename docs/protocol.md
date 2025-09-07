@@ -53,7 +53,7 @@ The protocol defines a set of lifecycle messages that manage the connection and 
 
 === "Initialization flow"
 
-    The following timeline illustrates the typical initialize handshake between client and server, including the actions done by server after initialization.
+    Handshake between client and server, including the actions done by server after initialization.
 
     ```mermaid
     sequenceDiagram
@@ -62,13 +62,29 @@ The protocol defines a set of lifecycle messages that manage the connection and 
         participant S as ECA Server
         C->>+S: initialize (request)
         Note right of S: Save workspace-folders/capabilties
-        S-->>-C: initialize (response)
-        C->>+S: initialized (notification)
+        S->>-C: initialize (response)
+        C--)+S: initialized (notification)
         Note right of S: Sync models: Request models.dev <br/>for models capabilities
         Note right of S: Notify which models/behaviors are <br/>avaialble and their defaults.
-        S->>C: config/updated (notification)
+        S--)C: config/updated (notification)
         Note right of S: Init MCP servers
-        S->>-C: tool/serverUpdated (notification)
+        S--)-C: tool/serverUpdated (notification)
+    ```
+
+=== "Shutdown flow"
+
+    Shutdown process between client and server
+
+    ```mermaid
+    sequenceDiagram
+        autonumber
+        participant C as Client / Editor
+        participant S as ECA Server
+        C->>+S: shutdown (request)
+        Note right of S: Finish MCP servers process
+        S-->>-C: shutdown (response)
+        C->>+S: exit (notification)
+        Note right of S: Server stops its process
     ```
 
 ### Initialize (↩️)
@@ -218,6 +234,33 @@ _Notification:_
 * params: none 
 
 ## Code Assistant Features
+
+=== "Chat: simple"
+
+    Example of a basic chat conversation with only texts:
+
+    ```mermaid
+    sequenceDiagram
+        autonumber
+        participant C as Client / Editor
+        participant S as ECA Server
+        participant L as LLM
+        C->>+S: chat/prompt
+        Note over C,S: User sends: Hello there!
+        S->>C: chat/contentReceived (system: start)
+        Note right of S: Parse contexts,<br/>renew login,<br/>prepare prompt
+        S->>+L: Send prompt
+        S-->>-C: chat/prompt
+        Note over C,S: Request sent to LLM
+        loop LLM streaming
+            Note right of L: Returns first `Hel`,<br/>then `lo`, etc
+            L-->>S: Stream data
+            S->>C: chat/contentReceived (assistant: text)
+            
+        end
+        L->>-S: Finish response
+        S->>C: chat/contentReceived (system: finished)
+    ```
 
 ### Chat Prompt (↩️)
 
