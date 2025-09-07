@@ -202,7 +202,9 @@
 
 (defn grep-summary [args]
   (if-let [pattern (get args "pattern")]
-    (format "Searching for '%s'" pattern)
+    (if (> (count pattern) 22)
+      (format "Searching for '%s...'" (subs pattern 0 22))
+      (format "Searching for '%s'" pattern))
     "Searching for files"))
 
 (defn ^:private handle-file-change-result
@@ -217,8 +219,8 @@
 
     (= (:error result) :ambiguous)
     (tools.util/single-text-content
-     (format "Ambiguous match - content appears %d times in %s. Provide more specific context to identify the exact location."
-             (:match-count result) path) :error)
+      (format "Ambiguous match - content appears %d times in %s. Provide more specific context to identify the exact location."
+              (:match-count result) path) :error)
 
     :else
     (tools.util/single-text-content (format "Failed to process %s" path) :error)))
