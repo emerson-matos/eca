@@ -168,21 +168,24 @@ _Notification:_
 interface InitializedParams {}
 ```
 
-#### Sequence diagram: Initialize
+=== "Initialization flow"
 
-The following timeline illustrates the typical initialize handshake between client and server, including the config update sent after initialization is acknowledged by the client.
+    The following timeline illustrates the typical initialize handshake between client and server, including the actions done by server after initializing.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant C as Client / Editor
-    participant S as ECA Server
-    C->>S: initialize (request)
-    S-->>C: initialize (response)
-    C->>S: initialized (notification)
-    S-->>C: config/updated (notification)
-    S-->>C: tool/serverUpdated (notification)
-```
+    ```mermaid
+    sequenceDiagram
+        autonumber
+        participant C as Client / Editor
+        participant S as ECA Server
+        C->>+S: initialize (request)
+        S-->>-C: initialize (response)
+        C->>+S: initialized (notification)
+        Note right of S: Sync models: Request models.dev <br/>for models capabilities
+        Note right of S: Tell which models/behaviors are <br/>avaialble and their defaults.
+        S->>C: config/updated (notification)
+        Note right of S: Init MCP servers 
+        S->>-C: tool/serverUpdated (notification)
+    ```
 
 ### Shutdown (↩️)
 
