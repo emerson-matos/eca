@@ -80,10 +80,10 @@ The protocol defines a set of lifecycle messages that manage the connection and 
         autonumber
         participant C as Client / Editor
         participant S as ECA Server
-        C->>+S: shutdown (request)
+        C->>+S: shutdown
         Note right of S: Finish MCP servers process
-        S-->>-C: shutdown (response)
-        C->>+S: exit (notification)
+        S->>-C: shutdown
+        C--)S: exit
         Note right of S: Server stops its process
     ```
 
@@ -247,15 +247,15 @@ _Notification:_
         participant L as LLM
         C->>+S: chat/prompt
         Note over C,S: User sends: Hello there!
-        S->>C: chat/contentReceived (system: start)
+        S--)C: chat/contentReceived (system: start)
         Note right of S: Parse contexts,<br/>renew login,<br/>prepare prompt
         S->>+L: Send prompt
-        S-->>-C: chat/prompt
+        S->>-C: chat/prompt
         Note over C,S: Request sent to LLM
         loop LLM streaming
             Note right of L: Returns first `Hel`,<br/>then `lo`, etc
-            L-->>S: Stream data
-            S->>C: chat/contentReceived (assistant: text)
+            L--)S: Stream data
+            S--)C: chat/contentReceived (assistant: text)
             
         end
         L->>-S: Finish response
