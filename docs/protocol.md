@@ -49,7 +49,27 @@ Content-Length: ...\r\n
 
 ## Lifecycle Messages
 
-The protocol defines a set of lifecycle messages that manage the connection and state between the client (editor) and server (code assistant):
+The protocol defines a set of lifecycle messages that manage the connection and state between the client (editor) and server (code assistant).
+
+=== "Initialization flow"
+
+    The following timeline illustrates the typical initialize handshake between client and server, including the actions done by server after initialization.
+
+    ```mermaid
+    sequenceDiagram
+        autonumber
+        participant C as Client / Editor
+        participant S as ECA Server
+        C->>+S: initialize (request)
+        Note right of S: Save workspace-folders/capabilties
+        S-->>-C: initialize (response)
+        C->>+S: initialized (notification)
+        Note right of S: Sync models: Request models.dev <br/>for models capabilities
+        Note right of S: Notify which models/behaviors are <br/>avaialble and their defaults.
+        S->>C: config/updated (notification)
+        Note right of S: Init MCP servers
+        S->>-C: tool/serverUpdated (notification)
+    ```
 
 ### Initialize (↩️)
 
@@ -167,25 +187,6 @@ _Notification:_
 ```typescript
 interface InitializedParams {}
 ```
-
-=== "Initialization flow"
-
-    The following timeline illustrates the typical initialize handshake between client and server, including the actions done by server after initializing.
-
-    ```mermaid
-    sequenceDiagram
-        autonumber
-        participant C as Client / Editor
-        participant S as ECA Server
-        C->>+S: initialize (request)
-        S-->>-C: initialize (response)
-        C->>+S: initialized (notification)
-        Note right of S: Sync models: Request models.dev <br/>for models capabilities
-        Note right of S: Tell which models/behaviors are <br/>avaialble and their defaults.
-        S->>C: config/updated (notification)
-        Note right of S: Init MCP servers 
-        S->>-C: tool/serverUpdated (notification)
-    ```
 
 ### Shutdown (↩️)
 
