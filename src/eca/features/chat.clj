@@ -478,7 +478,7 @@
                                               details (f.tools/tool-call-details-before-invocation name arguments)
                                               summary (f.tools/tool-call-summary all-tools name arguments)
                                               origin (tool-name->origin name all-tools)
-                                              approval (f.tools/approval all-tools name arguments db config)
+                                              approval (f.tools/approval all-tools name arguments db config behavior)
                                               ask? (= :ask approval)]
                                           ;; assert: In :preparing or :stopped
                                           ;; Inform client the tool is about to run and store approval promise
@@ -656,20 +656,26 @@
                       (swap! db* assoc-in [:chats new-id] {:id new-id})
                       new-id))
         db @db*
-        full-model (or model (default-model db config))
+        selected-behavior (or behavior
+                              (-> config :chat :defaultBehavior) ;; legacy
+                              (-> config :defaultBehavior))
+        behavior-config (get-in config [:behavior selected-behavior])
+        ;; Simple model selection without behavior switching logic
+        full-model (or model
+                       (:defaultModel behavior-config)
+                       (default-model db config))
         rules (f.rules/all config (:workspace-folders db))
         refined-contexts (f.context/raw-contexts->refined contexts db config)
         repo-map* (delay (f.index/repo-map db config {:as-string? true}))
         instructions (f.prompt/build-instructions refined-contexts
                                                   rules
                                                   repo-map*
-                                                  (or behavior
-                                                      (-> config :chat :defaultBehavior) ;; legacy
-                                                      (-> config :defaultBehavior))
+                                                  selected-behavior
                                                   config)
         chat-ctx {:chat-id chat-id
                   :contexts contexts
-                  :behavior behavior
+                  :behavior selected-behavior
+                  :behavior-config behavior-config
                   :instructions instructions
                   :full-model full-model
                   :db* db*

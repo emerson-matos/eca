@@ -49,7 +49,9 @@
                                                                           (config/notify-fields-changed-only!
                                                                            {:chat
                                                                             {:models (sort (keys models))
-                                                                             :behaviors (:chat-behaviors db)
+                                                                             :behaviors (->> (keys (:behavior config))
+                                                                                             (into (:chat-behaviors db))
+                                                                                             distinct)
                                                                              :select-model (f.chat/default-model db config)
                                                                              :select-behavior (or (:defaultBehavior (:chat config)) ;;legacy
                                                                                                   (:defaultBehavior config))
@@ -131,4 +133,43 @@
    :eca/mcp-start-server
    (f.tools/start-server! (:name params) db* messenger config)))
 
-(defn chat-selected-behavior-changed [{:keys []} {:keys [_behavior]}])
+(defn ^:private update-behavior-model!
+  "Updates the selected model based on behavior configuration."
+  [behavior-config config messenger db*]
+  (when-let [model (or (:defaultModel behavior-config)
+                       (:defaultModel config))]
+    (config/notify-fields-changed-only!
+     {:chat {:select-model model}}
+     messenger
+     db*)))
+
+(defn ^:private update-tool-servers!
+  "Updates all tool servers (native and MCP) with new behavior status."
+  [tool-status-fn db* messenger config]
+  (messenger/tool-server-updated messenger {:type :native
+                                            :name "ECA"
+                                            :status "running"
+                                            :tools (->> (f.tools/native-tools @db* config)
+                                                        (mapv #(select-keys % [:name :description :parameters]))
+                                                        (mapv tool-status-fn))})
+  (doseq [[server-name {:keys [tools status]}] (:mcp-clients @db*)]
+    (messenger/tool-server-updated messenger {:type :mcp
+                                              :name server-name
+                                              :status (name (or status :unknown))
+                                              :tools (mapv tool-status-fn (or tools []))}))
+  (doseq [[server-name server-config] (:mcpServers config)]
+    (when (and (get server-config :disabled false)
+               (not (contains? (:mcp-clients @db*) server-name)))
+      (messenger/tool-server-updated messenger {:type :mcp
+                                                :name server-name
+                                                :status "disabled"
+                                                :tools []}))))
+
+(defn chat-selected-behavior-changed
+  "Switches model to the one defined in custom-behavior or to the default-one
+   and updates tool status for the new behavior"
+  [{:keys [db* messenger config]} {:keys [behavior]}]
+  (let [behavior-config (get-in config [:behavior behavior])
+        tool-status-fn (f.tools/make-tool-status-fn config behavior)]
+    (update-behavior-model! behavior-config config messenger db*)
+    (update-tool-servers! tool-status-fn db* messenger config)))

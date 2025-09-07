@@ -20,6 +20,22 @@
 
 (def ^:private logger-tag "[TOOLS]")
 
+(defn ^:private get-disabled-tools
+  "Returns a set of disabled tools, merging global and behavior-specific."
+  [config behavior]
+  (set (concat (get config :disabledTools [])
+               (if behavior
+                 (get-in config [:behavior behavior :disabledTools] [])
+                 []))))
+
+(defn make-tool-status-fn
+  "Returns a function that marks tools as disabled based on config and behavior.
+   If behavior is nil, only uses global disabledTools."
+  [config behavior]
+  (let [disabled-tools (get-disabled-tools config behavior)]
+    (fn [tool]
+      (assoc-some tool :disabled (contains? disabled-tools (:name tool))))))
+
 (defn ^:private native-definitions [db config]
   (into
    {}
@@ -29,22 +45,19 @@
                     (update :description #(-> %
                                               (string/replace #"\$workspaceRoots" (constantly (tools.util/workspace-roots-strs db))))))]))
    (merge {}
-          (when (get-in config [:nativeTools :filesystem :enabled])
-            f.tools.filesystem/definitions)
-          (when (get-in config [:nativeTools :shell :enabled])
-            f.tools.shell/definitions)
-          (when (get-in config [:nativeTools :editor :enabled])
-            f.tools.editor/definitions)
+          f.tools.filesystem/definitions
+          f.tools.shell/definitions
+          f.tools.editor/definitions
           (f.tools.custom/definitions config))))
 
-(defn ^:private native-tools [db config]
+(defn native-tools [db config]
   (mapv #(assoc % :server "eca") (vals (native-definitions db config))))
 
 (defn all-tools
   "Returns all available tools, including both native ECA tools
    (like filesystem and shell tools) and tools provided by MCP servers."
   [behavior db config]
-  (let [disabled-tools (set (get-in config [:disabledTools] []))]
+  (let [disabled-tools (get-disabled-tools config behavior)]
     (filterv
      (fn [tool]
        (and (not (contains? disabled-tools (:name tool)))
@@ -76,27 +89,24 @@
                      :text (str "Error calling tool: " (.getMessage e))}]}))))
 
 (defn init-servers! [db* messenger config]
-  (let [disabled-tools (set (get-in config [:disabledTools] []))
-        with-tool-status (fn [tool]
-                           (assoc-some tool :disabled (contains? disabled-tools (:name tool))))]
+  (let [default-behavior (get config :defaultBehavior)
+        tool-status-fn (make-tool-status-fn config default-behavior)]
     (messenger/tool-server-updated messenger {:type :native
                                               :name "ECA"
                                               :status "running"
                                               :tools (->> (native-tools @db* config)
                                                           (mapv #(select-keys % [:name :description :parameters]))
-                                                          (mapv with-tool-status))})
+                                                          (mapv tool-status-fn))})
     (f.mcp/initialize-servers-async!
      {:on-server-updated (fn [server]
                            (messenger/tool-server-updated messenger (-> server
                                                                         (assoc :type :mcp)
-                                                                        (update :tools #(mapv with-tool-status %)))))}
+                                                                        (update :tools #(mapv tool-status-fn %)))))}
      db*
      config)))
 
 (defn stop-server! [name db* messenger config]
-  (let [disabled-tools (set (get-in config [:disabledTools] []))
-        with-tool-status (fn [tool]
-                           (assoc-some tool :disabled (contains? disabled-tools (:name tool))))]
+  (let [tool-status-fn (make-tool-status-fn config nil)]
     (f.mcp/stop-server!
      name
      db*
@@ -104,12 +114,10 @@
      {:on-server-updated (fn [server]
                            (messenger/tool-server-updated messenger (-> server
                                                                         (assoc :type :mcp)
-                                                                        (update :tools #(mapv with-tool-status %)))))})))
+                                                                        (update :tools #(mapv tool-status-fn %)))))})))
 
 (defn start-server! [name db* messenger config]
-  (let [disabled-tools (set (get-in config [:disabledTools] []))
-        with-tool-status (fn [tool]
-                           (assoc-some tool :disabled (contains? disabled-tools (:name tool))))]
+  (let [tool-status-fn (make-tool-status-fn config nil)]
     (f.mcp/start-server!
      name
      db*
@@ -117,7 +125,7 @@
      {:on-server-updated (fn [server]
                            (messenger/tool-server-updated messenger (-> server
                                                                         (assoc :type :mcp)
-                                                                        (update :tools #(mapv with-tool-status %)))))})))
+                                                                        (update :tools #(mapv tool-status-fn %)))))})))
 
 (defn legacy-manual-approval? [config tool-name]
   (let [manual-approval? (get-in config [:toolCall :manualApproval] nil)]
@@ -157,38 +165,41 @@
 
 (defn approval
   "Return the approval keyword for the specific tool call: ask, allow or deny."
-  [all-tools tool-call-name args db config]
-  (let [{:keys [server require-approval-fn]} (first (filter #(= tool-call-name (:name %))
-                                                            all-tools))
-        {:keys [allow ask deny byDefault]} (get-in config [:toolCall :approval])]
-    (cond
-      (and require-approval-fn (require-approval-fn args {:db db}))
-      :ask
+  ([all-tools tool-call-name args db config]
+   (approval all-tools tool-call-name args db config nil))
+  ([all-tools tool-call-name args db config behavior]
+   (let [{:keys [server require-approval-fn]} (first (filter #(= tool-call-name (:name %))
+                                                             all-tools))
+         {:keys [allow ask deny byDefault]}   (merge (get-in config [:toolCall :approval])
+                                                     (get-in config [:behavior behavior :toolCall :approval]))]
+     (cond
+       (and require-approval-fn (require-approval-fn args {:db db}))
+       :ask
 
-      (some #(approval-matches? % server tool-call-name args) deny)
-      :deny
+       (some #(approval-matches? % server tool-call-name args) deny)
+       :deny
 
-      (some #(approval-matches? % server tool-call-name args) ask)
-      :ask
+       (some #(approval-matches? % server tool-call-name args) ask)
+       :ask
 
-      (some #(approval-matches? % server tool-call-name args) allow)
-      :allow
+       (some #(approval-matches? % server tool-call-name args) allow)
+       :allow
 
-      (legacy-manual-approval? config tool-call-name)
-      :ask
+       (legacy-manual-approval? config tool-call-name)
+       :ask
 
-      (= "ask" byDefault)
-      :ask
+       (= "ask" byDefault)
+       :ask
 
-      (= "allow" byDefault)
-      :allow
+       (= "allow" byDefault)
+       :allow
 
-      (= "deny" byDefault)
-      :deny
+       (= "deny" byDefault)
+       :deny
 
-      ;; Probably a config error, default to ask
-      :else
-      :ask)))
+       ;; Probably a config error, default to ask
+       :else
+       :ask))))
 
 (defn tool-call-summary [all-tools name args]
   (when-let [summary-fn (:summary-fn (first (filter #(= name (:name %))

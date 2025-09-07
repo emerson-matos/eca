@@ -58,6 +58,19 @@
                                           "claude-sonnet-4" {}}}
                "ollama" {:url "http://localhost:11434"
                          :urlEnv "OLLAMA_API_URL"}}
+   :behavior {"agent" {:systemPromptFile "prompts/agent_behavior.md"
+                       :disabledTools ["eca_preview_file_change"]}
+              "plan" {:systemPromptFile "prompts/plan_behavior.md"
+                      :disabledTools ["eca_edit_file" "eca_write_file" "eca_move_file"]
+                      :toolCall {:approval {:deny {"eca_shell_command"
+                                                   {:argsMatchers {"command" [".*>.*",
+                                                                              ".*\\|\\s*(tee|dd|xargs).*",
+                                                                              ".*\\b(sed|awk|perl)\\s+.*-i.*",
+                                                                              ".*\\b(rm|mv|cp|touch|mkdir)\\b.*",
+                                                                              ".*git\\s+(add|commit|push).*",
+                                                                              ".*npm\\s+install.*",
+                                                                              ".*-c\\s+[\"'].*open.*[\"']w[\"'].*",
+                                                                              ".*bash.*-c.*>.*"]}}}}}}}
    :defaultModel nil
    :rules []
    :commands []
@@ -193,7 +206,8 @@
   {:kebab-case
    [[:providers]]
    :stringfy
-   [[:providers]
+   [[:behavior]
+    [:providers]
     [:providers :ANY :models]
     [:toolCall :approval :allow]
     [:toolCall :approval :allow :ANY :argsMatchers]
@@ -203,7 +217,14 @@
     [:toolCall :approval :deny :ANY :argsMatchers]
     [:customTools]
     [:customTools :ANY :schema :properties]
-    [:mcpServers]]})
+    [:mcpServers]
+    ;; Behavior-specific toolCall
+    [:behavior :ANY :toolCall :approval :allow]
+    [:behavior :ANY :toolCall :approval :allow :ANY :argsMatchers]
+    [:behavior :ANY :toolCall :approval :ask]
+    [:behavior :ANY :toolCall :approval :ask :ANY :argsMatchers]
+    [:behavior :ANY :toolCall :approval :deny]
+    [:behavior :ANY :toolCall :approval :deny :ANY :argsMatchers]]})
 
 (defn all [db]
   (let [initialization-config @initialization-config*

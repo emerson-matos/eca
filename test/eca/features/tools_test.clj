@@ -35,18 +35,18 @@
     (is (match?
          (m/embeds [(m/mismatch {:name "eca_directory_tree"})])
          (f.tools/all-tools "agent" {} {:disabledTools ["eca_directory_tree"]}))))
-  #_(testing "Plan mode includes preview tool but excludes mutating tools"
-      (let [plan-tools (f.tools/all-tools "plan" {} {:nativeTools {:filesystem {:enabled true}
-                                                                   :shell {:enabled true}}})
-            tool-names (set (map :name plan-tools))]
+  (testing "Plan mode includes preview tool but excludes mutating tools"
+    (let [plan-config {:behavior {"plan" {:disabledTools ["eca_edit_file" "eca_write_file" "eca_move_file"]}}}
+          plan-tools (f.tools/all-tools "plan" {} plan-config)
+          tool-names (set (map :name plan-tools))]
       ;; Verify that preview tool is included
-        (is (contains? tool-names "eca_preview_file_change"))
+      (is (contains? tool-names "eca_preview_file_change"))
       ;; Verify that shell command is now allowed in plan mode (with restrictions in prompt)
-        (is (contains? tool-names "eca_shell_command"))
+      (is (contains? tool-names "eca_shell_command"))
       ;; Verify that mutating tools are excluded
-        (is (not (contains? tool-names "eca_edit_file")))
-        (is (not (contains? tool-names "eca_write_file")))
-        (is (not (contains? tool-names "eca_move_file")))))
+      (is (not (contains? tool-names "eca_edit_file")))
+      (is (not (contains? tool-names "eca_write_file")))
+      (is (not (contains? tool-names "eca_move_file")))))
   (testing "Do not include plan edit tool if agent behavior"
     (is (match?
          (m/embeds [(m/mismatch {:name "eca_preview_file_change"})
