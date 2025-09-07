@@ -92,6 +92,18 @@
            :repoMap {:maxTotalEntries 800
                      :maxEntriesPerDir 50}}})
 
+(def ^:private fallback-behavior "agent")
+
+(defn validate-behavior-name
+  "Validates if a behavior exists in config. Returns the behavior if valid,
+   or the fallback behavior if not."
+  [behavior config]
+  (if (contains? (:behavior config) behavior)
+    behavior
+    (do (logger/warn logger-tag (format "Unknown behavior '%s' specified, falling back to '%s'"
+                                        behavior fallback-behavior))
+        fallback-behavior)))
+
 (defn get-env [env] (System/getenv env))
 (defn get-property [property] (System/getProperty property))
 

@@ -656,9 +656,10 @@
                       (swap! db* assoc-in [:chats new-id] {:id new-id})
                       new-id))
         db @db*
-        selected-behavior (or behavior
-                              (-> config :chat :defaultBehavior) ;; legacy
-                              (-> config :defaultBehavior))
+        raw-behavior (or behavior
+                         (-> config :chat :defaultBehavior) ;; legacy
+                         (-> config :defaultBehavior))
+        selected-behavior (config/validate-behavior raw-behavior config)
         behavior-config (get-in config [:behavior selected-behavior])
         ;; Simple model selection without behavior switching logic
         full-model (or model

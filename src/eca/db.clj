@@ -24,7 +24,6 @@
    :providers-config-hash nil
    :last-config-notified {}
    :stopping false
-   :chat-behaviors ["agent" "plan"]
    :models {}
    :mcp-clients {}
 
