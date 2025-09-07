@@ -235,7 +235,7 @@ _Notification:_
 
 ## Code Assistant Features
 
-=== "Chat: simple"
+=== "Chat: text"
 
     Example of a basic chat conversation with only texts:
 
@@ -248,15 +248,47 @@ _Notification:_
         C->>+S: chat/prompt
         Note over C,S: User sends: Hello there!
         S--)C: chat/contentReceived (system: start)
-        Note right of S: Parse contexts,<br/>renew login,<br/>prepare prompt
+        S--)C: chat/contentReceived (user: "hello there!")
+        Note right of S: Prepare prompt with all<br/>available contexts and tools.
         S->>+L: Send prompt
         S->>-C: chat/prompt
-        Note over C,S: Request sent to LLM
+        Note over C,S: Success: sent to LLM
         loop LLM streaming
-            Note right of L: Returns first `Hel`,<br/>then `lo`, etc
+            Note right of L: Returns first `H`,<br/>then `i!`, etc
             L--)S: Stream data
             S--)C: chat/contentReceived (assistant: text)
             
+        end
+        L->>-S: Finish response
+        S->>C: chat/contentReceived (system: finished)
+    ```
+    
+=== "Chat: tool call"
+
+    Example of a tool call loop LLM interaction:
+
+    ```mermaid
+    sequenceDiagram
+        autonumber
+        participant C as Client / Editor
+        participant S as ECA Server
+        participant L as LLM
+        C->>S: chat/prompt
+        Note over C,S: ...<br/>Same as text flow
+        S->>+L: Send prompt with<br/>available tools
+        loop LLM streaming / calling tools
+            Note right of L: Returns first `will`,<br/>then `check`, etc
+            L--)S: Stream data
+            S--)C: chat/contentReceived (assistant: text)
+            S--)C: chat/contentReceived (toolCallPrepare: name + args)
+            L->>-S: Finish response:<br/>needs tool call<br/>'eca_directory_tree'
+            S->>C: chat/contentReceived (toolCallRun)<br/>Ask user if should call tool
+            C--)S: chat/toolCallApprove
+            S->>C: chat/contentReceived (toolCallRunning)
+            Note right of S: Call tool and get result
+            S->>C: chat/contentReceived (toolCalled)
+            S->>+L: Send previous prompt +<br/>LLM response +<br/>tool call result
+            Note right of L: Stream response
         end
         L->>-S: Finish response
         S->>C: chat/contentReceived (system: finished)
