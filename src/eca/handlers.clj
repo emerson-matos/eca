@@ -32,6 +32,7 @@
      (models/sync-models! db* config (fn [_]))
      (let [db @db*]
        {:models (sort (keys (:models db)))
+        :chat-behaviors (distinct (keys (:behavior config)))
         :chat-default-model (f.chat/default-model db config)
         :chat-default-behavior (config/validate-behavior-name
                                 (or (:defaultBehavior (:chat config)) ;;legacy
