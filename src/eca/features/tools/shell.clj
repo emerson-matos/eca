@@ -1,19 +1,19 @@
 (ns eca.features.tools.shell
-  (:require [babashka.fs :as fs]
-            [babashka.process :as p]
-            [clojure.string :as string]
-            [eca.config :as config]
-            [eca.features.tools.util :as tools.util]
-            [eca.logger :as logger]
-            [eca.shared :as shared]))
+  (:require
+   [babashka.fs :as fs]
+   [babashka.process :as p]
+   [clojure.string :as string]
+   [eca.config :as config]
+   [eca.features.tools.util :as tools.util]
+   [eca.logger :as logger]
+   [eca.shared :as shared]))
 
 (set! *warn-on-reflection* true)
 
 (def ^:private logger-tag "[TOOLS-SHELL]")
 
-(defn ^:private shell-command [arguments {:keys [db config]}]
+(defn ^:private shell-command [arguments {:keys [db]}]
   (let [command-args (get arguments "command")
-        command (first (string/split command-args #"\s+"))
         user-work-dir (get arguments "working_directory")]
     (or (tools.util/invalid-arguments arguments [["working_directory" #(or (nil? %)
                                                                            (fs/exists? %)) "working directory $working_directory does not exist"]])

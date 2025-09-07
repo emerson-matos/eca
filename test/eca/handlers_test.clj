@@ -11,13 +11,13 @@
 
 (defrecord MockMessenger [calls-atom]
   messenger/IMessenger
-  (config-updated [this params]
+  (config-updated [_this params]
     (swap! calls-atom conj [:config-updated params]))
-  (tool-server-updated [this params]
+  (tool-server-updated [_this params]
     (swap! calls-atom conj [:tool-server-updated params]))
-  (chat-content-received [this data] nil)
-  (showMessage [this msg] nil)
-  (editor-diagnostics [this uri] nil))
+  (chat-content-received [_this _data] nil)
+  (showMessage [_this _msg] nil)
+  (editor-diagnostics [_this _uri] nil))
 
 (deftest initialize-test
   (testing "initializationOptions config is merged properly with default init config"
