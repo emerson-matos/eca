@@ -146,28 +146,6 @@
      messenger
      db*)))
 
-(defn ^:private update-tool-servers!
-  "Updates all tool servers (native and MCP) with new behavior status."
-  [tool-status-fn db* messenger config]
-  (messenger/tool-server-updated messenger {:type :native
-                                            :name "ECA"
-                                            :status "running"
-                                            :tools (->> (f.tools/native-tools @db* config)
-                                                        (mapv #(select-keys % [:name :description :parameters]))
-                                                        (mapv tool-status-fn))})
-  (doseq [[server-name {:keys [tools status]}] (:mcp-clients @db*)]
-    (messenger/tool-server-updated messenger {:type :mcp
-                                              :name server-name
-                                              :status (name (or status :unknown))
-                                              :tools (mapv tool-status-fn (or tools []))}))
-  (doseq [[server-name server-config] (:mcpServers config)]
-    (when (and (get server-config :disabled false)
-               (not (contains? (:mcp-clients @db*) server-name)))
-      (messenger/tool-server-updated messenger {:type :mcp
-                                                :name server-name
-                                                :status "disabled"
-                                                :tools []}))))
-
 (defn chat-selected-behavior-changed
   "Switches model to the one defined in custom-behavior or to the default-one
    and updates tool status for the new behavior"
@@ -176,4 +154,4 @@
         behavior-config (get-in config [:behavior validated-behavior])
         tool-status-fn (f.tools/make-tool-status-fn config validated-behavior)]
     (update-behavior-model! behavior-config config messenger db*)
-    (update-tool-servers! tool-status-fn db* messenger config)))
+    (f.tools/refresh-tool-servers! tool-status-fn db* messenger config)))

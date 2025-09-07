@@ -3,6 +3,7 @@
    [cheshire.core :as json]
    [clojure.set :as set]
    [clojure.string :as string]
+   [eca.config :as config]
    [eca.db :as db]
    [eca.features.commands :as f.commands]
    [eca.features.context :as f.context]
@@ -659,7 +660,7 @@
         raw-behavior (or behavior
                          (-> config :chat :defaultBehavior) ;; legacy
                          (-> config :defaultBehavior))
-        selected-behavior (config/validate-behavior raw-behavior config)
+        selected-behavior (config/validate-behavior-name raw-behavior config)
         behavior-config (get-in config [:behavior selected-behavior])
         ;; Simple model selection without behavior switching logic
         full-model (or model

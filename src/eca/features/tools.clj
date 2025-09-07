@@ -164,42 +164,41 @@
       true)))
 
 (defn approval
-  "Return the approval keyword for the specific tool call: ask, allow or deny."
-  ([all-tools tool-call-name args db config]
-   (approval all-tools tool-call-name args db config nil))
-  ([all-tools tool-call-name args db config behavior]
-   (let [{:keys [server require-approval-fn]} (first (filter #(= tool-call-name (:name %))
-                                                             all-tools))
-         {:keys [allow ask deny byDefault]}   (merge (get-in config [:toolCall :approval])
-                                                     (get-in config [:behavior behavior :toolCall :approval]))]
-     (cond
-       (and require-approval-fn (require-approval-fn args {:db db}))
-       :ask
+  "Return the approval keyword for the specific tool call: ask, allow or deny.
+   Behavior parameter is required - pass nil for global-only approval rules."
+  [all-tools tool-call-name args db config behavior]
+  (let [{:keys [server require-approval-fn]} (first (filter #(= tool-call-name (:name %))
+                                                            all-tools))
+        {:keys [allow ask deny byDefault]}   (merge (get-in config [:toolCall :approval])
+                                                    (get-in config [:behavior behavior :toolCall :approval]))]
+    (cond
+      (and require-approval-fn (require-approval-fn args {:db db}))
+      :ask
 
-       (some #(approval-matches? % server tool-call-name args) deny)
-       :deny
+      (some #(approval-matches? % server tool-call-name args) deny)
+      :deny
 
-       (some #(approval-matches? % server tool-call-name args) ask)
-       :ask
+      (some #(approval-matches? % server tool-call-name args) ask)
+      :ask
 
-       (some #(approval-matches? % server tool-call-name args) allow)
-       :allow
+      (some #(approval-matches? % server tool-call-name args) allow)
+      :allow
 
-       (legacy-manual-approval? config tool-call-name)
-       :ask
+      (legacy-manual-approval? config tool-call-name)
+      :ask
 
-       (= "ask" byDefault)
-       :ask
+      (= "ask" byDefault)
+      :ask
 
-       (= "allow" byDefault)
-       :allow
+      (= "allow" byDefault)
+      :allow
 
-       (= "deny" byDefault)
-       :deny
+      (= "deny" byDefault)
+      :deny
 
        ;; Probably a config error, default to ask
-       :else
-       :ask))))
+      :else
+      :ask)))
 
 (defn tool-call-summary [all-tools name args]
   (when-let [summary-fn (:summary-fn (first (filter #(= name (:name %))
@@ -219,3 +218,25 @@
   "Return the tool call details after invoking the tool."
   [name arguments details result]
   (tools.util/tool-call-details-after-invocation name arguments details result))
+
+(defn refresh-tool-servers!
+  "Updates all tool servers (native and MCP) with new behavior status."
+  [tool-status-fn db* messenger config]
+  (messenger/tool-server-updated messenger {:type :native
+                                            :name "ECA"
+                                            :status "running"
+                                            :tools (->> (native-tools @db* config)
+                                                        (mapv #(select-keys % [:name :description :parameters]))
+                                                        (mapv tool-status-fn))})
+  (doseq [[server-name {:keys [tools status]}] (:mcp-clients @db*)]
+    (messenger/tool-server-updated messenger {:type :mcp
+                                              :name server-name
+                                              :status (name (or status :unknown))
+                                              :tools (mapv tool-status-fn (or tools []))}))
+  (doseq [[server-name server-config] (:mcpServers config)]
+    (when (and (get server-config :disabled false)
+               (not (contains? (:mcp-clients @db*) server-name)))
+      (messenger/tool-server-updated messenger {:type :mcp
+                                                :name server-name
+                                                :status "disabled"
+                                                :tools []}))))

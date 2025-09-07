@@ -33,19 +33,17 @@
         ;; Use systemPromptFile from behavior config, or fall back to built-in
         prompt-file (or (:systemPromptFile behavior-config)
                        ;; For built-in behaviors without explicit config
-                       (when (#{"agent" "plan"} behavior)
-                         (str "prompts/" behavior "_behavior.md")))]
+                        (when (#{"agent" "plan"} behavior)
+                          (str "prompts/" behavior "_behavior.md")))]
     (cond
       ;; Custom behavior with absolute path
       (and prompt-file (string/starts-with? prompt-file "/"))
       (slurp prompt-file)
-      
+
       ;; Built-in or resource path
       prompt-file
-      (load-builtin-prompt (if (string/starts-with? prompt-file "prompts/")
-                            (subs prompt-file 8) ; Remove "prompts/" prefix
-                            prompt-file))
-      
+      (load-builtin-prompt (some-> prompt-file (string/replace-first #"prompts/" "")))
+
       ;; Fallback for unknown behavior
       :else
       (load-builtin-prompt "agent_behavior.md"))))

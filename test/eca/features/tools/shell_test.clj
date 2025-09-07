@@ -99,7 +99,7 @@
       "date"
       "env")))
 
-(deftest plan-mode-restrictions-test
+(deftest plan-mode-approval-restrictions-test
   (let [all-tools [{:name "eca_shell_command" :server "eca"}]
         config config/initial-config]
     
