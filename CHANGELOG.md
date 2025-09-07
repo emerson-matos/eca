@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added missing parameters to `toolCallRejected` where possible.  PR #109
+- Improve plan prompt present plan step.
 
 ## 0.49.0
 
