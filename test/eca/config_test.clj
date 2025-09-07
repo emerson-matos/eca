@@ -2,6 +2,7 @@
   (:require
    [clojure.test :refer [deftest is testing]]
    [eca.config :as config]
+   [eca.logger :as logger]
    [eca.test-helper :as h]
    [matcher-combinators.test :refer [match?]]))
 
@@ -103,6 +104,43 @@
            "providers" {"customProvider" {"key" "123"
                                           "models" {"gpt-5" {}}}
                         "open-router" {"models" {"openAi/o4-mini" {}}}}})))))
+
+(deftest validate-behavior-test
+  (testing "valid behavior returns as-is"
+    (let [config {:behavior {"agent" {} "plan" {} "custom" {}}}]
+      (is (= "agent" (config/validate-behavior-name "agent" config)))
+      (is (= "plan" (config/validate-behavior-name "plan" config)))
+      (is (= "custom" (config/validate-behavior-name "custom" config)))))
+
+  (testing "nil behavior returns fallback"
+    (let [config {:behavior {"agent" {} "plan" {}}}]
+      (is (= "agent" (config/validate-behavior-name nil config)))))
+
+  (testing "empty string behavior returns fallback"
+    (let [config {:behavior {"agent" {} "plan" {}}}]
+      (is (= "agent" (config/validate-behavior-name "" config)))))
+
+  (testing "unknown behavior returns fallback"
+    (let [config {:behavior {"agent" {} "plan" {}}}]
+      (with-redefs [logger/warn (fn [_ _] nil)]
+        (is (= "agent" (config/validate-behavior-name "nonexistent" config))))))
+
+  (testing "behavior validation with various configs"
+    ;; Config with only agent behavior
+    (let [config {:behavior {"agent" {}}}]
+      (is (= "agent" (config/validate-behavior-name "plan" config))))
+
+    ;; Config with custom behaviors only
+    (let [config {:behavior {"custom1" {} "custom2" {}}}]
+      (with-redefs [logger/warn (fn [_ _] nil)]
+        (is (= "agent" (config/validate-behavior-name "plan" config)))
+        (is (= "custom1" (config/validate-behavior-name "custom1" config)))
+        (is (= "custom2" (config/validate-behavior-name "custom2" config)))))
+
+    ;; Empty behavior config
+    (let [config {:behavior {}}]
+      (with-redefs [logger/warn (fn [_ _] nil)]
+        (is (= "agent" (config/validate-behavior-name "anything" config)))))))
 
 (deftest diff-keeping-vectors-test
   (testing "like clojure.data/diff"

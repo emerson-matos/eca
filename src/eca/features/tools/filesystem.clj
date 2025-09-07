@@ -309,8 +309,6 @@
                                          :description "The complete content to write to the file"}}
                  :required ["path" "content"]}
     :handler #'write-file
-    ;; TODO - add behaviors to config and define disabled tools there!
-    :enabled-fn #(not= "plan" (:behavior %))
     :summary-fn #'write-file-summary}
    "eca_edit_file"
    {:description (tools.util/read-tool-description "eca_edit_file")
@@ -325,7 +323,6 @@
                                                   :description "Whether to replace all occurences of the file or just the first one (default)"}}
                   :required ["path" "original_content" "new_content"]}
     :handler #'edit-file
-    :enabled-fn #(not= "plan" (:behavior %))
     :summary-fn (constantly "Editting file")}
    "eca_preview_file_change"
    {:description (tools.util/read-tool-description "eca_preview_file_change")
@@ -340,7 +337,6 @@
                                                  :description "Whether to preview replacing all occurrences or just the first one (default)"}}
                  :required ["path" "original_content" "new_content"]}
     :handler #'preview-file-change
-    :enabled-fn #(= "plan" (:behavior %))
     :summary-fn (constantly "Previewing change")}
    "eca_move_file"
    {:description (tools.util/read-tool-description "eca_move_file")
@@ -351,7 +347,6 @@
                                               :description "The new absolute file path to move to."}}
                   :required ["source" "destination"]}
     :handler #'move-file
-    :enabled-fn #(not= "plan" (:behavior %))
     :summary-fn (constantly "Moving file")}
    "eca_grep"
    {:description (tools.util/read-tool-description "eca_grep")

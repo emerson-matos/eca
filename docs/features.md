@@ -26,7 +26,7 @@ It supports both MCP server tools + ECA native tools.
 
 #### Native tools
 
-ECA support built-in tools to avoid user extra installation and configuration, these tools are always included on models requests that support tools and can be [disabled/configured via config](./configuration.md) `nativeTools`.
+ECA support built-in tools to avoid user extra installation and configuration, these tools are always included on models requests that support tools and can be [disabled via config](./configuration.md) `disabledTools`.
 
 ##### Filesystem
 
@@ -44,7 +44,7 @@ Provides access to filesystem under workspace root, listing, reading and writing
 
 Provides access to run shell commands, useful to run build tools, tests, and other common commands, supports exclude/include commands. 
 
-- `eca_shell_command`: run shell command. Supports configs to exclude commands via `:nativeTools :shell :excludeCommands`.
+- `eca_shell_command`: run shell command. Command exclusion can be configured using toolCall approval configuration with regex patterns.
 
 ##### Editor
 

@@ -32,10 +32,12 @@
      (models/sync-models! db* config (fn [_]))
      (let [db @db*]
        {:models (sort (keys (:models db)))
+        :chat-behaviors (distinct (keys (:behavior config)))
         :chat-default-model (f.chat/default-model db config)
-        :chat-behaviors (:chat-behaviors db)
-        :chat-default-behavior (or (:defaultBehavior (:chat config)) ;;legacy
-                                   (:defaultBehavior config))
+        :chat-default-behavior (config/validate-behavior-name
+                                (or (:defaultBehavior (:chat config)) ;;legacy
+                                    (:defaultBehavior config))
+                                config)
         :chat-welcome-message (or (:welcomeMessage (:chat config)) ;;legacy
                                   (:welcomeMessage config))}))))
 
@@ -49,16 +51,20 @@
                                                                           (config/notify-fields-changed-only!
                                                                            {:chat
                                                                             {:models (sort (keys models))
-                                                                             :behaviors (:chat-behaviors db)
+                                                                             :behaviors (distinct (keys (:behavior config)))
                                                                              :select-model (f.chat/default-model db config)
-                                                                             :select-behavior (or (:defaultBehavior (:chat config)) ;;legacy
-                                                                                                  (:defaultBehavior config))
+                                                                             :select-behavior (config/validate-behavior-name
+                                                                                               (or (:defaultBehavior (:chat config)) ;;legacy
+                                                                                                   (:defaultBehavior config))
+                                                                                               config)
                                                                              :welcome-message (or (:welcomeMessage (:chat config)) ;;legacy
                                                                                                   (:welcomeMessage config))
                                                                              ;; Deprecated, remove after changing emacs, vscode and intellij.
                                                                              :default-model (f.chat/default-model db config)
-                                                                             :default-behavior (or (:defaultBehavior (:chat config)) ;;legacy
-                                                                                                   (:defaultBehavior config))}}
+                                                                             :default-behavior (config/validate-behavior-name
+                                                                                                (or (:defaultBehavior (:chat config)) ;;legacy
+                                                                                                    (:defaultBehavior config))
+                                                                                                config)}}
                                                                            messenger
                                                                            db*)))))))]
     (swap! db* assoc-in [:config-updated-fns :sync-models] #(sync-models-and-notify! %))
@@ -131,4 +137,22 @@
    :eca/mcp-start-server
    (f.tools/start-server! (:name params) db* messenger config)))
 
-(defn chat-selected-behavior-changed [{:keys []} {:keys [_behavior]}])
+(defn ^:private update-behavior-model!
+  "Updates the selected model based on behavior configuration."
+  [behavior-config config messenger db*]
+  (when-let [model (or (:defaultModel behavior-config)
+                       (:defaultModel config))]
+    (config/notify-fields-changed-only!
+     {:chat {:select-model model}}
+     messenger
+     db*)))
+
+(defn chat-selected-behavior-changed
+  "Switches model to the one defined in custom-behavior or to the default-one
+   and updates tool status for the new behavior"
+  [{:keys [db* messenger config]} {:keys [behavior]}]
+  (let [validated-behavior (config/validate-behavior-name behavior config)
+        behavior-config (get-in config [:behavior validated-behavior])
+        tool-status-fn (f.tools/make-tool-status-fn config validated-behavior)]
+    (update-behavior-model! behavior-config config messenger db*)
+    (f.tools/refresh-tool-servers! tool-status-fn db* messenger config)))

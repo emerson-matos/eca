@@ -156,15 +156,17 @@
       (let [transport (->transport server-config workspaces)
             client (->client transport config workspaces)]
         (on-server-updated (->server name server-config :starting db))
-        (swap! db* assoc-in [:mcp-clients name] {:client client})
+        (swap! db* assoc-in [:mcp-clients name] {:client client :status :starting})
         (.initialize client)
         (swap! db* assoc-in [:mcp-clients name :tools] (list-server-tools obj-mapper client))
         (swap! db* assoc-in [:mcp-clients name :prompts] (list-server-prompts client))
         (swap! db* assoc-in [:mcp-clients name :resources] (list-server-resources client))
+        (swap! db* assoc-in [:mcp-clients name :status] :running)
         (on-server-updated (->server name server-config :running @db*)))
       (logger/info logger-tag (format "Started MCP server %s" name))
       (catch Exception e
         (logger/error logger-tag (format "Could not initialize MCP server %s." name) e)
+        (swap! db* assoc-in [:mcp-clients name :status] :failed)
         (on-server-updated (->server name server-config :failed db))))))
 
 (defn initialize-servers-async! [{:keys [on-server-updated]} db* config]
@@ -180,10 +182,12 @@
 (defn stop-server! [name db* config {:keys [on-server-updated]}]
   (when-let [{:keys [client]} (get-in @db* [:mcp-clients name])]
     (let [server-config (get-in config [:mcpServers name])]
+      (swap! db* assoc-in [:mcp-clients name :status] :stopping)
       (on-server-updated (->server name server-config :stopping @db*))
       (.closeGracefully ^McpSyncClient client)
-      (swap! db* update :mcp-clients dissoc name)
+      (swap! db* assoc-in [:mcp-clients name :status] :stopped)
       (on-server-updated (->server name server-config :stopped @db*))
+      (swap! db* update :mcp-clients dissoc name)
       (logger/info logger-tag (format "Stopped MCP server %s" name)))))
 
 (defn start-server! [name db* config {:keys [on-server-updated]}]
