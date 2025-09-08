@@ -5,6 +5,10 @@
 
 - Fix setting the `web-search` capability in the relevant modeles
 
+## 0.50.1
+
+- Bump mcp-java-sdk to 0.12.0.
+
 ## 0.50.0
 
 - Added missing parameters to `toolCallRejected` where possible.  PR #109
