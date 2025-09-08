@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix setting the `web-search` capability in the relevant models
+
 ## 0.50.1
 
 - Bump mcp-java-sdk to 0.12.0.
