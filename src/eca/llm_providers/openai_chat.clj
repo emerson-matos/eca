@@ -136,7 +136,7 @@
                              (filter #(every? % [:id :name :arguments-text]))
                              (map (fn [{:keys [arguments-text name] :as tool-call}]
                                     (try
-                                      (assoc tool-call :arguments (json/parse-string arguments-text true))
+                                      (assoc tool-call :arguments (json/parse-string arguments-text))
                                       (catch Exception e
                                         (let [error-msg (format "Failed to parse JSON arguments for tool '%s': %s"
                                                                 name (ex-message e))]
