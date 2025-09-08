@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.50.1
+
 - Bump mcp-java-sdk to 0.12.0.
 
 ## 0.50.0
