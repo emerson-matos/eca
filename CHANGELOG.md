@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.50.2
+
 - Fix setting the `web-search` capability in the relevant models
 - Fix summary text for tool calls using `openai-chat` api.
 
