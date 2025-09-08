@@ -1,9 +1,8 @@
 # Changelog
 
 ## Unreleased
-## 0.51.0
 
-- Fix setting the `web-search` capability in the relevant modeles
+- Fix setting the `web-search` capability in the relevant models
 
 ## 0.50.1
 
