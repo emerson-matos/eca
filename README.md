@@ -70,6 +70,8 @@ To use ECA, you need to configure at least one model / provider (_tip: Github Co
 2. Chose your provider
 3. Follow the steps to configure the key or auth for your provider.
 
+or [configure manually](https://eca.dev/models/).
+
 **Note**: For other providers or custom models, see the [custom providers documentation](https://eca.dev/models#custom-providers).
 
 ### 3. Start chatting
