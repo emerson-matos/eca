@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Support timeout on `eca_shell_command` with default to 1min.
+
 ## 0.50.2
 
 - Fix setting the `web-search` capability in the relevant models
