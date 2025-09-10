@@ -61,12 +61,16 @@
    ""
    "<contexts description=\"Manually provided by user, usually when provided user knows that your task is related to those files, so consider reliying on it but use tools to read/find any extra files/contexts if really needed.\">"
    (reduce
-    (fn [context-str {:keys [type path content partial uri]}]
+    (fn [context-str {:keys [type path position content partial uri]}]
       (str context-str (case type
                          :file (if partial
                                  (format "<file partial=true path=\"%s\">...\n%s\n...</file>\n" path content)
                                  (format "<file path=\"%s\">%s</file>\n" path content))
                          :repoMap (format "<repoMap description=\"Workspaces structure in a tree view, spaces represent file hierarchy\" >%s</repoMap>\n" @repo-map*)
+                         :cursor (format "<cursor description=\"Editor cursor position\" path=\"%s\" start=\"%s\" end=\"%s\"/>"
+                                         path
+                                         (str (:line (:start position)) ":" (:character (:start position)))
+                                         (str (:line (:end position)) ":" (:character (:end position))))
                          :mcpResource (format "<resource uri=\"%s\">%s</resource>\n" uri content)
                          "")))
     ""

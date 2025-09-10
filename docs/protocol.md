@@ -340,7 +340,7 @@ interface ChatPromptParams {
  */
 type ChatModel = string;
 
-type ChatContext = FileContext | DirectoryContext | WebContext | RepoMapContext | McpResourceContext;
+type ChatContext = FileContext | DirectoryContext | WebContext | RepoMapContext | CursorContext |McpResourceContext;
 
 /**
  * Context related to a file in the workspace
@@ -392,6 +392,33 @@ interface WebContext {
  */
 interface RepoMapContext {
     type: 'repoMap'; 
+}
+
+/**
+ * Context about the cursor position in editor, sent by client.
+ * Clients should track path and cursor position.
+ */
+interface CursorContext {
+    type: 'cursor'; 
+    
+    /**
+     * File path of where the cursor is.
+     */
+    path: string;
+    
+    /**
+     * Cursor position, if not using a selection start should be equal to end.
+     */
+    position: {
+       start: {
+           line: number;
+           character: number;
+       },
+       end: {
+           line: number;
+           character: number;
+       }
+    }
 }
 
 /***

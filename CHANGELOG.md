@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Support timeout on `eca_shell_command` with default to 1min.
+- Support `@cursor` context representing the current editor cursor position. #103
 
 ## 0.50.2
 

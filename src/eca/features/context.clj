@@ -36,7 +36,7 @@
 
 (defn raw-contexts->refined [contexts db config]
   (concat (agents-file-contexts db config)
-          (mapcat (fn [{:keys [type path lines-range uri]}]
+          (mapcat (fn [{:keys [type path lines-range position uri]}]
                     (case (name type)
                       "file" [{:type :file
                                :path path
@@ -50,6 +50,9 @@
                                                  :path filename
                                                  :content (llm-api/refine-file-context filename nil)}))))
                       "repoMap" [{:type :repoMap}]
+                      "cursor" [{:type :cursor
+                                 :path path
+                                 :position position}]
                       "mcpResource" (try
                                       (mapv
                                        (fn [{:keys [text]}]
@@ -59,7 +62,8 @@
                                        (:contents (f.mcp/get-resource! uri db)))
                                       (catch Exception e
                                         (logger/warn logger-tag (format "Error getting MCP resource %s: %s" uri (.getMessage e)))
-                                        []))))
+                                        []))
+                      nil))
                   contexts)))
 
 (defn ^:private contexts-for [root-filename query config]
@@ -114,7 +118,8 @@
                                              :path (shared/uri->filename uri)})
                         (:workspace-folders @db*))
         mcp-resources (mapv #(assoc % :type "mcpResource") (f.mcp/all-resources @db*))]
-    (concat [{:type "repoMap"}]
+    (concat [{:type "repoMap"}
+             {:type "cursor"}]
             root-dirs
             relative-files
             workspace-files
