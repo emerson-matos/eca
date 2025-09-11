@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.51.2
+
 - Minor log improvement of failed to start MCPs.
 
 ## 0.51.1
