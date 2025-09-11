@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Minor log improvement of failed to start MCPs.
+
 ## 0.51.1
 
 - Bump mcp java sdk to 1.12.1.

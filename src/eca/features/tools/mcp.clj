@@ -28,7 +28,8 @@
     McpSchema$Tool
     McpTransport]
    [java.time Duration]
-   [java.util List Map]))
+   [java.util List Map]
+   [java.util.concurrent TimeoutException]))
 
 (set! *warn-on-reflection* true)
 
@@ -68,10 +69,10 @@
       (getProcessBuilder [] (-> (ProcessBuilder. ^List pb-init-args)
                                 (.directory (io/file work-dir)))))))
 
-(defn ^:private ->client ^McpSyncClient [name transport config workspaces]
+(defn ^:private ->client ^McpSyncClient [name transport init-timeout workspaces]
   (-> (McpClient/sync transport)
       (.requestTimeout (Duration/ofHours 10)) ;; required any value for initializationTimeout work
-      (.initializationTimeout (Duration/ofSeconds (:mcpTimeoutSeconds config)))
+      (.initializationTimeout (Duration/ofSeconds init-timeout))
       (.capabilities (-> (McpSchema$ClientCapabilities/builder)
                          (.roots true)
                          (.build)))
@@ -152,23 +153,28 @@
   (let [db @db*
         workspaces (:workspace-folders @db*)
         server-config (get-in config [:mcpServers name])
-        obj-mapper (ObjectMapper.)]
+        obj-mapper (ObjectMapper.)
+        init-timeout (:mcpTimeoutSeconds config)
+        transport (->transport server-config workspaces)
+        client (->client name transport init-timeout workspaces)]
+    (on-server-updated (->server name server-config :starting db))
+    (swap! db* assoc-in [:mcp-clients name] {:client client :status :starting})
     (try
-      (let [transport (->transport server-config workspaces)
-            client (->client name transport config workspaces)]
-        (on-server-updated (->server name server-config :starting db))
-        (swap! db* assoc-in [:mcp-clients name] {:client client :status :starting})
-        (.initialize client)
-        (swap! db* assoc-in [:mcp-clients name :tools] (list-server-tools obj-mapper client))
-        (swap! db* assoc-in [:mcp-clients name :prompts] (list-server-prompts client))
-        (swap! db* assoc-in [:mcp-clients name :resources] (list-server-resources client))
-        (swap! db* assoc-in [:mcp-clients name :status] :running)
-        (on-server-updated (->server name server-config :running @db*)))
+      (.initialize client)
+      (swap! db* assoc-in [:mcp-clients name :tools] (list-server-tools obj-mapper client))
+      (swap! db* assoc-in [:mcp-clients name :prompts] (list-server-prompts client))
+      (swap! db* assoc-in [:mcp-clients name :resources] (list-server-resources client))
+      (swap! db* assoc-in [:mcp-clients name :status] :running)
+      (on-server-updated (->server name server-config :running @db*))
       (logger/info logger-tag (format "Started MCP server %s" name))
       (catch Exception e
-        (logger/error logger-tag (format "Could not initialize MCP server %s." name) e)
+        (let [cause-message (if (instance? TimeoutException (.getCause e))
+                              (format "Timeout of %s secs waiting for server start" init-timeout)
+                              (.getMessage (.getCause e)))]
+          (logger/error logger-tag (format "Could not initialize MCP server %s: %s: %s" name (.getMessage e) cause-message)))
         (swap! db* assoc-in [:mcp-clients name :status] :failed)
-        (on-server-updated (->server name server-config :failed db))))))
+        (on-server-updated (->server name server-config :failed db))
+        (.close client)))))
 
 (defn initialize-servers-async! [{:keys [on-server-updated]} db* config]
   (let [db @db*]
