@@ -323,7 +323,7 @@
                                                   :description "Whether to replace all occurences of the file or just the first one (default)"}}
                   :required ["path" "original_content" "new_content"]}
     :handler #'edit-file
-    :summary-fn (constantly "Editting file")}
+    :summary-fn (constantly "Editing file")}
    "eca_preview_file_change"
    {:description (tools.util/read-tool-description "eca_preview_file_change")
     :parameters {:type "object"
