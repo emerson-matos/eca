@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.51.1
+
 - Bump mcp java sdk to 1.12.1.
 - Fix mcp servers default timeout from 20s -> 60s.
 
