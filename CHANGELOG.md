@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Support http-streamable http servers (non auth support for now)
+- Fix promtps that send assistant messages not working for anthropic.
 
 ## 0.51.3
 
