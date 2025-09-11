@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.51.3
+
 - Fix manual anthropic login to save credentials in global config instead of cache.
 
 ## 0.51.2
