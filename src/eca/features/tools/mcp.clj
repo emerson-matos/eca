@@ -9,7 +9,7 @@
   (:import
    [com.fasterxml.jackson.databind ObjectMapper]
    [io.modelcontextprotocol.client McpClient McpSyncClient]
-   [io.modelcontextprotocol.client.transport ServerParameters StdioClientTransport]
+   [io.modelcontextprotocol.client.transport HttpClientStreamableHttpTransport ServerParameters StdioClientTransport]
    [io.modelcontextprotocol.spec
     McpSchema$CallToolRequest
     McpSchema$ClientCapabilities
@@ -49,25 +49,33 @@
                           (str "$" var1)
                           (str "${" var2 "}"))))))
 
-(defn ^:private ->transport ^McpTransport [{:keys [command args env]} workspaces]
-  (let [command ^String (replace-env-vars command)
-        b (ServerParameters/builder command)
-        b (if args
-            (.args b ^List (mapv replace-env-vars (or args [])))
-            b)
-        b (if env
-            (.env b (update-keys env name))
-            b)
-        pb-init-args []
-        ;; TODO we are hard coding the first workspace
-        work-dir (or (some-> workspaces
-                             first
-                             :uri
-                             shared/uri->filename)
-                     (config/get-property "user.home"))]
-    (proxy [StdioClientTransport] [(.build b)]
-      (getProcessBuilder [] (-> (ProcessBuilder. ^List pb-init-args)
-                                (.directory (io/file work-dir)))))))
+(defn ^:private ->transport ^McpTransport [server-config workspaces]
+  (if (:url server-config)
+    ;; HTTP Streamable transport
+    (let [url (replace-env-vars (:url server-config))]
+      (-> (HttpClientStreamableHttpTransport/builder url)
+          (.build)))
+
+    ;; STDIO transport
+    (let [{:keys [command args env]} server-config
+          command ^String (replace-env-vars command)
+          b (ServerParameters/builder command)
+          b (if args
+              (.args b ^List (mapv replace-env-vars (or args [])))
+              b)
+          b (if env
+              (.env b (update-keys env name))
+              b)
+          pb-init-args []
+          ;; TODO we are hard coding the first workspace
+          work-dir (or (some-> workspaces
+                               first
+                               :uri
+                               shared/uri->filename)
+                       (config/get-property "user.home"))]
+      (proxy [StdioClientTransport] [(.build b)]
+        (getProcessBuilder [] (-> (ProcessBuilder. ^List pb-init-args)
+                                  (.directory (io/file work-dir))))))))
 
 (defn ^:private ->client ^McpSyncClient [name transport init-timeout workspaces]
   (-> (McpClient/sync transport)
@@ -85,6 +93,7 @@
   {:name (name mcp-name)
    :command (:command server-config)
    :args (:args server-config)
+   :url (:url server-config)
    :tools (get-in db [:mcp-clients mcp-name :tools])
    :prompts (get-in db [:mcp-clients mcp-name :prompts])
    :resources (get-in db [:mcp-clients mcp-name :resources])

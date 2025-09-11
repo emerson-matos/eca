@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Support http-streamable http servers (non auth support for now)
+
 ## 0.51.3
 
 - Fix manual anthropic login to save credentials in global config instead of cache.

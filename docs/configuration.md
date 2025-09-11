@@ -58,7 +58,7 @@ For providers and models configuration check the [dedicated models section](./mo
 
 For MCP servers configuration, use the `mcpServers` config, examples:
 
-=== "Example 1"
+=== "Stdio"
 
     `~/.config/eca/config.json`
     ```javascript
@@ -66,22 +66,22 @@ For MCP servers configuration, use the `mcpServers` config, examples:
       "mcpServers": {
         "memory": {
           "command": "npx",
-          "args": ["-y", "@modelcontextprotocol/server-memory"]
+          "args": ["-y", "@modelcontextprotocol/server-memory"],
+          // optional
+          "env": {"FOO" "bar"}
         }
       }
     }
     ```
     
-=== "Example 2"
+=== "HTTP-streamable"
 
     `~/.config/eca/config.json`
     ```javascript
     {
       "mcpServers": {
         "cool-mcp": {
-          "command": "bash",
-          "args": ["-c", "my-cool-mcp"],
-          "env": {"FOO" "bar"}
+          "url": "https://my-remote-mcp.com/mcp"
         }
       }
     }
@@ -393,7 +393,8 @@ ECA allows to totally customize the prompt sent to LLM via the `behavior` config
         mcpTimeoutSeconds?: number;
         lspTimeoutSeconds?: number;
         mcpServers?: {[key: string]: {
-            command: string;
+            url?: string; // for remote http-stremable servers
+            command?: string; // for stdio servers
             args?: string[];
             disabled?: boolean;
         }};
