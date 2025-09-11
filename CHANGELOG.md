@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Bump mcp java sdk to 1.12.1.
+- Fix mcp servers default timeout from 20s -> 60s.
+
 ## 0.51.0
 
 - Support timeout on `eca_shell_command` with default to 1min.
