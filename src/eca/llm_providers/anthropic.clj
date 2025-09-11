@@ -3,6 +3,7 @@
    [cheshire.core :as json]
    [clojure.java.io :as io]
    [clojure.string :as string]
+   [eca.config :as config]
    [eca.features.login :as f.login]
    [eca.llm-util :as llm-util]
    [eca.logger :as logger]
@@ -328,11 +329,11 @@
 
 (defmethod f.login/login-step ["anthropic" :login/waiting-api-key] [{:keys [db* input provider send-msg!] :as ctx}]
   (if (string/starts-with? input "sk-")
-    (do (swap! db* assoc-in [:auth provider] {:step :login/done
-                                              :type :auth/token
-                                              :mode :manual
-                                              :api-key input})
-        (f.login/login-done! ctx))
+    (do
+      (config/update-global-config! {:providers {"anthropic" {:key input}}})
+      (swap! db* dissoc :auth provider)
+      (send-msg! (format "API key and models saved to %s" (.getCanonicalPath (config/global-config-file))))
+      (f.login/login-done! ctx))
     (send-msg! (format "Invalid API key '%s'" input))))
 
 (defmethod f.login/login-step ["anthropic" :login/renew-token] [{:keys [db* provider] :as ctx}]

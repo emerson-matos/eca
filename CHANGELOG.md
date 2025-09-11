@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix manual anthropic login to save credentials in global config instead of cache.
+
 ## 0.51.2
 
 - Minor log improvement of failed to start MCPs.
