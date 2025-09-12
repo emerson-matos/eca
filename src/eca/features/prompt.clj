@@ -51,31 +51,33 @@
 (defn build-instructions [refined-contexts rules repo-map* behavior config]
   (multi-str
    (eca-prompt behavior config)
-   "<rules>"
-   (reduce
-    (fn [rule-str {:keys [name content]}]
-      (str rule-str (format "<rule name=\"%s\">%s</rule>\n" name content)))
-    ""
-    rules)
-   "</rules>"
+   (when (seq rules)
+     ["<rules description=\"Rules defined by user\">\n"
+      (reduce
+       (fn [rule-str {:keys [name content]}]
+         (str rule-str (format "<rule name=\"%s\">%s</rule>\n" name content)))
+       ""
+       rules)
+      "</rules>"])
    ""
-   "<contexts description=\"Manually provided by user, usually when provided user knows that your task is related to those files, so consider reliying on it but use tools to read/find any extra files/contexts if really needed.\">"
-   (reduce
-    (fn [context-str {:keys [type path position content partial uri]}]
-      (str context-str (case type
-                         :file (if partial
-                                 (format "<file partial=true path=\"%s\">...\n%s\n...</file>\n" path content)
-                                 (format "<file path=\"%s\">%s</file>\n" path content))
-                         :repoMap (format "<repoMap description=\"Workspaces structure in a tree view, spaces represent file hierarchy\" >%s</repoMap>\n" @repo-map*)
-                         :cursor (format "<cursor description=\"Editor cursor position\" path=\"%s\" start=\"%s\" end=\"%s\"/>"
-                                         path
-                                         (str (:line (:start position)) ":" (:character (:start position)))
-                                         (str (:line (:end position)) ":" (:character (:end position))))
-                         :mcpResource (format "<resource uri=\"%s\">%s</resource>\n" uri content)
-                         "")))
-    ""
-    refined-contexts)
-   "</contexts>"))
+   (when (seq refined-contexts)
+     ["<contexts description=\"Manually provided by user, usually when provided user knows that your task is related to those files, so consider reliying on it, if not enough, use tools to read/gather any extra files/contexts.\">"
+      (reduce
+       (fn [context-str {:keys [type path position content partial uri]}]
+         (str context-str (case type
+                            :file (if partial
+                                    (format "<file partial=true path=\"%s\">...\n%s\n...</file>\n" path content)
+                                    (format "<file path=\"%s\">%s</file>\n" path content))
+                            :repoMap (format "<repoMap description=\"Workspaces structure in a tree view, spaces represent file hierarchy\" >%s</repoMap>\n" @repo-map*)
+                            :cursor (format "<cursor description=\"User editor cursor position (line:character)\" path=\"%s\" start=\"%s\" end=\"%s\"/>\n"
+                                            path
+                                            (str (:line (:start position)) ":" (:character (:start position)))
+                                            (str (:line (:end position)) ":" (:character (:end position))))
+                            :mcpResource (format "<resource uri=\"%s\">%s</resource>\n" uri content)
+                            "")))
+       ""
+       refined-contexts)
+      "</contexts>"])))
 
 (defn build-init-prompt [db]
   (replace-vars

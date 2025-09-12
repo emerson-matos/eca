@@ -73,7 +73,7 @@
      (assoc m k (apply f v args))
      m)))
 
-(defn multi-str [& strings] (string/join "\n" (remove nil? strings)))
+(defn multi-str [& strings] (string/join "\n" (remove nil? (flatten strings))))
 
 (defn tokens->cost [input-tokens input-cache-creation-tokens input-cache-read-tokens output-tokens model-capabilities]
   (when-let [{:keys [input-token-cost output-token-cost
