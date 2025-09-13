@@ -14,9 +14,8 @@ ECA will return to clients the models configured, either via config or login.
 |-------------------------------|-------------|----------------------|----------------|------------|-------------|
 | OpenAI                        | √           | √                    | √              | √          | √           |
 | Anthropic (Also subscription) | √           | √                    | √              | √          | √           |
-| Github Copilot                | √           | √                    | √              | X          |             |
+| Github Copilot                | √           | √                    | √              | X          | √           |
 | Ollama local models           | √           | √                    | X              | X          |             |
-
 
 ### Config
 
