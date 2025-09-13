@@ -32,14 +32,14 @@
     :role role
     :content content}))
 
-(defn finish-chat-prompt! [status {:keys [chat-id db* clear-history-after-finished?] :as chat-ctx}]
+(defn finish-chat-prompt! [status {:keys [chat-id db* on-finished-side-effect] :as chat-ctx}]
   (swap! db* assoc-in [:chats chat-id :status] status)
   (send-content! chat-ctx :system
                  {:type :progress
                   :state :finished})
-  (if clear-history-after-finished?
-    (swap! db* assoc-in [:chats chat-id :messages] [])
-    (db/update-workspaces-cache! @db*)))
+  (when on-finished-side-effect
+    (on-finished-side-effect))
+  (db/update-workspaces-cache! @db*))
 
 (defn ^:private assert-chat-not-stopped! [{:keys [chat-id db*] :as chat-ctx}]
   (when (identical? :stopping (get-in @db* [:chats chat-id :status]))
@@ -331,36 +331,6 @@
 (defn ^:private tool-name->origin [name all-tools]
   (:origin (first (filter #(= name (:name %)) all-tools))))
 
-(defn ^:private usage-msg->usage
-  "How this works:
-    - tokens: the last message from API already contain the total
-              tokens considered, but we save them for cost calculation
-    - cost: we count the tokens in past requests done + current one"
-  [{:keys [input-tokens output-tokens
-           input-cache-creation-tokens input-cache-read-tokens]}
-   full-model
-   {:keys [chat-id db*]}]
-  (when (and output-tokens input-tokens)
-    (swap! db* update-in [:chats chat-id :total-input-tokens] (fnil + 0) input-tokens)
-    (swap! db* update-in [:chats chat-id :total-output-tokens] (fnil + 0) output-tokens)
-    (when input-cache-creation-tokens
-      (swap! db* update-in [:chats chat-id :total-input-cache-creation-tokens] (fnil + 0) input-cache-creation-tokens))
-    (when input-cache-read-tokens
-      (swap! db* update-in [:chats chat-id :total-input-cache-read-tokens] (fnil + 0) input-cache-read-tokens))
-    (let [db @db*
-          total-input-tokens (get-in db [:chats chat-id :total-input-tokens] 0)
-          total-input-cache-creation-tokens (get-in db [:chats chat-id :total-input-cache-creation-tokens] nil)
-          total-input-cache-read-tokens (get-in db [:chats chat-id :total-input-cache-read-tokens] nil)
-          total-output-tokens (get-in db [:chats chat-id :total-output-tokens] 0)
-          model-capabilities (get-in db [:models full-model])]
-      (assoc-some {:session-tokens (+ input-tokens
-                                      (or input-cache-read-tokens 0)
-                                      (or input-cache-creation-tokens 0)
-                                      output-tokens)}
-                  :limit (:limit model-capabilities)
-                  :last-message-cost (shared/tokens->cost input-tokens input-cache-creation-tokens input-cache-read-tokens output-tokens model-capabilities)
-                  :session-cost (shared/tokens->cost total-input-tokens total-input-cache-creation-tokens total-input-cache-read-tokens total-output-tokens model-capabilities)))))
-
 (defn ^:private tokenize-args [^String s]
   (if (string/blank? s)
     []
@@ -389,17 +359,15 @@
 
 (defn ^:private prompt-messages!
   [user-messages
-   clear-history-after-finished?
    {:keys [db* config chat-id contexts behavior full-model instructions messenger] :as chat-ctx}]
   (when (seq contexts)
     (send-content! chat-ctx :system {:type :progress
                                      :state :running
                                      :text "Parsing given context"}))
   (let [db @db*
-        chat-ctx (assoc chat-ctx :clear-history-after-finished? clear-history-after-finished?)
         [provider model] (string/split full-model #"/" 2)
         past-messages (get-in db [:chats chat-id :messages] [])
-        all-tools (f.tools/all-tools behavior @db* config)
+        all-tools (f.tools/all-tools chat-id behavior @db* config)
         received-msgs* (atom "")
         reasonings* (atom {})
         add-to-history! (fn [msg]
@@ -437,7 +405,7 @@
                                                                      :state :running
                                                                      :text "Generating"}))
       :on-usage-updated (fn [usage]
-                          (when-let [usage (usage-msg->usage usage full-model chat-ctx)]
+                          (when-let [usage (shared/usage-msg->usage usage full-model chat-ctx)]
                             (send-content! chat-ctx :system
                                            (merge {:type :usage}
                                                   usage))))
@@ -520,7 +488,7 @@
                                                                         :details details
                                                                         :summary summary})
                                                 ;; assert: In :executing
-                                                (let [result (f.tools/call-tool! name arguments @db* config messenger behavior)
+                                                (let [result (f.tools/call-tool! name arguments db* config messenger behavior chat-id)
                                                       details (f.tools/tool-call-details-after-invocation name arguments details result)
                                                       {:keys [start-time]} (get-tool-call-state @db* chat-id id)]
                                                   (add-to-history! {:role "tool_call" :content (assoc tool-call
@@ -601,7 +569,7 @@
       (send-content! chat-ctx :system
                      {:type :text
                       :text error-message})
-      (prompt-messages! messages false chat-ctx))))
+      (prompt-messages! messages chat-ctx))))
 
 (defn ^:private message-content->chat-content [role message-content]
   (case role
@@ -633,7 +601,7 @@
               :text (:text message-content)}))
 
 (defn ^:private handle-command! [{:keys [command args]} chat-ctx]
-  (let [{:keys [type] :as result} (f.commands/handle-command! command args chat-ctx)]
+  (let [{:keys [type on-finished-side-effect] :as result} (f.commands/handle-command! command args chat-ctx)]
     (case type
       :chat-messages (do
                        (doseq [[chat-id messages] (:chats result)]
@@ -643,7 +611,7 @@
                                           (message-content->chat-content (:role message) (:content message)))))
                        (finish-chat-prompt! :idle chat-ctx))
       :new-chat-status (finish-chat-prompt! (:status result) chat-ctx)
-      :send-prompt (prompt-messages! [{:role "user" :content (:prompt result)}] (:clear-history-after-finished? result) chat-ctx)
+      :send-prompt (prompt-messages! [{:role "user" :content (:prompt result)}] (assoc chat-ctx :on-finished-side-effect on-finished-side-effect))
       nil)))
 
 (defn prompt
@@ -690,7 +658,7 @@
     (case (:type decision)
       :mcp-prompt (send-mcp-prompt! decision chat-ctx)
       :eca-command (handle-command! decision chat-ctx)
-      :prompt-message (prompt-messages! [{:role "user" :content [{:type :text :text message}]}] false chat-ctx))
+      :prompt-message (prompt-messages! [{:role "user" :content [{:type :text :text message}]}] chat-ctx))
     {:chat-id chat-id
      :model full-model
      :status :prompting}))

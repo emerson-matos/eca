@@ -21,6 +21,9 @@
 (defn ^:private init-prompt-template* [] (slurp (io/resource "prompts/init.md")))
 (def ^:private init-prompt-template (memoize init-prompt-template*))
 
+(defn ^:private compact-prompt-template* [] (slurp (io/resource "prompts/compact.md")))
+(def ^:private compact-prompt-template (memoize compact-prompt-template*))
+
 (defn ^:private replace-vars [s vars]
   (reduce
    (fn [p [k v]]
@@ -79,10 +82,17 @@
        refined-contexts)
       "</contexts>"])))
 
-(defn build-init-prompt [db]
+(defn init-prompt [db]
   (replace-vars
    (init-prompt-template)
    {:workspaceFolders (string/join ", " (map (comp shared/uri->filename :uri) (:workspace-folders db)))}))
+
+(defn compact-prompt [additional-input]
+  (replace-vars
+   (compact-prompt-template)
+   {:addionalUserInput (if additional-input
+                         (format "You MUST respect this user input in the summarization: %s." additional-input)
+                         "")}))
 
 (defn get-prompt! [^String name ^Map arguments db]
   (logger/info logger-tag (format "Calling prompt '%s' with args '%s'" name arguments))

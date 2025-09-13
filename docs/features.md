@@ -40,7 +40,7 @@ Provides access to filesystem under workspace root, listing, reading and writing
 - `eca_read_file`: read a file content.
 - `eca_write_file`: write content to a new file.
 - `eca_edit_file`: replace lines of a file with a new content.
-- `eca_plan_edit_file`: Only used in plan mode, replace lines of a file with a new content.
+- `eca_preview_edit_file`: Only used in plan mode, showing what changes will happen after user decides to execute the plan.
 - `eca_move_file`: move/rename a file.
 - `eca_grep`: ripgrep/grep for paths with specified content.
 
@@ -91,8 +91,9 @@ The built-in commands are:
 
 `/init`: Create/update the AGENTS.md file with details about the workspace for best LLM output quality.
 `/login`: Log into a provider. Ex: `github-copilot`, `anthropic`.
-`/costs`: Show costs about current session.
+`/compact`: Compact/summarize conversation helping reduce context window.
 `/resume`: Resume a chat from previous session of this workspace folder.
+`/costs`: Show costs about current session.
 `/config`: Show ECA config for troubleshooting.
 `/doctor`: Show information about ECA, useful for troubleshooting.
 `/repo-map-show`: Show the current repoMap context of the session.

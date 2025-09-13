@@ -77,7 +77,8 @@
    :commands []
    :disabledTools []
    :toolCall {:approval {:byDefault "ask"
-                         :allow {"eca_preview_file_change" {}
+                         :allow {"eca_compact_chat" {}
+                                 "eca_preview_file_change" {}
                                  "eca_read_file" {}
                                  "eca_directory_tree" {}
                                  "eca_grep" {}

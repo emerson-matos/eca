@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add `/compact` command to summarize the current conversation helping reduce context size.
+
 ## 0.52.0
 
 - Support http-streamable http servers (non auth support for now)

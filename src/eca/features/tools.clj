@@ -3,6 +3,7 @@
    eca native tools and MCP servers."
   (:require
    [clojure.string :as string]
+   [eca.features.tools.chat :as f.tools.chat]
    [eca.features.tools.custom :as f.tools.custom]
    [eca.features.tools.editor :as f.tools.editor]
    [eca.features.tools.filesystem :as f.tools.filesystem]
@@ -48,6 +49,7 @@
           f.tools.filesystem/definitions
           f.tools.shell/definitions
           f.tools.editor/definitions
+          f.tools.chat/definitions
           (f.tools.custom/definitions config))))
 
 (defn native-tools [db config]
@@ -56,7 +58,7 @@
 (defn all-tools
   "Returns all available tools, including both native ECA tools
    (like filesystem and shell tools) and tools provided by MCP servers."
-  [behavior db config]
+  [chat-id behavior db config]
   (let [disabled-tools (get-disabled-tools config behavior)]
     (filterv
      (fn [tool]
@@ -65,19 +67,23 @@
             ((or (:enabled-fn tool) (constantly true))
              {:behavior behavior
               :db db
+              :chat-id chat-id
               :config config})))
      (concat
       (mapv #(assoc % :origin :native) (native-tools db config))
       (mapv #(assoc % :origin :mcp) (f.mcp/all-tools db))))))
 
-(defn call-tool! [^String name ^Map arguments db config messenger behavior]
+(defn call-tool! [^String name ^Map arguments db* config messenger behavior chat-id]
   (logger/info logger-tag (format "Calling tool '%s' with args '%s'" name arguments))
-  (let [arguments (update-keys arguments clojure.core/name)]
+  (let [arguments (update-keys arguments clojure.core/name)
+        db @db*]
     (try
       (let [result (if-let [native-tool-handler (get-in (native-definitions db config) [name :handler])]
                      (native-tool-handler arguments {:db db
+                                                     :db* db*
                                                      :config config
                                                      :messenger messenger
+                                                     :chat-id chat-id
                                                      :behavior behavior})
                      (f.mcp/call-tool! name arguments db))]
         (logger/debug logger-tag "Tool call result: " result)
@@ -95,6 +101,7 @@
                                               :name "ECA"
                                               :status "running"
                                               :tools (->> (native-tools @db* config)
+                                                          (remove #(= "eca_compact_chat" (:name %)))
                                                           (mapv #(select-keys % [:name :description :parameters]))
                                                           (mapv tool-status-fn))})
     (f.mcp/initialize-servers-async!
