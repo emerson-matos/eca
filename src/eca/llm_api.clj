@@ -90,6 +90,7 @@
         tools (when (:tools model-capabilities)
                 (mapv tool->llm-tool tools))
         reason? (:reason? model-capabilities)
+        supports-image? (:image-input? model-capabilities)
         web-search (:web-search model-capabilities)
         max-output-tokens (:max-output-tokens model-capabilities)
         provider-config (get-in config [:providers provider])
@@ -114,6 +115,7 @@
           :user-messages user-messages
           :max-output-tokens max-output-tokens
           :reason? reason?
+          :supports-image? supports-image?
           :past-messages past-messages
           :tools tools
           :web-search web-search
@@ -129,6 +131,7 @@
           :user-messages user-messages
           :max-output-tokens max-output-tokens
           :reason? reason?
+          :supports-image? supports-image?
           :past-messages past-messages
           :tools tools
           :web-search web-search
@@ -145,6 +148,7 @@
           :user-messages user-messages
           :max-output-tokens max-output-tokens
           :reason? reason?
+          :supports-image? supports-image?
           :past-messages past-messages
           :tools tools
           :extra-payload extra-payload
@@ -154,6 +158,7 @@
                           "x-request-id" (str (random-uuid))
                           "vscode-sessionid" ""
                           "vscode-machineid" ""
+                          "Copilot-Vision-Request" "true"
                           "copilot-integration-id" "vscode-chat"}}
          callbacks)
 
@@ -161,6 +166,7 @@
         (llm-providers.ollama/completion!
          {:api-url api-url
           :reason? (:reason? model-capabilities)
+          :supports-image? supports-image?
           :model model
           :instructions instructions
           :user-messages user-messages
@@ -183,6 +189,7 @@
             :user-messages user-messages
             :max-output-tokens max-output-tokens
             :reason? reason?
+            :supports-image? supports-image?
             :past-messages past-messages
             :tools tools
             :extra-payload extra-payload

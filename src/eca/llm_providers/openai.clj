@@ -41,7 +41,7 @@
      (fn [e]
        (on-error {:exception e})))))
 
-(defn ^:private normalize-messages [past-messages]
+(defn ^:private normalize-messages [messages supports-image?]
   (keep (fn [{:keys [role content] :as msg}]
           (case role
             "tool_call" {:type "function_call"
@@ -62,18 +62,29 @@
             (update msg :content (fn [c]
                                    (if (string? c)
                                      c
-                                     (mapv #(if (= "text" (name (:type %)))
+                                     (keep #(case (name (:type %))
+
+                                              "text"
                                               (assoc % :type (if (= "user" role)
                                                                "input_text"
                                                                "output_text"))
-                                              %) c))))))
-        past-messages))
 
-(defn completion! [{:keys [model user-messages instructions reason? api-key api-url url-relative-path
+                                              "image"
+                                              (when supports-image?
+                                                {:type "input_image"
+                                                 :image_url (format "data:%s;base64,%s"
+                                                                    (:media-type %)
+                                                                    (:base64 %))})
+
+                                              %)
+                                           c))))))
+        messages))
+
+(defn completion! [{:keys [model user-messages instructions reason? supports-image? api-key api-url url-relative-path
                            max-output-tokens past-messages tools web-search extra-payload]}
                    {:keys [on-message-received on-error on-prepare-tool-call on-tools-called on-reason on-usage-updated]}]
-  (let [input (concat (normalize-messages past-messages)
-                      (normalize-messages user-messages))
+  (let [input (concat (normalize-messages past-messages supports-image?)
+                      (normalize-messages user-messages supports-image?))
         tools (cond-> tools
                 web-search (conj {:type "web_search_preview"}))
         body (merge {:model model
@@ -168,7 +179,7 @@
                                  :output-tokens (-> response :usage :output_tokens)})
               (if (seq tool-calls)
                 (let [{:keys [new-messages]} (on-tools-called tool-calls)
-                      input (normalize-messages new-messages)]
+                      input (normalize-messages new-messages supports-image?)]
                   (base-completion-request!
                    {:rid (llm-util/gen-rid)
                     :body (assoc body :input input)

@@ -63,7 +63,7 @@
   (logger/debug tag (format "[%s] Sending body: '%s', url: '%s'" rid body url)))
 
 (defn log-response [tag rid event data]
-  (logger/debug tag (format "[%s] %s %s" rid event data)))
+  (logger/debug tag (format "[%s] %s %s" rid (or event "") data)))
 
 (defn ^:private rand-bytes
   "Returns a random byte array of the specified size."

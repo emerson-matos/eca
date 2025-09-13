@@ -359,11 +359,7 @@
 
 (defn ^:private prompt-messages!
   [user-messages
-   {:keys [db* config chat-id contexts behavior full-model instructions messenger] :as chat-ctx}]
-  (when (seq contexts)
-    (send-content! chat-ctx :system {:type :progress
-                                     :state :running
-                                     :text "Parsing given context"}))
+   {:keys [db* config chat-id behavior full-model instructions messenger] :as chat-ctx}]
   (let [db @db*
         [provider model] (string/split full-model #"/" 2)
         past-messages (get-in db [:chats chat-id :messages] [])
@@ -635,6 +631,10 @@
                        (:defaultModel behavior-config)
                        (default-model db config))
         rules (f.rules/all config (:workspace-folders db))
+        _ (when (seq contexts)
+            (send-content! {:messenger messenger :chat-id chat-id} :system {:type :progress
+                                                                            :state :running
+                                                                            :text "Parsing given context"}))
         refined-contexts (f.context/raw-contexts->refined contexts db config)
         repo-map* (delay (f.index/repo-map db config {:as-string? true}))
         instructions (f.prompt/build-instructions refined-contexts
@@ -651,14 +651,18 @@
                   :db* db*
                   :config config
                   :messenger messenger}
-        decision (message->decision message)]
+        decision (message->decision message)
+        image-contents (->> refined-contexts
+                            (filter #(= :image (:type %))))
+        user-messages [{:role "user" :content (concat [{:type :text :text message}]
+                                                      image-contents)}]]
     (swap! db* assoc-in [:chats chat-id :status] :running)
     (send-content! chat-ctx :user {:type :text
                                    :text (str message "\n")})
     (case (:type decision)
       :mcp-prompt (send-mcp-prompt! decision chat-ctx)
       :eca-command (handle-command! decision chat-ctx)
-      :prompt-message (prompt-messages! [{:role "user" :content [{:type :text :text message}]}] chat-ctx))
+      :prompt-message (prompt-messages! user-messages chat-ctx))
     {:chat-id chat-id
      :model full-model
      :status :prompting}))
