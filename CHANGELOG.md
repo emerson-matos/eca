@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Moved the future in :on-tools-called and stored it in the db. #119
+
 ## 0.53.0
 
 - Add `/compact` command to summarize the current conversation helping reduce context size.
