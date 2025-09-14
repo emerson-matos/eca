@@ -408,7 +408,7 @@
         (let [result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :execution-start
                                                      {:name "list_files" :origin "filesystem" :arguments {:path "/tmp"}})]
           (is (match? {:status :executing
-                       :actions [:set-start-time :send-toolCallRunning]}
+                       :actions [:set-start-time :set-call-future :send-toolCallRunning]}
                       result)
               "Expected transition to :executing status with no additional actions")
 
