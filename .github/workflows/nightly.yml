@@ -18,6 +18,7 @@ on:
 jobs:
   release-dev-build:
     name: Release dev build
+    if: github.repository == 'editor-code-assistant/eca'
     runs-on: ubuntu-22.04
     outputs:
       tag: ${{ steps.dev-tag.outputs.tag}}
