@@ -59,7 +59,7 @@
           :contents [{:type :text
                       :text "Command timed out after 50 ms"}]}
          (with-redefs [fs/exists? (constantly true)
-                       p/process (constantly (future (Thread/sleep 100) {:exit 0 :err "ok"}))]
+                       p/process (constantly (future (Thread/sleep 1000) {:exit 0 :err "ok"}))]
            ((get-in f.tools.shell/definitions ["eca_shell_command" :handler])
             {"command" "ls -lh"
              "timeout" 50}
