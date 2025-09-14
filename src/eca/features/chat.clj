@@ -84,6 +84,7 @@
 
    Actions:
    - send-* notifications
+   - set-* set various state values
    - promise init & delivery
    - logging/metrics
 
@@ -304,7 +305,10 @@
 
    Returns: {:status new-status :actions actions-executed}
 
-   Throws: ex-info if the transition is invalid for the current state"
+   Throws: ex-info if the transition is invalid for the current state.
+
+   Note: The status is updated before any actions are run.
+   Actions are run in the order specified."
   [db* chat-ctx tool-call-id event & [event-data]]
   (let [current-state (get-tool-call-state @db* (:chat-id chat-ctx) tool-call-id)
         current-status (:status current-state :initial) ; Default to :initial if no state
