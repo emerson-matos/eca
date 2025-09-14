@@ -97,7 +97,7 @@
      (fn [e]
        (on-error {:exception e})))))
 
-(defn ^:private normalize-messages [past-messages]
+(defn ^:private normalize-messages [past-messages supports-image?]
   (mapv (fn [{:keys [role content] :as msg}]
           (case role
             "tool_call" {:role "assistant"
@@ -119,10 +119,21 @@
             (update msg :content (fn [c]
                                    (if (string? c)
                                      (string/trim c)
-                                     (mapv #(if (= "text" (name (:type %)))
-                                              (update % :text string/trim)
-                                              %)
-                                           c))))))
+                                     (vec
+                                      (keep #(case (name (:type %))
+
+                                               "text"
+                                               (update % :text string/trim)
+
+                                               "image"
+                                               (when supports-image?
+                                                 {:type "image"
+                                                  :source {:data (:base64 %)
+                                                           :media_type (:media-type %)
+                                                           :type "base64"}})
+
+                                               %)
+                                            c)))))))
         past-messages))
 
 (defn ^:private add-cache-to-last-message [messages]
@@ -135,15 +146,16 @@
          (assoc-in message [:content] [{:type :text
                                         :text content
                                         :cache_control {:type "ephemeral"}}])
-         (assoc-in message [:content 0 :cache_control] {:type "ephemeral"}))))))
+         (assoc-in message [:content (dec (count content)) :cache_control] {:type "ephemeral"}))))))
 
 (defn completion!
   [{:keys [model user-messages instructions max-output-tokens
            api-url api-key auth-type url-relative-path reason? past-messages
-           tools web-search extra-payload]}
+           tools web-search extra-payload supports-image?]}
    {:keys [on-message-received on-error on-reason on-prepare-tool-call on-tools-called on-usage-updated]}]
-  (let [messages (concat (normalize-messages past-messages)
-                         (normalize-messages (fix-non-thinking-assistant-messages user-messages)))
+  (let [messages (concat (normalize-messages past-messages supports-image?)
+                         (normalize-messages (fix-non-thinking-assistant-messages user-messages) supports-image?))
+        _ (logger/info "-->" messages)
         body (merge (assoc-some
                      {:model model
                       :messages (add-cache-to-last-message messages)
@@ -209,7 +221,7 @@
                                                                   :arguments (json/parse-string (:input-json content-block))}))
                                                              (vals @content-block*))
                                                  {:keys [new-messages]} (on-tools-called tool-calls)
-                                                 messages (-> (normalize-messages new-messages)
+                                                 messages (-> (normalize-messages new-messages supports-image?)
                                                               add-cache-to-last-message)]
                                              (reset! content-block* {})
                                              (base-request!

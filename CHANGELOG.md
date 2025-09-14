@@ -2,7 +2,10 @@
 
 ## Unreleased
 
+## 0.53.0
+
 - Add `/compact` command to summarize the current conversation helping reduce context size.
+- Add support for images as contexts.
 
 ## 0.52.0
 
