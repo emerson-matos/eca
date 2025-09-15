@@ -175,8 +175,12 @@
                                         :name name
                                         :arguments (json/parse-string arguments)}))
                                    (:output response))]
-              (on-usage-updated {:input-tokens (-> response :usage :input_tokens)
-                                 :output-tokens (-> response :usage :output_tokens)})
+              (on-usage-updated (let [input-cache-read-tokens (-> response :usage :input_tokens_details :cached_tokens)]
+                                  {:input-tokens (if input-cache-read-tokens
+                                                   (- (-> response :usage :input_tokens) input-cache-read-tokens)
+                                                   (-> response :usage :input_tokens))
+                                   :output-tokens (-> response :usage :output_tokens)
+                                   :input-cache-read-tokens input-cache-read-tokens}))
               (if (seq tool-calls)
                 (let [{:keys [new-messages]} (on-tools-called tool-calls)
                       input (normalize-messages new-messages supports-image?)]

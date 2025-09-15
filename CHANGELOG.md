@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix openai cache tokens cost calculation.
+
 ## 0.54.1
 
 - Improve welcome message.
