@@ -126,7 +126,7 @@
                :parameters (json/parse-string (.writeValueAsString obj-mapper (.inputSchema tool-client)) true)})
             (.tools (.listTools client))))
     (catch Exception e
-      (logger/debug logger-tag "Could not list tools:" (.getMessage e))
+      (logger/warn logger-tag "Could not list tools:" (.getMessage e))
       [])))
 
 (defn ^:private list-server-prompts [^McpSyncClient client]
@@ -142,7 +142,7 @@
                                 (.arguments prompt-client))})
             (.prompts (.listPrompts client))))
     (catch Exception e
-      (logger/debug logger-tag "Could not list prompts:" (.getMessage e))
+      (logger/warn logger-tag "Could not list prompts:" (.getMessage e))
       [])))
 
 (defn ^:private list-server-resources [^McpSyncClient client]
@@ -155,7 +155,7 @@
                :mime-type (.mimeType resource-client)})
             (.resources (.listResources client))))
     (catch Exception e
-      (logger/debug logger-tag "Could not list resources:" (.getMessage e))
+      (logger/warn logger-tag "Could not list resources:" (.getMessage e))
       [])))
 
 (defn ^:private initialize-server! [name db* config on-server-updated]
