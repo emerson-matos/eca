@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.54.2
+
 - Fix openai cache tokens cost calculation.
 
 ## 0.54.1
