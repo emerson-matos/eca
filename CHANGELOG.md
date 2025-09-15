@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.54.1
+
 - Improve welcome message.
 
 ## 0.54.0
