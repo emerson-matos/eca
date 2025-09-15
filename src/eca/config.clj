@@ -14,7 +14,7 @@
    [clojure.string :as string]
    [eca.logger :as logger]
    [eca.messenger :as messenger]
-   [eca.shared :as shared])
+   [eca.shared :as shared :refer [multi-str]])
   (:import
    [java.io File]))
 
@@ -89,7 +89,17 @@
    :mcpTimeoutSeconds 60
    :lspTimeoutSeconds 30
    :mcpServers {}
-   :welcomeMessage "Welcome to ECA!\n\nType '/' for commands\n\n"
+   :welcomeMessage (multi-str "# Welcome to ECA!"
+                              ""
+                              "Complete `/` for all commands"
+                              ""
+                              "- `/login` to authenticate with providers"
+                              "- `/init` to create/update AGENTS.md"
+                              "- `/doctor` or `/config` to troubleshoot"
+                              ""
+                              "Add more contexts in `@`"
+                              ""
+                              "")
    :compactPromptFile "prompts/compact.md"
    :index {:ignoreFiles [{:type :gitignore}]
            :repoMap {:maxTotalEntries 800

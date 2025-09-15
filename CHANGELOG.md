@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Improve welcome message.
+
 ## 0.54.0
 
 - Improve large file handling in `read-file` tool:
