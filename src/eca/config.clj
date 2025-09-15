@@ -84,7 +84,8 @@
                                  "eca_grep" {}
                                  "eca_editor_diagnostics" {}}
                          :ask {}
-                         :deny {}}}
+                         :deny {}}
+              :readFile {:maxLines 2000}}
    :mcpTimeoutSeconds 60
    :lspTimeoutSeconds 30
    :mcpServers {}

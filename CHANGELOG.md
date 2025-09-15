@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Improve large file handling in `read-file` tool:
+  - Replace basic truncation notice with detailed line range information and next-step instructions.
+  - Allow users to customize default line limit through `tools.readFile.maxLines` configuration (keep the current 2000 as default).
 
 - Moved the future in :on-tools-called and stored it in the db. #119
 
