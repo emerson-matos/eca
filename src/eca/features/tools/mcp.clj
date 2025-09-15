@@ -224,8 +224,10 @@
                                 (when (some #(= name (:name %)) tools)
                                   client)))
                         first)
-        result (.callTool ^McpSyncClient mcp-client
-                          (McpSchema$CallToolRequest. name arguments))]
+        ;; Synchronize on the client to prevent concurrent tool calls to the same MCP server
+        result (locking mcp-client
+                 (.callTool ^McpSyncClient mcp-client
+                            (McpSchema$CallToolRequest. name arguments)))]
     {:error (.isError result)
      :contents (mapv ->content (.content result))}))
 

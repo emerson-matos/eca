@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Avoid errors on multiple same MCP server calls in parallel.
+
 ## 0.54.2
 
 - Fix openai cache tokens cost calculation.
