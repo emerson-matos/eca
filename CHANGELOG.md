@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.54.3
+
 - Avoid errors on multiple same MCP server calls in parallel.
 
 ## 0.54.2
