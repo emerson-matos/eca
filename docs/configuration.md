@@ -177,6 +177,22 @@ Also check the `plan` behavior which is safer.
 
 __The `manualApproval` setting was deprecated and replaced by the `approval` one without breaking changes__
 
+### File Reading
+
+You can configure the maximum number of lines returned by the `eca_read_file` tool:
+
+```javascript
+{
+  "toolCall": {
+    "readFile": {
+      "maxLines": 1000
+    }
+  }
+}
+```
+
+Default: `2000` lines
+
 ### Custom Tools
 
 You can define your own command-line tools that the LLM can use. These are configured via the `customTools` key in your `config.json`.
@@ -389,6 +405,9 @@ ECA allows to totally customize the prompt sent to LLM via the `behavior` config
             ask?: {{key: string}: {argsMatchers?: {{[key]: string}: string[]}}},
             deny?: {{key: string}: {argsMatchers?: {{[key]: string}: string[]}}},
           };
+          readFile?: {
+            maxLines?: number;
+          };
         };
         mcpTimeoutSeconds?: number;
         lspTimeoutSeconds?: number;
@@ -438,6 +457,9 @@ ECA allows to totally customize the prompt sent to LLM via the `behavior` config
                     "eca_editor_diagnostics": {}},
           "ask": {},
           "deny": {}
+        },
+        "readFile": {
+          "maxLines": 2000
         }
       },
       "mcpTimeoutSeconds" : 60,
