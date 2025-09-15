@@ -68,7 +68,7 @@ For MCP servers configuration, use the `mcpServers` config, examples:
           "command": "npx",
           "args": ["-y", "@modelcontextprotocol/server-memory"],
           // optional
-          "env": {"FOO" "bar"} 
+          "env": {"FOO": "bar"} 
         }
       }
     }
