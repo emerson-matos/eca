@@ -419,6 +419,7 @@ ECA allows to totally customize the prompt sent to LLM via the `behavior` config
         }};
         defaultBehavior?: string;
         welcomeMessage?: string;
+        compactPromptFile?: string;
         index?: {
             ignoreFiles: [{
                 type: string;
@@ -480,8 +481,9 @@ ECA allows to totally customize the prompt sent to LLM via the `behavior` config
                                                                                   ".*-c\\s+[\"'].*open.*[\"']w[\"'].*",
                                                                                   ".*bash.*-c.*>.*"]}}}}}}
       }
-      "defaultBehavior": "agent"
-      "welcomeMessage" : "Welcome to ECA!\n\nType '/' for commands\n\n"
+      "defaultBehavior": "agent",
+      "welcomeMessage" : "Welcome to ECA!\n\nType '/' for commands\n\n",
+      "compactPromptFile": "prompts/compact.md",
       "index" : {
         "ignoreFiles" : [ {
           "type" : "gitignore"

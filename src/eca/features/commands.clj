@@ -190,7 +190,7 @@
                                                   :role :system
                                                   :content (merge {:type :usage}
                                                                   usage)})))
-                   :prompt (f.prompt/compact-prompt (string/join " " args))})
+                   :prompt (f.prompt/compact-prompt (string/join " " args) config)})
       "login" (do (f.login/handle-step {:message (or (first args) "")
                                         :chat-id chat-id}
                                        db*

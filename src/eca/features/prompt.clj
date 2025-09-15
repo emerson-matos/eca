@@ -1,5 +1,6 @@
 (ns eca.features.prompt
   (:require
+   [babashka.fs :as fs]
    [clojure.java.io :as io]
    [clojure.string :as string]
    [eca.features.tools.mcp :as f.mcp]
@@ -21,7 +22,11 @@
 (defn ^:private init-prompt-template* [] (slurp (io/resource "prompts/init.md")))
 (def ^:private init-prompt-template (memoize init-prompt-template*))
 
-(defn ^:private compact-prompt-template* [] (slurp (io/resource "prompts/compact.md")))
+(defn ^:private compact-prompt-template* [file-path]
+  (if (fs/relative? file-path)
+    (slurp (io/resource file-path))
+    (slurp (io/file file-path))))
+
 (def ^:private compact-prompt-template (memoize compact-prompt-template*))
 
 (defn ^:private replace-vars [s vars]
@@ -87,9 +92,9 @@
    (init-prompt-template)
    {:workspaceFolders (string/join ", " (map (comp shared/uri->filename :uri) (:workspace-folders db)))}))
 
-(defn compact-prompt [additional-input]
+(defn compact-prompt [additional-input config]
   (replace-vars
-   (compact-prompt-template)
+   (compact-prompt-template (:compactPromptFile config))
    {:addionalUserInput (if additional-input
                          (format "You MUST respect this user input in the summarization: %s." additional-input)
                          "")}))

@@ -90,6 +90,7 @@
    :lspTimeoutSeconds 30
    :mcpServers {}
    :welcomeMessage "Welcome to ECA!\n\nType '/' for commands\n\n"
+   :compactPromptFile "prompts/compact.md"
    :index {:ignoreFiles [{:type :gitignore}]
            :repoMap {:maxTotalEntries 800
                      :maxEntriesPerDir 50}}})
