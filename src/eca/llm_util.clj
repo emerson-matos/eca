@@ -72,6 +72,9 @@
     (.nextBytes (SecureRandom.) seed)
     seed))
 
+(defn <-base64 ^String [^String s]
+  (String. (.decode (Base64/getDecoder) s)))
+
 (defn ^:private ->base64 [^bytes bs]
   (.encodeToString (Base64/getEncoder) bs))
 

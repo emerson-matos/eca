@@ -121,7 +121,8 @@
           :web-search web-search
           :extra-payload extra-payload
           :api-url api-url
-          :api-key api-key}
+          :api-key api-key
+          :auth-type provider-auth-type}
          callbacks)
 
         (= "anthropic" provider)
