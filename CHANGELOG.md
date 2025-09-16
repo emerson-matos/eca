@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Use jsonrpc4clj instead of lsp4clj.
+- Bump graalvm to 24 and java to 24 improving native binary perf.
 
 ## 0.54.3
 
