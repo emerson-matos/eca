@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Use jsonrpc4clj instead of lsp4clj.
+
 ## 0.54.3
 
 - Avoid errors on multiple same MCP server calls in parallel.
