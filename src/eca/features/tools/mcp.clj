@@ -12,6 +12,7 @@
    [io.modelcontextprotocol.client.transport HttpClientStreamableHttpTransport ServerParameters StdioClientTransport]
    [io.modelcontextprotocol.spec
     McpSchema$CallToolRequest
+    McpSchema$CallToolResult
     McpSchema$ClientCapabilities
     McpSchema$Content
     McpSchema$GetPromptRequest
@@ -225,9 +226,9 @@
                                   client)))
                         first)
         ;; Synchronize on the client to prevent concurrent tool calls to the same MCP server
-        result (locking mcp-client
-                 (.callTool ^McpSyncClient mcp-client
-                            (McpSchema$CallToolRequest. name arguments)))]
+        ^McpSchema$CallToolResult result (locking mcp-client
+                                           (.callTool ^McpSyncClient mcp-client
+                                                      (McpSchema$CallToolRequest. name arguments)))]
     {:error (.isError result)
      :contents (mapv ->content (.content result))}))
 
