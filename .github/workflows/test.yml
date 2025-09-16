@@ -24,12 +24,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        jdk: [25]
+        jdk: [24]
         include:
           - os: windows-latest
-            jdk: 25
+            jdk: 24
           - os: macos-latest
-            jdk: 25
+            jdk: 24
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,14 +54,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        jdk: [25]
+        jdk: [24]
         include:
           # FIXME
           # Windows keep failing randomly because of CI issues.
           # - os: windows-latest
-          #   jdk: 25
+          #   jdk: 24
           - os: macos-latest
-            jdk: 25
+            jdk: 24
     steps:
       - uses: actions/checkout@v4
         with:
@@ -87,8 +87,6 @@ jobs:
 
   graalvm-build:
     runs-on: ubuntu-22.04
-    env:
-      GRAALVM_VERSION: "25"
     strategy:
       fail-fast: false
     steps:
@@ -101,7 +99,7 @@ jobs:
 
       - uses: graalvm/setup-graalvm@v1
         with:
-          java-version: '25'
+          java-version: '24'
           distribution: 'graalvm'
           native-image-musl: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
