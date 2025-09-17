@@ -111,6 +111,12 @@ Current supported providers with login:
 - `anthropic`: with options to login to Claude Max/Pro or create API keys.
 - `github-copilot`: via Github oauth.
 
+## OpenTelemetry integration
+
+ECA has support for [OpenTelemetry](https://opentelemetry.io/)(otlp), if configured, server tasks, tool calls, and more will be metrified via otlp API.
+
+For more details check [its configuration](./configuration.md#opentelemetry-integration)
+
 ##  Completion
 
 Soon

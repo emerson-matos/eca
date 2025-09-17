@@ -249,7 +249,8 @@
     [:behavior :ANY :toolCall :approval :ask]
     [:behavior :ANY :toolCall :approval :ask :ANY :argsMatchers]
     [:behavior :ANY :toolCall :approval :deny]
-    [:behavior :ANY :toolCall :approval :deny :ANY :argsMatchers]]})
+    [:behavior :ANY :toolCall :approval :deny :ANY :argsMatchers]
+    [:otlp]]})
 
 (defn all [db]
   (let [initialization-config @initialization-config*

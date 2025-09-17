@@ -8,6 +8,7 @@
    [eca.messenger :as messenger]
    [eca.metrics :as metrics]
    [eca.nrepl :as nrepl]
+   [eca.opentelemetry :as opentelemetry]
    [eca.shared :as shared :refer [assoc-some]]
    [jsonrpc4clj.io-server :as io-server]
    [jsonrpc4clj.liveness-probe :as liveness-probe]
@@ -21,10 +22,10 @@
 
 (defn ^:private exit [server]
   (metrics/task
-   :eca/exit
-   (jsonrpc.server/shutdown server) ;; blocks, waiting up to 10s for previously received messages to be processed
-   (shutdown-agents)
-   (System/exit 0)))
+    :eca/exit
+    (jsonrpc.server/shutdown server) ;; blocks, waiting up to 10s for previously received messages to be processed
+    (shutdown-agents)
+    (System/exit 0)))
 
 (defn ^:private with-config [components]
   (assoc components :config (config/all @(:db* components))))
@@ -115,12 +116,21 @@
     (jsonrpc.server/discarding-stdout
      (jsonrpc.server/send-request server "editor/getDiagnostics" (assoc-some {} :uri uri)))))
 
+(defn ^:private ->Metrics [db*]
+  (let [config (config/all @db*)]
+    (if (:otlp config)
+      (opentelemetry/->OtelMetrics db* (config/all @db*))
+      (metrics/->NoopMetrics db*))))
+
 (defn start-server! [server]
   (let [db* (atom db/initial-db)
+        metrics (->Metrics db*)
         components {:db* db*
                     :messenger (->ServerMessenger server db*)
+                    :metrics metrics
                     :server server}]
     (logger/info "[server]" "Starting server...")
+    (metrics/start! metrics)
     (monitor-server-logs (:log-ch server))
     (setup-dev-environment db* components)
     (jsonrpc.server/start server components)))

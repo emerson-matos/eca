@@ -13,6 +13,12 @@
 (def windows-os?
   (.contains (System/getProperty "os.name") "Windows"))
 
+(defn hostname* []
+  (try (.getHostName (java.net.InetAddress/getLocalHost))
+       (catch java.net.UnknownHostException _ nil)))
+
+(def hostname (memoize hostname*))
+
 (def line-separator
   "The system's line separator."
   (System/lineSeparator))

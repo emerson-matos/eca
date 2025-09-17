@@ -32,14 +32,14 @@
     :role role
     :content content}))
 
-(defn finish-chat-prompt! [status {:keys [chat-id db* on-finished-side-effect] :as chat-ctx}]
+(defn finish-chat-prompt! [status {:keys [chat-id db* metrics on-finished-side-effect] :as chat-ctx}]
   (swap! db* assoc-in [:chats chat-id :status] status)
   (send-content! chat-ctx :system
                  {:type :progress
                   :state :finished})
   (when on-finished-side-effect
     (on-finished-side-effect))
-  (db/update-workspaces-cache! @db*))
+  (db/update-workspaces-cache! @db* metrics))
 
 (defn ^:private assert-chat-not-stopped! [{:keys [chat-id db*] :as chat-ctx}]
   (when (identical? :stopping (get-in @db* [:chats chat-id :status]))
@@ -367,7 +367,7 @@
 
 (defn ^:private prompt-messages!
   [user-messages
-   {:keys [db* config chat-id behavior full-model instructions messenger] :as chat-ctx}]
+   {:keys [db* config chat-id behavior full-model instructions messenger metrics] :as chat-ctx}]
   (let [db @db*
         [provider model] (string/split full-model #"/" 2)
         past-messages (get-in db [:chats chat-id :messages] [])
@@ -490,7 +490,7 @@
                                              (delay
                                                (future
                                                  ;; assert: In :executing
-                                                 (let [result (f.tools/call-tool! name arguments db* config messenger behavior chat-id)
+                                                 (let [result (f.tools/call-tool! name arguments behavior chat-id db* config messenger metrics)
                                                        details (f.tools/tool-call-details-after-invocation name arguments details result)
                                                        {:keys [start-time]} (get-tool-call-state @db* chat-id id)]
                                                    (add-to-history! {:role "tool_call"
@@ -631,7 +631,8 @@
   [{:keys [message model behavior contexts chat-id]}
    db*
    messenger
-   config]
+   config
+   metrics]
   (let [message (string/trim message)
         chat-id (or chat-id
                     (let [new-id (str (random-uuid))]
@@ -666,6 +667,7 @@
                   :instructions instructions
                   :full-model full-model
                   :db* db*
+                  :metrics metrics
                   :config config
                   :messenger messenger}
         decision (message->decision message)
@@ -743,6 +745,6 @@
       (finish-chat-prompt! :stopping chat-ctx))))
 
 (defn delete-chat
-  [{:keys [chat-id]} db*]
+  [{:keys [chat-id]} db* metrics]
   (swap! db* update :chats dissoc chat-id)
-  (db/update-workspaces-cache! @db*))
+  (db/update-workspaces-cache! @db* metrics))

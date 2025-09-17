@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add support for Opentelemetry via `otlp` config.
+  - Export metrics of server tasks, tool calls, prompts, resources.
+
 ## 0.54.4
 
 - Use jsonrpc4clj instead of lsp4clj.

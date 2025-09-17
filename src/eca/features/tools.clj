@@ -13,6 +13,7 @@
    [eca.features.tools.util :as tools.util]
    [eca.logger :as logger]
    [eca.messenger :as messenger]
+   [eca.metrics :as metrics]
    [eca.shared :refer [assoc-some]])
   (:import
    [java.util Map]))
@@ -73,7 +74,7 @@
       (mapv #(assoc % :origin :native) (native-tools db config))
       (mapv #(assoc % :origin :mcp) (f.mcp/all-tools db))))))
 
-(defn call-tool! [^String name ^Map arguments db* config messenger behavior chat-id]
+(defn call-tool! [^String name ^Map arguments chat-id behavior db* config messenger metrics]
   (logger/info logger-tag (format "Calling tool '%s' with args '%s'" name arguments))
   (let [arguments (update-keys arguments clojure.core/name)
         db @db*]
@@ -87,14 +88,23 @@
                                                      :behavior behavior})
                      (f.mcp/call-tool! name arguments db))]
         (logger/debug logger-tag "Tool call result: " result)
+        (metrics/count-up! "tool-called" {:name name :error (:error result)} metrics)
         result)
       (catch Exception e
         (logger/warn logger-tag (format "Error calling tool %s: %s\n%s" name (.getMessage e) (with-out-str (.printStackTrace e))))
+        (metrics/count-up! "tool-called" {:name name :error true} metrics)
         {:error true
          :contents [{:type :text
                      :text (str "Error calling tool: " (.getMessage e))}]}))))
 
-(defn init-servers! [db* messenger config]
+(defn ^:private notify-server-updated [metrics messenger tool-status-fn server]
+  (metrics/count-up! "mcp-server-status" {:name (:name server)
+                                          :status (:status server)} metrics)
+  (messenger/tool-server-updated messenger (-> server
+                                               (assoc :type :mcp)
+                                               (update :tools #(mapv tool-status-fn %)))))
+
+(defn init-servers! [db* messenger config metrics]
   (let [default-behavior (get config :defaultBehavior)
         tool-status-fn (make-tool-status-fn config default-behavior)]
     (messenger/tool-server-updated messenger {:type :native
@@ -105,34 +115,25 @@
                                                           (mapv #(select-keys % [:name :description :parameters]))
                                                           (mapv tool-status-fn))})
     (f.mcp/initialize-servers-async!
-     {:on-server-updated (fn [server]
-                           (messenger/tool-server-updated messenger (-> server
-                                                                        (assoc :type :mcp)
-                                                                        (update :tools #(mapv tool-status-fn %)))))}
+     {:on-server-updated (partial notify-server-updated metrics messenger tool-status-fn)}
      db*
      config)))
 
-(defn stop-server! [name db* messenger config]
+(defn stop-server! [name db* messenger config metrics]
   (let [tool-status-fn (make-tool-status-fn config nil)]
     (f.mcp/stop-server!
      name
      db*
      config
-     {:on-server-updated (fn [server]
-                           (messenger/tool-server-updated messenger (-> server
-                                                                        (assoc :type :mcp)
-                                                                        (update :tools #(mapv tool-status-fn %)))))})))
+     {:on-server-updated (partial notify-server-updated metrics messenger tool-status-fn)})))
 
-(defn start-server! [name db* messenger config]
+(defn start-server! [name db* messenger config metrics]
   (let [tool-status-fn (make-tool-status-fn config nil)]
     (f.mcp/start-server!
      name
      db*
      config
-     {:on-server-updated (fn [server]
-                           (messenger/tool-server-updated messenger (-> server
-                                                                        (assoc :type :mcp)
-                                                                        (update :tools #(mapv tool-status-fn %)))))})))
+     {:on-server-updated (partial notify-server-updated metrics messenger tool-status-fn)})))
 
 (defn legacy-manual-approval? [config tool-name]
   (let [manual-approval? (get-in config [:toolCall :manualApproval] nil)]

@@ -5,6 +5,7 @@
    [eca.config :as config]
    [eca.db :as db]
    [eca.messenger :as messenger]
+   [eca.metrics :as metrics]
    [eca.shared :as shared]))
 
 (def windows? (string/starts-with? (System/getProperty "os.name") "Windows"))
@@ -24,15 +25,17 @@
 (defrecord TestMessenger [messages* diagnostics*]
   messenger/IMessenger
   (chat-content-received [_ data] (swap! messages* update :chat-content-received (fnil conj []) data))
-  (config-updated [_ _data] _)
+  (config-updated [_ data] (swap! messages* update :config-updated (fnil conj []) data))
   (tool-server-updated [_ data] (swap! messages* update :tool-server-update (fnil conj []) data))
   (showMessage [_ data] (swap! messages* update :show-message (fnil conj []) data))
   (editor-diagnostics [_ _uri] (future {:diagnostics @diagnostics*})))
 
 (defn ^:private make-components []
-  {:db* (atom db/initial-db)
-   :messenger (->TestMessenger (atom {}) (atom []))
-   :config config/initial-config})
+  (let [db* (atom db/initial-db)]
+    {:db* (atom db/initial-db)
+     :messenger (->TestMessenger (atom {}) (atom []))
+     :metrics (metrics/->NoopMetrics db*)
+     :config config/initial-config}))
 
 (def components* (atom (make-components)))
 (defn components [] @components*)
@@ -44,6 +47,8 @@
 (defn messenger [] (:messenger (components)))
 
 (defn config [] (:config (components)))
+
+(defn metrics [] (:metrics (components)))
 
 (defn config! [config]
   (swap! components* update :config shared/deep-merge config))
