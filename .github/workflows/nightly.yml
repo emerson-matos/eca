@@ -11,6 +11,7 @@ on:
       - 'docs/**'
       - 'images/**'
       - 'mkdocs.yml'
+      - 'deps-lock.json'
       - '.github/workflows/ci.yml'
       - '.github/workflows/release.yml'
       - 'test/**'
