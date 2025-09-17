@@ -6,6 +6,7 @@
    [eca.handlers :as handlers]
    [eca.logger :as logger]
    [eca.messenger :as messenger]
+   [eca.metrics :as metrics]
    [eca.nrepl :as nrepl]
    [eca.shared :as shared :refer [assoc-some]]
    [jsonrpc4clj.io-server :as io-server]
@@ -19,7 +20,7 @@
   (apply logger/info args))
 
 (defn ^:private exit [server]
-  (logger/logging-task
+  (metrics/task
    :eca/exit
    (jsonrpc.server/shutdown server) ;; blocks, waiting up to 10s for previously received messages to be processed
    (shutdown-agents)

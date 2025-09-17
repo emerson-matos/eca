@@ -6,6 +6,7 @@
    [cognitect.transit :as transit]
    [eca.config :as config :refer [get-env get-property]]
    [eca.logger :as logger]
+   [eca.metrics :as metrics]
    [eca.shared :as shared])
   (:import
    [java.io OutputStream]))
@@ -76,7 +77,7 @@
 
 (defn ^:private read-cache [cache-file]
   (try
-    (logger/logging-task
+    (metrics/task
      :db/read-cache
      (if (fs/exists? cache-file)
        (let [cache (with-open [is (io/input-stream cache-file)]
@@ -89,7 +90,7 @@
 
 (defn ^:private upsert-cache! [cache cache-file]
   (try
-    (logger/logging-task
+    (metrics/task
      :db/upsert-cache
      (io/make-parents cache-file)
       ;; https://github.com/cognitect/transit-clj/issues/43
