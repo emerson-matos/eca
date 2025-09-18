@@ -2,7 +2,8 @@
   (:require
    [clojure.string :as string]
    [eca.logger :as logger]
-   [eca.shared :as shared]))
+   [eca.shared :as shared]
+   [eca.config :as config]))
 
 (defprotocol IMetrics
   (start! [this])
@@ -17,6 +18,7 @@
   {:hostname (shared/hostname)
    :client-name (:name (:client-info @db*))
    :client-version (:version (:client-info @db*))
+   :server-version (config/eca-version)
    :os-name (System/getProperty "os.name")
    :os-version (System/getProperty "os.version")
    :os-arch (System/getProperty "os.arch")
