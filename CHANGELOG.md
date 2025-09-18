@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix usage reporting.
+
 ## 0.56.0
 
 - Return new chat metadata content.
