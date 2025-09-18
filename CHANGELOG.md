@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.56.0
+
 - Return new chat metadata content.
   - Add chat title via prompt to LLM.
 
