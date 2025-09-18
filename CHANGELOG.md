@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Return new chat metadata content.
+  - Add chat title via prompt to LLM.
+
 ## 0.55.0
 
 - Add support for Opentelemetry via `otlp` config.

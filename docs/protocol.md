@@ -895,6 +895,19 @@ interface FileChangeDetails {
       */
      linesRemoved: number;
 }
+
+/**
+ * Extra information about a chat
+ */
+interface ChatMetadataContent {
+    type: 'metadata';
+
+    /**
+     * The chat title.
+     */
+    title: string;
+}
+
 ```
 
 ### Chat approve tool call (➡️)

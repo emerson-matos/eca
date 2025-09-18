@@ -15,7 +15,7 @@
 
 (def ^:private logger-tag "[DB]")
 
-(def version 3)
+(def version 4)
 
 (defonce initial-db
   {:client-info {}

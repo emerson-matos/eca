@@ -68,7 +68,14 @@
 (defn complete!
   [{:keys [provider model model-capabilities instructions user-messages config on-first-response-received
            on-message-received on-error on-prepare-tool-call on-tools-called on-reason on-usage-updated
-           past-messages tools provider-auth]}]
+           past-messages tools provider-auth]
+    :or {on-first-response-received identity
+         on-message-received identity
+         on-error identity
+         on-prepare-tool-call identity
+         on-tools-called identity
+         on-reason identity
+         on-usage-updated identity}}]
   (let [first-response-received* (atom false)
         emit-first-message-fn (fn [& args]
                                 (when-not @first-response-received*
@@ -203,3 +210,29 @@
         (on-error-wrapper {:message (format "ECA Unsupported model %s for provider %s" model provider)}))
       (catch Exception e
         (on-error-wrapper {:exception e})))))
+
+(defn simple-prompt
+  [{:keys [provider model model-capabilitiies instructions
+           prompt user-messages config tools provider-auth on-usage-updated]}]
+  (let [result-p (promise)
+        output* (atom "")]
+    (complete!
+     {:provider provider
+      :model model
+      :model-capabilitiies model-capabilitiies
+      :instructions instructions
+      :tools tools
+      :provider-aith provider-auth
+      :past-messages []
+      :user-messages (or user-messages
+                         [{:role "user" :content [{:type :text :text prompt}]}])
+      :config config
+      :on-message-received (fn [{:keys [type] :as msg}]
+                             (case type
+                               :text (swap! output* str (:text msg))
+                               :finish (deliver result-p @output*)
+                               nil))
+      :on-usage-updated on-usage-updated
+      :on-error (fn [_]
+                  (deliver result-p nil))})
+    result-p))

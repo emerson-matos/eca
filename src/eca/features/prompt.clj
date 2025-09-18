@@ -22,6 +22,9 @@
 (defn ^:private init-prompt-template* [] (slurp (io/resource "prompts/init.md")))
 (def ^:private init-prompt-template (memoize init-prompt-template*))
 
+(defn ^:private title-prompt-template* [] (slurp (io/resource "prompts/title.md")))
+(def ^:private title-prompt-template (memoize title-prompt-template*))
+
 (defn ^:private compact-prompt-template* [file-path]
   (if (fs/relative? file-path)
     (slurp (io/resource file-path))
@@ -91,6 +94,9 @@
   (replace-vars
    (init-prompt-template)
    {:workspaceFolders (string/join ", " (map (comp shared/uri->filename :uri) (:workspace-folders db)))}))
+
+(defn title-prompt []
+  (title-prompt-template))
 
 (defn compact-prompt [additional-input config]
   (replace-vars

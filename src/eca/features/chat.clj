@@ -371,11 +371,18 @@
   (let [db @db*
         [provider model] (string/split full-model #"/" 2)
         past-messages (get-in db [:chats chat-id :messages] [])
+        model-capabilities (get-in db [:models full-model])
+        provider-auth (get-in @db* [:auth provider])
         all-tools (f.tools/all-tools chat-id behavior @db* config)
         received-msgs* (atom "")
         reasonings* (atom {})
         add-to-history! (fn [msg]
-                          (swap! db* update-in [:chats chat-id :messages] (fnil conj []) msg))]
+                          (swap! db* update-in [:chats chat-id :messages] (fnil conj []) msg))
+        on-usage-updated (fn [usage]
+                           (when-let [usage (shared/usage-msg->usage usage full-model chat-ctx)]
+                             (send-content! chat-ctx :system
+                                            (merge {:type :usage}
+                                                   usage))))]
     (when-let [expires-at (get-in db [:auth provider :expires-at])]
       (when (<= (long expires-at) (quot (System/currentTimeMillis) 1000))
         (send-content! chat-ctx :system {:type :progress
@@ -388,19 +395,35 @@
                                           (finish-chat-prompt! :idle chat-ctx)
                                           (throw (ex-info "Auth token renew failed" {})))})))
 
+    (when-not (get-in db [:chats chat-id :title])
+      (future
+        (when-let [title @(llm-api/simple-prompt
+                           {:provider provider
+                            :model model
+                            :model-capabilities model-capabilities
+                            :instructions (f.prompt/title-prompt)
+                            :user-messages user-messages
+                            :config config
+                            :tools []
+                            :provider-auth provider-auth
+                            :on-usage-updated on-usage-updated})]
+          (swap! db* assoc-in [:chats chat-id :title] title)
+          (send-content! chat-ctx :system (assoc-some
+                                           {:type :metadata}
+                                           :title title)))))
     (send-content! chat-ctx :system {:type :progress
                                      :state :running
                                      :text "Waiting model"})
     (llm-api/complete!
      {:model model
       :provider provider
-      :model-capabilities (get-in db [:models full-model])
+      :model-capabilities model-capabilities
       :user-messages user-messages
       :instructions instructions
       :past-messages past-messages
       :config config
       :tools all-tools
-      :provider-auth (get-in @db* [:auth provider])
+      :provider-auth provider-auth
       :on-first-response-received (fn [& _]
                                     (assert-chat-not-stopped! chat-ctx)
                                     (doseq [message user-messages]
@@ -408,11 +431,7 @@
                                     (send-content! chat-ctx :system {:type :progress
                                                                      :state :running
                                                                      :text "Generating"}))
-      :on-usage-updated (fn [usage]
-                          (when-let [usage (shared/usage-msg->usage usage full-model chat-ctx)]
-                            (send-content! chat-ctx :system
-                                           (merge {:type :usage}
-                                                  usage))))
+      :on-usage-updated on-usage-updated
       :on-message-received (fn [{:keys [type] :as msg}]
                              (assert-chat-not-stopped! chat-ctx)
                              (case type
