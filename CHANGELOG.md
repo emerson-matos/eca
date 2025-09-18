@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.55.0
+
 - Add support for Opentelemetry via `otlp` config.
   - Export metrics of server tasks, tool calls, prompts, resources.
 
