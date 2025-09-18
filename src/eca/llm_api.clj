@@ -213,7 +213,7 @@
 
 (defn simple-prompt
   [{:keys [provider model model-capabilitiies instructions
-           prompt user-messages config tools provider-auth on-usage-updated]}]
+           prompt user-messages config tools provider-auth]}]
   (let [result-p (promise)
         output* (atom "")]
     (complete!
@@ -232,7 +232,6 @@
                                :text (swap! output* str (:text msg))
                                :finish (deliver result-p @output*)
                                nil))
-      :on-usage-updated on-usage-updated
       :on-error (fn [_]
                   (deliver result-p nil))})
     result-p))

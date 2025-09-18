@@ -140,6 +140,7 @@
                                          :lastMessageCost (m/pred string?)
                                          :sessionCost (m/pred string?)})
         (match-content chat-id "system" {:type "progress" :state "finished"})
+        (match-content chat-id "system" {:type "metadata" :title "Some Cool Title"})
         (is (match?
              {:messages [{:role "user" :content [{:type "text" :text "hello!"}]}]
               :system (m/pred vector?)}

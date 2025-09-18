@@ -405,8 +405,7 @@
                             :user-messages user-messages
                             :config config
                             :tools []
-                            :provider-auth provider-auth
-                            :on-usage-updated on-usage-updated})]
+                            :provider-auth provider-auth})]
           (swap! db* assoc-in [:chats chat-id :title] title)
           (send-content! chat-ctx :system (assoc-some
                                            {:type :metadata}
