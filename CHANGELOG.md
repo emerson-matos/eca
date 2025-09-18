@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.56.1
+
 - Fix usage reporting.
 
 ## 0.56.0
