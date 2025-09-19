@@ -207,16 +207,19 @@
         (hk/close ch)))))
 
 (defn ^:private chat-title-text-0 [ch]
-  (sse-send! ch "response.output_text.delta"
-             {:type "response.output_text.delta" :delta "Some Cool"})
-  (sse-send! ch "response.output_text.delta"
-             {:type "response.output_text.delta" :delta " Title"})
-  (sse-send! ch "response.completed"
-             {:type "response.completed"
-              :response {:output []
-                         :usage {:input_tokens 5
-                                 :output_tokens 10}
-                         :status "completed"}})
+  (sse-send! ch "content_block_delta"
+             {:type "content_block_delta"
+              :index 0
+              :delta {:type "text_delta" :text "Some Cool"}})
+  (sse-send! ch "content_block_delta"
+             {:type "content_block_delta"
+              :index 0
+              :delta {:type "text_delta" :text " Title"}})
+  (sse-send! ch "message_delta"
+             {:type "message_delta"
+              :delta {:stop_reason "end_turn"}
+              :usage {:input_tokens 5
+                      :output_tokens 10}})
   (hk/close ch))
 
 (defn handle-anthropic-messages [req]
