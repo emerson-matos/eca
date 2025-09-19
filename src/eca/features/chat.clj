@@ -704,21 +704,23 @@
      :model full-model
      :status :prompting}))
 
-(defn tool-call-approve [{:keys [chat-id tool-call-id request-id]} db* messenger]
+(defn tool-call-approve [{:keys [chat-id tool-call-id request-id]} db* messenger metrics]
   (let [chat-ctx {;; What else is needed?
                   :chat-id chat-id
                   :db* db*
+                  :metrics metrics
                   :request-id request-id
                   :messenger messenger}]
     (transition-tool-call! db* chat-ctx tool-call-id :user-approve
                            {:reason {:code :user-choice-allow
                                      :text "Tool call allowed by user choice"}})))
 
-(defn tool-call-reject [{:keys [chat-id tool-call-id request-id]} db* messenger]
+(defn tool-call-reject [{:keys [chat-id tool-call-id request-id]} db* messenger metrics]
   (let [chat-ctx {;; What else is needed?
                   :chat-id chat-id
                   :db* db*
                   :request-id request-id
+                  :metrics metrics
                   :messenger messenger}]
     (transition-tool-call! db* chat-ctx tool-call-id :user-reject
                            {:reason {:code :user-choice-deny
@@ -747,10 +749,11 @@
      :commands commands}))
 
 (defn prompt-stop
-  [{:keys [chat-id]} db* messenger]
+  [{:keys [chat-id]} db* messenger metrics]
   (when (identical? :running (get-in @db* [:chats chat-id :status]))
     (let [chat-ctx {:chat-id chat-id
                     :db* db*
+                    :metrics metrics
                     :messenger messenger}]
       (send-content! chat-ctx :system {:type :text
                                        :text "\nPrompt stopped"})
