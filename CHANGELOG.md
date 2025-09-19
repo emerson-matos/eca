@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix db exception.
+
 ## 0.56.1
 
 - Fix usage reporting.

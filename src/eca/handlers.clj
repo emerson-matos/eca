@@ -23,6 +23,7 @@
              :client-info (:client-info params)
              :workspace-folders (:workspace-folders params)
              :client-capabilities (:capabilities params))
+      (metrics/set-extra-metrics! db*)
       (when-not (:pureConfig config)
         (db/load-db-from-cache! db* config metrics))
 

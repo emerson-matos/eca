@@ -117,10 +117,9 @@
      (jsonrpc.server/send-request server "editor/getDiagnostics" (assoc-some {} :uri uri)))))
 
 (defn ^:private ->Metrics [db*]
-  (let [config (config/all @db*)]
-    (if (:otlp config)
-      (opentelemetry/->OtelMetrics db* (config/all @db*))
-      (metrics/->NoopMetrics db*))))
+  (if-let [otlp-config (:otlp (config/all @db*))]
+    (opentelemetry/->OtelMetrics otlp-config)
+    (metrics/->NoopMetrics)))
 
 (defn start-server! [server]
   (let [db* (atom db/initial-db)

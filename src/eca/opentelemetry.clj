@@ -7,13 +7,13 @@
    [io.opentelemetry.sdk.autoconfigure AutoConfiguredOpenTelemetrySdk]
    [java.util.function Function]))
 
-(defrecord OtelMetrics [db* config]
+(defrecord OtelMetrics [otlp-config]
   metrics/IMetrics
 
   (start! [_this]
     (otel-api/set-global-otel!
      (-> (AutoConfiguredOpenTelemetrySdk/builder)
-         (.addPropertiesCustomizer ^Function (constantly (:otlp config)))
+         (.addPropertiesCustomizer ^Function (constantly otlp-config))
          (.build)
          .getOpenTelemetrySdk)))
 

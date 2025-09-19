@@ -1,29 +1,38 @@
 (ns eca.metrics
   (:require
    [clojure.string :as string]
+   [eca.config :as config]
    [eca.logger :as logger]
-   [eca.shared :as shared]
-   [eca.config :as config]))
+   [eca.shared :as shared]))
+
+(set! *warn-on-reflection* true)
+
+(def ^:dynamic extra-base-metrics {})
+
+(defn set-extra-metrics! [db*]
+  (alter-var-root #'extra-base-metrics
+                  (fn [_]
+                    {:client-name (:name (:client-info @db*))
+                     :client-version (:version (:client-info @db*))
+                     :workspace-roots (string/join ", " (map (comp shared/uri->filename :uri)
+                                                             (:workspace-folders @db*)))})))
 
 (defprotocol IMetrics
   (start! [this])
   (count! [this name value attrs]))
 
-(defrecord NoopMetrics [db*]
+(defrecord NoopMetrics []
   IMetrics
   (start! [_])
   (count! [_ _ _ _]))
 
-(defn default-attrs [db*]
-  {:hostname (shared/hostname)
-   :client-name (:name (:client-info @db*))
-   :client-version (:version (:client-info @db*))
-   :server-version (config/eca-version)
-   :os-name (System/getProperty "os.name")
-   :os-version (System/getProperty "os.version")
-   :os-arch (System/getProperty "os.arch")
-   :workspace-roots (string/join ", " (map (comp shared/uri->filename :uri)
-                                           (:workspace-folders @db*)))})
+(defn default-attrs []
+  (merge extra-base-metrics
+         {:hostname (shared/hostname)
+          :server-version (config/eca-version)
+          :os-name (System/getProperty "os.name")
+          :os-version (System/getProperty "os.version")
+          :os-arch (System/getProperty "os.arch")}))
 
 (defn format-time-delta-ms [start-time end-time]
   (format "%.0fms" (float (/ (- end-time start-time) 1000000))))
@@ -33,7 +42,10 @@
 
 (defn metrify-task [{:keys [task-id metrics time]}]
   (logger/info (str task-id " " time))
-  (count! metrics (str "task-" (name task-id)) 1 (default-attrs (:db* metrics))))
+  (try
+    (count! metrics (str "task-" (name task-id)) 1 (default-attrs))
+    (catch Exception e
+      (logger/error e))))
 
 (defmacro task*
   "Executes `body` logging `message` formatted with the time spent
@@ -54,5 +66,5 @@
     (meta &form)))
 
 (defn count-up! [name extra-attrs metrics]
-  (count! metrics name 1 (merge (default-attrs (:db* metrics))
+  (count! metrics name 1 (merge (default-attrs)
                                 extra-attrs)))

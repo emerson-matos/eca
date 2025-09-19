@@ -31,11 +31,10 @@
   (editor-diagnostics [_ _uri] (future {:diagnostics @diagnostics*})))
 
 (defn ^:private make-components []
-  (let [db* (atom db/initial-db)]
-    {:db* (atom db/initial-db)
-     :messenger (->TestMessenger (atom {}) (atom []))
-     :metrics (metrics/->NoopMetrics db*)
-     :config config/initial-config}))
+  {:db* (atom db/initial-db)
+   :messenger (->TestMessenger (atom {}) (atom []))
+   :metrics (metrics/->NoopMetrics)
+   :config config/initial-config})
 
 (def components* (atom (make-components)))
 (defn components [] @components*)
