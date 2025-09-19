@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.56.2
+
 - Fix db exception.
 
 ## 0.56.1
