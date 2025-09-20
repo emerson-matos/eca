@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.56.3
+
 - Fix metrics exception when saving to db.
 
 ## 0.56.2
