@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.57.0
+
 - Greatly reduce token consuming of `eca_directory_tree`
   - Ignoring files in gitignore
   - Improving tool output for LLM removing token consuming chars.
