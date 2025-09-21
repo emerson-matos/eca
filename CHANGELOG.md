@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix renew oauth tokens when it expires in the same session.
+
 ## 0.56.3
 
 - Fix metrics exception when saving to db.
