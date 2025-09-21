@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.56.4
+
 - Fix renew oauth tokens when it expires in the same session.
 
 ## 0.56.3
