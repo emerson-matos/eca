@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Greatly reduce token consuming of `eca_directory_tree`
+  - Ignoring files in gitignore
+  - Improving tool output for LLM removing token consuming chars.
+
 ## 0.56.4
 
 - Fix renew oauth tokens when it expires in the same session.
