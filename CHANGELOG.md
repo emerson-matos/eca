@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Bump MCP java sdk to 0.13.1
+
 ## 0.57.0
 
 - Greatly reduce token consuming of `eca_directory_tree`

@@ -10,6 +10,7 @@
    [com.fasterxml.jackson.databind ObjectMapper]
    [io.modelcontextprotocol.client McpClient McpSyncClient]
    [io.modelcontextprotocol.client.transport HttpClientStreamableHttpTransport ServerParameters StdioClientTransport]
+   [io.modelcontextprotocol.json McpJsonMapper]
    [io.modelcontextprotocol.spec
     McpSchema$CallToolRequest
     McpSchema$CallToolResult
@@ -74,7 +75,7 @@
                                :uri
                                shared/uri->filename)
                        (config/get-property "user.home"))]
-      (proxy [StdioClientTransport] [(.build b)]
+      (proxy [StdioClientTransport] [(.build b) (McpJsonMapper/getDefault)]
         (getProcessBuilder [] (-> (ProcessBuilder. ^List pb-init-args)
                                   (.directory (io/file work-dir))))))))
 
