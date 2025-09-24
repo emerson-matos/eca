@@ -2,8 +2,6 @@
 
 ## Unreleased
 
-## 0.58.0
-
 - Bump MCP java sdk to 0.13.1
 - Improve MCP logs on stderr.
 - Support tool call rejection with reasons inputed by user. #127
