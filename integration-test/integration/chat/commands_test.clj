@@ -4,13 +4,13 @@
    [clojure.test :refer [deftest is testing]]
    [integration.eca :as eca]
    [integration.fixture :as fixture]
-   [integration.helper :refer [match-content]]
+   [integration.helper :refer [match-content] :as h]
    [matcher-combinators.matchers :as m]
    [matcher-combinators.test :refer [match?]]))
 
 (eca/clean-after-test)
 
-(deftest commands
+(deftest query-commands
   (eca/start-process!)
 
   (eca/request! (fixture/initialize-request))
@@ -56,3 +56,24 @@
       (match-content chat-id "user" {:type "text" :text "/prompt-show\n"})
       (match-content chat-id "system" {:type "text" :text (m/pred #(string/includes? % "You are ECA"))})
       (match-content chat-id "system" {:type "progress" :state "finished"}))))
+
+(deftest mcp-prompts
+  (eca/start-process!)
+
+  (eca/request! (fixture/initialize-request
+                 {:initializationOptions (merge fixture/default-init-options
+                                                {:mcpServers {"mcp-server-sample"
+                                                              {:command "bash"
+                                                               :args ["-c" (str "cd " h/mcp-server-sample-path " && clojure -M:server")]}}})}))
+  (eca/notify! (fixture/initialized-notification))
+
+  (Thread/sleep 5000) ;; wait MCP server start
+
+  (testing "MCP prompts available when querying commands"
+    (let [resp (eca/request! (fixture/chat-query-commands-request
+                              {:query ""}))]
+      (is (match?
+           {:chatId nil
+            :commands (m/embeds
+                       [{:name "mcpServerSample:my-prompt" :arguments [{:name "some-arg-1"}]}])}
+           resp)))))
