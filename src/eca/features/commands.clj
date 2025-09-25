@@ -67,7 +67,8 @@
 
 (defn ^:private custom-commands [config roots]
   (concat (config-commands config roots)
-          (global-file-commands)
+          (when-not (:pureConfig config)
+            (global-file-commands))
           (local-file-commands roots)))
 
 (defn all-commands [db config]
