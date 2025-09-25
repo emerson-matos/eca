@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.58.2
+
 - Fix MCP prompt for native image.
 
 ## 0.58.1
