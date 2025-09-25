@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix MCP prompt for native image.
+
 ## 0.58.1
 
 - Improve progress notification when tool is running.

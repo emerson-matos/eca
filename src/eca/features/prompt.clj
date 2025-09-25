@@ -112,5 +112,5 @@
       (logger/debug logger-tag "Prompt result: " result)
       result)
     (catch Exception e
-      (logger/warn logger-tag (format "Error calling prompt %s: %s" name (.getMessage e)))
+      (logger/warn logger-tag (format "Error calling prompt %s: %s" name e))
       {:error-message (str "Error calling prompt: " (.getMessage e))})))
