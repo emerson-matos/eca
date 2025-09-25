@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.58.1
+
 - Improve progress notification when tool is running.
 
 ## 0.58.0
