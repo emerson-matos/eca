@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Deprecate repoMap context, will be removed in the future.
+  - After lots of tunnings and improvements, the repoMap is no longer relevant as `eca_directory_tree` provides similar and more specific view for LLM to use.
+
 ## 0.58.2
 
 - Fix MCP prompt for native image.

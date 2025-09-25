@@ -389,6 +389,8 @@ interface WebContext {
  * Context about the workspaces repo-map, automatically calculated by server.
  * Clients should include this to chat by default but users may want exclude 
  * this context to reduce context size if needed.
+ *
+ * @deprecated No longer needed, replaced by eca_directory_tree tool.
  */
 interface RepoMapContext {
     type: 'repoMap'; 

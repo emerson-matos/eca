@@ -130,8 +130,7 @@
                                              :path (shared/uri->filename uri)})
                         (:workspace-folders @db*))
         mcp-resources (mapv #(assoc % :type "mcpResource") (f.mcp/all-resources @db*))]
-    (concat [{:type "repoMap"}
-             {:type "cursor"}]
+    (concat [{:type "cursor"}]
             root-dirs
             relative-files
             workspace-files
