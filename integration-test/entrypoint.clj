@@ -1,5 +1,6 @@
 (ns entrypoint
   (:require
+   [babashka.process :refer [shell]]
    [clojure.test :as t]
    [integration.eca :as eca]
    [llm-mock.server :as llm-mock.server]))
@@ -11,8 +12,7 @@
     integration.chat.github-copilot-test
     integration.chat.ollama-test
     integration.chat.custom-provider-test
-    integration.chat.commands-test
-    ])
+    integration.chat.commands-test])
 
 (defn timeout [timeout-ms callback]
   (let [fut (future (callback))
@@ -40,6 +40,8 @@
   (alter-var-root #'eca/*eca-binary-path* (constantly binary))
   (apply require namespaces)
 
+  (println "Preparing mcp-server-sample")
+  (shell {:out nil :dir "integration-test/mcp-server-sample"} "clojure -Stree")
   (llm-mock.server/start!)
 
   (let [timeout-minutes (if (re-find #"(?i)win|mac" (System/getProperty "os.name"))
