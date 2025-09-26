@@ -144,6 +144,7 @@ Only set this when your provider uses a different path or expects query paramete
     
     1. Login to Google via the chat command `/login`.
     2. Type 'google' and send it.
+    3. Choose 'manual' and type your Google/Gemini API key. (You need to create a key in [google studio](https://aistudio.google.com/api-keys))
 
 === "LiteLLM"
 
