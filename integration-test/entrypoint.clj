@@ -12,7 +12,8 @@
     integration.chat.github-copilot-test
     integration.chat.ollama-test
     integration.chat.custom-provider-test
-    integration.chat.commands-test])
+    integration.chat.commands-test
+    ])
 
 (defn timeout [timeout-ms callback]
   (let [fut (future (callback))

@@ -38,7 +38,7 @@
         (is (match?
              {:input [{:role "user" :content [{:type "input_text" :text "Tell me a joke!"}]}]
               :instructions (m/pred string?)}
-             llm.mocks/*last-req-body*))))
+             (llm.mocks/get-req-body :simple-text-0)))))
 
     (testing "We reply"
       (llm.mocks/set-case! :simple-text-1)
@@ -65,7 +65,7 @@
                       {:role "assistant" :content [{:type "output_text" :text "Knock knock!"}]}
                       {:role "user" :content [{:type "input_text" :text "Who's there?"}]}]
               :instructions (m/pred string?)}
-             llm.mocks/*last-req-body*))))
+             (llm.mocks/get-req-body :simple-text-1)))))
 
     (testing "model reply again keeping context"
       (llm.mocks/set-case! :simple-text-2)
@@ -96,7 +96,7 @@
                       {:role "assistant" :content [{:type "output_text" :text "Foo"}]}
                       {:role "user" :content [{:type "input_text" :text "What foo?"}]}]
               :instructions (m/pred string?)}
-             llm.mocks/*last-req-body*))))))
+             (llm.mocks/get-req-body :simple-text-2)))))))
 
 ;; TODO fix reasoning in openai-chat
 #_(deftest reasoning-text
