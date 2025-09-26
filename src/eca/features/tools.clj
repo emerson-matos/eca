@@ -74,7 +74,10 @@
       (mapv #(assoc % :origin :native) (native-tools db config))
       (mapv #(assoc % :origin :mcp) (f.mcp/all-tools db))))))
 
-(defn call-tool! [^String name ^Map arguments chat-id behavior db* config messenger metrics]
+(defn call-tool! [^String name ^Map arguments chat-id tool-call-id behavior db* config messenger metrics
+                  call-state-fn         ; thunk
+                  state-transition-fn   ; params: event & event-data
+                  ]
   (logger/info logger-tag (format "Calling tool '%s' with args '%s'" name arguments))
   (let [arguments (update-keys arguments clojure.core/name)
         db @db*]
@@ -84,9 +87,20 @@
                                                      :db* db*
                                                      :config config
                                                      :messenger messenger
+                                                     :behavior behavior
                                                      :chat-id chat-id
-                                                     :behavior behavior})
-                     (f.mcp/call-tool! name arguments db))]
+                                                     :tool-call-id tool-call-id
+                                                     :call-state-fn call-state-fn
+                                                     :state-transition-fn state-transition-fn})
+                     (f.mcp/call-tool! name arguments {:db db
+                                                       :db* db*
+                                                       :config config
+                                                       :messenger messenger
+                                                       :behavior behavior
+                                                       :chat-id chat-id
+                                                       :tool-call-id tool-call-id
+                                                       :call-state-fn call-state-fn
+                                                       :state-transition-fn state-transition-fn}))]
         (logger/debug logger-tag "Tool call result: " result)
         (metrics/count-up! "tool-called" {:name name :error (:error result)} metrics)
         result)

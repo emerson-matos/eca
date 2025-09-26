@@ -11,6 +11,40 @@
 
 ;;; TODO: remove the :manual-approval's from event-data of the :tool-prepare event.  They are not needed. But may be needed in :tool-run
 
+;;; Unit testing the actions
+
+(deftest actions-test
+  (testing "Test each state management action."
+    (h/reset-components!)
+    (let [db* (h/db*)
+          chat-id "test-chat"
+          tool-call-id "call-42"
+          tool-name "Shell tool"
+          tool-arguments {:command "/bin/sh -c sleep 30"
+                          :working_directory "/tmp"}
+          tool-origin :native
+          chat-ctx {:chat-id chat-id :request-id "req-1" :messenger (h/messenger)}
+          resources {:a 1 :b 2}]
+      (#'f.chat/execute-action! :init-tool-call-state db* chat-ctx tool-call-id {:name tool-name
+                                                                                 :arguments tool-arguments
+                                                                                 :origin tool-origin})
+      (is (= (#'f.chat/get-tool-call-state @db* chat-id tool-call-id)
+             {:name tool-name
+              :arguments tool-arguments
+              :origin tool-origin
+              :decision-reason {:code :none
+                                :text "No reason"}})
+          "Expected tool-call-state to be initialized.")
+
+      (#'f.chat/execute-action! :add-resources db* chat-ctx tool-call-id {:resources resources})
+      (is (= (:resources (#'f.chat/get-tool-call-state @db* chat-id tool-call-id))
+             resources))
+
+      (#'f.chat/execute-action! :remove-resources db* chat-ctx tool-call-id {:resources (keys resources)})
+      (is (= (:resources (#'f.chat/get-tool-call-state @db* chat-id tool-call-id))
+             {}))
+)))
+
 ;;; State machine intent tests
 
 (deftest transition-tool-call-state-machine-completeness-test
@@ -42,6 +76,14 @@
           "Expected state machine to contain [:execution-approved :execution-start] transition")
       (is (contains? state-machine [:executing :execution-end])
           "Expected state machine to contain [:executing :execution-end] transition")
+      (is (contains? state-machine [:executing :resources-created])
+          "Expected state machine to contain [:executing :resources-created] transition")
+      (is (contains? state-machine [:executing :resources-destroyed])
+          "Expected state machine to contain [:executing :resources-destroyed] transition")
+      (is (contains? state-machine [:stopping :resources-destroyed])
+          "Expected state machine to contain [:stopping :resources-destroyed] transition")
+      (is (contains? state-machine [:stopping :stop-attempted])
+          "Expected state machine to contain [:stopping :stop-attempted] transition")
 
       ;; Verify all stop transitions are defined
       (is (contains? state-machine [:initial :stop-requested])
@@ -54,11 +96,10 @@
           "Expected state machine to contain [:waiting-approval :stop-requested] transition")
       (is (contains? state-machine [:execution-approved :stop-requested])
           "Expected state machine to contain [:execution-approved :stop-requested] transition")
+      (is (contains? state-machine [:executing :stop-requested])
+          "Expected state machine to contain [:executing :stop-requested] transition")
 
       ;; Note: :rejected, :completed and :stopped are terminal states, so no stop transitions.
-      ;; Note: :executing doesn't have a stop transition defined, yet. This is expected documented behavior.
-      (is (not (contains? state-machine [:executing :stop-requested]))
-          "Expected :executing state to not have stop transition defined")
       (is (not (contains? state-machine [:stopped :stop-requested]))
           "Expected :rejected state to not have stop transition defined, since it is a terminal state")
       (is (not (contains? state-machine [:rejected :stop-requested]))
@@ -479,6 +520,29 @@
                         result)
                 "Expected transition from :check-approval to :rejected with relevant actions"))))
 
+      ;; Test :executing -> :stopping -> :stopped
+      (testing ":executing -> :stopping -> :stopped"
+        (let [approved?* (promise)]
+          (#'f.chat/transition-tool-call! db* chat-ctx "tool-executing" :tool-prepare
+                                          {:name "test" :origin "test" :arguments-text "{}"})
+          (#'f.chat/transition-tool-call! db* chat-ctx "tool-executing" :tool-run
+                                          {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
+          (#'f.chat/transition-tool-call! db* chat-ctx "tool-executing" :approval-allow)
+          (#'f.chat/transition-tool-call! db* chat-ctx "tool-executing" :execution-start
+                                          {:name "test" :origin "test" :arguments {}})
+
+          (let [result (#'f.chat/transition-tool-call! db* chat-ctx "tool-executing" :stop-requested)]
+            (is (match? {:status :stopping
+                         :actions []}
+                        result)
+                "Expected transition from :executing to :stopping with relevant actions"))
+          (let [result (#'f.chat/transition-tool-call! db* chat-ctx "tool-executing" :stop-attempted)]
+            (is (match? {:status :stopped
+                         :actions [:send-toolCallRejected]}
+                        result)
+                "Expected transition from :stopping to :stopped with relevant actions"))))
+
+
       ;; Test :completed -> :stopped (should be no-op or error)
       (testing ":completed -> :stopped (should handle gracefully)"
         (let [approved?* (promise)]
@@ -762,35 +826,39 @@
               "Expected promise to be delivered with true value"))))))
 
 (deftest transition-tool-call-stop-during-execution-test
-  ;; Test stopping during execution state
-  (testing ":executing -> :stopped transition"
+  ;; Test stopping a tool call during execution 
+  (testing ":executing -> :stopping -> :stopped transition"
     (h/reset-components!)
     (let [db* (h/db*)
           chat-id "test-chat"
           tool-call-id "tool-1"
+          name "stopping-test"
+          origin :native
           chat-ctx {:chat-id chat-id :request-id "req-1" :messenger (h/messenger)}
           approved?* (promise)]
 
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-prepare
-                                      {:name "test" :origin "test" :arguments-text "{}"})
+                                      {:name name :origin origin :arguments-text "{}"})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :tool-run
-                                      {:approved?* approved?* :name "test" :origin "test" :arguments {} :manual-approval false})
+                                      {:approved?* approved?* :name name :origin origin :arguments {} :manual-approval false})
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :approval-allow)
       (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :execution-start
-                                      {:name "test" :origin "test" :arguments {}})
+                                      {:name name :origin origin :arguments {}})
 
-      (let [tool-state (#'f.chat/get-tool-call-state @db* chat-id tool-call-id)]
+      ;; TODO: Expand on these tests as we develop the tool cancellation.
+      (let [tool-state (#'f.chat/get-tool-call-state @db* chat-id tool-call-id)
+            result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :stop-requested)]
         (is (= :executing (:status tool-state))
-            "Expected tool call state to be in :executing status"))
-
-      ;; Note: Currently the state machine doesn't define :executing -> :stop-requested
-      ;; Update this test after implementing this transition.
-      ;; This test documents expected behavior even if not yet implemented.
-      (is (thrown-with-msg?
-           clojure.lang.ExceptionInfo
-           #"Invalid state transition"
-           (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :stop-requested))
-          "Expected exception as executing->stop not currently supported"))))
+            "Expected tool call state to be in :executing status")
+        (is (= :stopping (:status result))
+            "Expected tool call state to be :stopping after :stop-requested"))
+      (let [tool-state (#'f.chat/get-tool-call-state @db* chat-id tool-call-id)
+            result (#'f.chat/transition-tool-call! db* chat-ctx tool-call-id :stop-attempted)]
+        (is (= :stopping (:status tool-state))
+            "Expected tool call state to be in :stopping status")
+        (is (= :stopped (:status result))
+            "Expected tool call state to be :stopped after :stop-requested"))
+      )))
 
 (deftest transition-tool-call-nonexistent-tool-call-operations-test
   ;; Test operations on nonexistent tool calls
