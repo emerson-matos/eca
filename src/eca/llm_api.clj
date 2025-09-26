@@ -180,7 +180,10 @@
           :supports-image? supports-image?
           :past-messages past-messages
           :tools tools
-          :extra-payload extra-payload
+          :extra-payload (merge {}
+                                (when reason?
+                                  {:extra_body {:google {:thinking_config {:include_thoughts true}}}})
+                                extra-payload)
           :parallel-tool-calls? false
           :api-url api-url
           :api-key api-key}

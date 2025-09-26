@@ -5,6 +5,7 @@
    [clojure.string :as string]
    [eca.llm-util :as llm-util]
    [eca.logger :as logger]
+   [eca.shared :refer [assoc-some]]
    [hato.client :as http]))
 
 (set! *warn-on-reflection* true)
@@ -204,13 +205,14 @@
                        (normalize-messages past-messages supports-image?)
                        (normalize-messages user-messages supports-image?)))
 
-        body (merge {:model               model
-                     :messages            messages
-                     :temperature         temperature
-                     :stream              true
-                     :parallel_tool_calls parallel-tool-calls?}
-                    (when max-output-tokens {:max_tokens max-output-tokens})
-                    (when (seq tools) {:tools (->tools tools)})
+        body (merge (assoc-some
+                     {:model               model
+                      :messages            messages
+                      :temperature         temperature
+                      :stream              true
+                      :parallel_tool_calls parallel-tool-calls?}
+                     :max_tokens max-output-tokens
+                     :tools (when (seq tools) (->tools tools)))
                     extra-payload)
 
         ;; Atom to accumulate tool call data from streaming chunks.
