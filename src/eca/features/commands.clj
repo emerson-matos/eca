@@ -160,7 +160,7 @@
                                                   "\n"
                                                   (System/getenv))))))
 
-(defn handle-command! [command args {:keys [chat-id db* config messenger full-model instructions]}]
+(defn handle-command! [command args {:keys [chat-id db* config messenger full-model instructions metrics]}]
   (let [db @db*
         custom-cmds (custom-commands config (:workspace-folders db))]
     (case command
@@ -196,7 +196,8 @@
                                         :chat-id chat-id}
                                        db*
                                        messenger
-                                       config)
+                                       config
+                                       metrics)
                   {:type :new-chat-status
                    :status :login})
       "resume" (let [chats (:chats db)]
