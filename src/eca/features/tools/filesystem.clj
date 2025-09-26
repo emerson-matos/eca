@@ -93,7 +93,7 @@
                                                " parameter to read more content.")
                                           content)))))
 
-(defn ^:private read-file-summary [args]
+(defn ^:private read-file-summary [{:keys [args]}]
   (if-let [path (get args "path")]
     (str "Reading file " (fs/file-name (fs/file path)))
     "Reading file"))
@@ -106,7 +106,7 @@
         (spit path content)
         (tools.util/single-text-content (format "Successfully wrote to %s" path)))))
 
-(defn ^:private write-file-summary [args]
+(defn ^:private write-file-summary [{:keys [args]}]
   (if-let [path (get args "path")]
     (str "Creating file " (fs/file-name (fs/file path)))
     "Creating file"))
@@ -203,7 +203,7 @@
           (tools.util/single-text-content (string/join "\n" paths))
           (tools.util/single-text-content "No files found for given pattern" :error)))))
 
-(defn grep-summary [args]
+(defn grep-summary [{:keys [args]}]
   (if-let [pattern (get args "pattern")]
     (if (> (count pattern) 22)
       (format "Searching for '%s...'" (subs pattern 0 22))

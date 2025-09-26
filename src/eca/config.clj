@@ -85,7 +85,8 @@
                                  "eca_editor_diagnostics" {}}
                          :ask {}
                          :deny {}}
-              :readFile {:maxLines 2000}}
+              :readFile {:maxLines 2000}
+              :shellCommand {:summaryMaxLength 25}}
    :mcpTimeoutSeconds 60
    :lspTimeoutSeconds 30
    :mcpServers {}

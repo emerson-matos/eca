@@ -459,7 +459,7 @@
                                                      {:name name
                                                       :origin (tool-name->origin name all-tools)
                                                       :arguments-text arguments-text
-                                                      :summary (f.tools/tool-call-summary all-tools name nil)}))
+                                                      :summary (f.tools/tool-call-summary all-tools name nil config)}))
       :on-tools-called (fn [tool-calls]
                          (assert-chat-not-stopped! chat-ctx)
                          ;; Flush any pending assistant text once before processing multiple tool calls
@@ -470,7 +470,7 @@
                            (run! (fn do-tool-call [{:keys [id name arguments] :as tool-call}]
                                    (let [approved?* (promise)
                                          details (f.tools/tool-call-details-before-invocation name arguments)
-                                         summary (f.tools/tool-call-summary all-tools name arguments)
+                                         summary (f.tools/tool-call-summary all-tools name arguments config)
                                          origin (tool-name->origin name all-tools)
                                          approval (f.tools/approval all-tools name arguments db config behavior)
                                          ask? (= :ask approval)]

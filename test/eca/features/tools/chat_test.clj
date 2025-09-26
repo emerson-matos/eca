@@ -98,7 +98,7 @@
 
 (deftest compact-chat-summary-fn-test
   (testing "Summary function returns constant string"
-    (is (= "Compacting..." ((get-in f.tools.chat/definitions ["eca_compact_chat" :summary-fn]))))))
+    (is (= "Compacting..." ((get-in f.tools.chat/definitions ["eca_compact_chat" :summary-fn]) {})))))
 
 (deftest compact-chat-tool-definition-test
   (testing "Tool definition has correct structure"

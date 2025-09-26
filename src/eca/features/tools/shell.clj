@@ -64,12 +64,13 @@
                                            [{:type :text
                                              :text (str "Stdout:\n" out)}])))}))))))
 
-(defn shell-command-summary [args]
-  (if-let [command (get args "command")]
-    (if (> (count command) 20)
-      (format "Running '%s...'" (subs command 0 20))
-      (format "Running '%s'" command))
-    "Running shell command"))
+(defn shell-command-summary [{:keys [args config]}]
+  (let [max-length (get-in config [:toolCall :shellCommand :summaryMaxLength])]
+    (if-let [command (get args "command")]
+      (if (> (count command) max-length)
+        (format "Running '%s...'" (subs command 0 max-length))
+        (format "Running '%s'" command))
+      "Running shell command")))
 
 (def definitions
   {"eca_shell_command"

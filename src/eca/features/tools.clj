@@ -208,11 +208,12 @@
       :else
       :ask)))
 
-(defn tool-call-summary [all-tools name args]
+(defn tool-call-summary [all-tools name args config]
   (when-let [summary-fn (:summary-fn (first (filter #(= name (:name %))
                                                     all-tools)))]
     (try
-      (summary-fn args)
+      (summary-fn {:args args
+                   :config config})
       (catch Exception e
         (logger/error (format "Error in tool call summary fn %s: %s" name (.getMessage e)))
         nil))))

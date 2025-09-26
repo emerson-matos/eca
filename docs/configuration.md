@@ -422,6 +422,9 @@ To configure, add your OTLP collector config via `:otlp` map following [otlp aut
           readFile?: {
             maxLines?: number;
           };
+          shellCommand?: {
+            summaryMaxLength?: number,
+          };
         };
         mcpTimeoutSeconds?: number;
         lspTimeoutSeconds?: number;
@@ -476,7 +479,10 @@ To configure, add your OTLP collector config via `:otlp` map following [otlp aut
         },
         "readFile": {
           "maxLines": 2000
-        }
+        },
+        "shellCommand": {
+          "summaryMaxLength": 30,
+        },
       },
       "mcpTimeoutSeconds" : 60,
       "lspTimeoutSeconds" : 30,

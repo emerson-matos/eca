@@ -4,6 +4,7 @@
 
 - Deprecate repoMap context, will be removed in the future.
   - After lots of tunnings and improvements, the repoMap is no longer relevant as `eca_directory_tree` provides similar and more specific view for LLM to use.
+- Support `toolCall shellCommand summaryMaxLength` to configure UX of command length. #130
 
 ## 0.58.2
 
