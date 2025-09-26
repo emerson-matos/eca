@@ -241,7 +241,7 @@
       :model-capabilitiies model-capabilitiies
       :instructions instructions
       :tools tools
-      :provider-aith provider-auth
+      :provider-auth provider-auth
       :past-messages []
       :user-messages (or user-messages
                          [{:role "user" :content [{:type :text :text prompt}]}])

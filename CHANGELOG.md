@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix chat titles not working for some providers.
+
 ## 0.60.0
 
 - Support google gemini as built-in models. #50
