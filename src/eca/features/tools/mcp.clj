@@ -5,8 +5,7 @@
    [clojure.string :as string]
    [eca.config :as config]
    [eca.logger :as logger]
-   [eca.shared :as shared]
-   [eca.messenger :as messenger])
+   [eca.shared :as shared])
   (:import
    [com.fasterxml.jackson.databind ObjectMapper]
    [io.modelcontextprotocol.client McpClient McpSyncClient]
@@ -224,10 +223,10 @@
                   (map #(assoc % :server name) tools)))
         (:mcp-clients db)))
 
-(defn call-tool! [^String name ^Map arguments {:keys [db db*
+(defn call-tool! [^String name ^Map arguments {:keys [db _db*
                                                       _config _messenger _behavior
-                                                      chat-id tool-call-id
-                                                      _call-state-fn state-transition-fn]}]
+                                                      _chat-id _tool-call-id
+                                                      _call-state-fn _state-transition-fn]}]
   (let [mcp-client (->> (vals (:mcp-clients db))
                         (keep (fn [{:keys [client tools]}]
                                 (when (some #(= name (:name %)) tools)

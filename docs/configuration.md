@@ -455,11 +455,10 @@ To configure, add your OTLP collector config via `:otlp` map following [otlp aut
     ```javascript
     {
       "providers": {
-          "openai": {"key": null,
-                     "url": "https://api.openai.com"},
-          "anthropic": {"key": null,
-                        "url": "https://api.anthropic.com"},
+          "openai": {"url": "https://api.openai.com"},
+          "anthropic": {"url": "https://api.anthropic.com"},
           "github-copilot": {"url": "https://api.githubcopilot.com"},
+          "google": {"url": "https://generativelanguage.googleapis.com/v1beta/openai"},
           "ollama": {"url": "http://localhost:11434"}
       },
       "defaultModel": null, // let ECA decides the default model.

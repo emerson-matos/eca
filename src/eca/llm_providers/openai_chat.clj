@@ -195,8 +195,9 @@
    and message normalization. Supports both single and parallel tool execution.
    Compatible with OpenRouter and other OpenAI-compatible providers."
   [{:keys [model user-messages instructions temperature api-key api-url max-output-tokens
-           past-messages tools extra-payload extra-headers supports-image?]
-    :or {temperature 1.0}}
+           past-messages tools extra-payload extra-headers supports-image? parallel-tool-calls?]
+    :or {temperature 1.0
+         parallel-tool-calls? true}}
    {:keys [on-message-received on-error on-prepare-tool-call on-tools-called on-reason]}]
   (let [messages (vec (concat
                        (when instructions [{:role "system" :content instructions}])
@@ -207,7 +208,7 @@
                      :messages            messages
                      :temperature         temperature
                      :stream              true
-                     :parallel_tool_calls true}
+                     :parallel_tool_calls parallel-tool-calls?}
                     (when max-output-tokens {:max_tokens max-output-tokens})
                     (when (seq tools) {:tools (->tools tools)})
                     extra-payload)

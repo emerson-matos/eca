@@ -34,6 +34,7 @@
           "azure" {}
           "deepseek" {}
           "github-copilot" {}
+          "google" {}
           "openai" {}
           "openrouter" {}
           "z-ai" {}}})

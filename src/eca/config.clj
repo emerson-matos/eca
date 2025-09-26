@@ -56,6 +56,12 @@
                                           "gpt-4.1" {}
                                           "gemini-2.5-pro" {}
                                           "claude-sonnet-4" {}}}
+               "google" {:api "openai-chat"
+                         :url "https://generativelanguage.googleapis.com/v1beta/openai"
+                         :key nil
+                         :keyEnv "GOOGLE_API_KEY"
+                         :models {"gemini-2.0-flash" {}
+                                  "gemini-2.5-pro" {}}}
                "ollama" {:url "http://localhost:11434"
                          :urlEnv "OLLAMA_API_URL"}}
    :defaultBehavior "agent"

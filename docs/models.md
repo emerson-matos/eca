@@ -15,6 +15,7 @@ ECA will return to clients the models configured, either via config or login.
 | OpenAI                        | √           | √                    | √              | √          | √           |
 | Anthropic (Also subscription) | √           | √                    | √              | √          | √           |
 | Github Copilot                | √           | √                    | √              | X          | √           |
+| Google                        | √           | √                    | √              | X          | √           |
 | Ollama local models           | √           | √                    | X              | X          |             |
 
 ### Config
@@ -138,6 +139,11 @@ Only set this when your provider uses a different path or expects query paramete
     4. Type anything in the chat to continue and done!
     
     _Tip: check [Your Copilot plan](https://github.com/settings/copilot/features) to enable models to your account._
+    
+=== "Google / Gemini"
+    
+    1. Login to Google via the chat command `/login`.
+    2. Type 'google' and send it.
 
 === "LiteLLM"
 

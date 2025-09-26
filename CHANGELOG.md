@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Support google gemini as built-in models. #50
+
 ## 0.59.0
 
 - Deprecate repoMap context, will be removed in the future.

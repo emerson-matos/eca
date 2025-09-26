@@ -170,6 +170,22 @@
                           "copilot-integration-id" "vscode-chat"}}
          callbacks)
 
+        (= "google" provider)
+        (llm-providers.openai-chat/completion!
+         {:model model
+          :instructions instructions
+          :user-messages user-messages
+          :max-output-tokens max-output-tokens
+          :reason? reason?
+          :supports-image? supports-image?
+          :past-messages past-messages
+          :tools tools
+          :extra-payload extra-payload
+          :parallel-tool-calls? false
+          :api-url api-url
+          :api-key api-key}
+         callbacks)
+
         (= "ollama" provider)
         (llm-providers.ollama/completion!
          {:api-url api-url
