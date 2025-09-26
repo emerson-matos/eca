@@ -67,7 +67,7 @@
                                                                :args ["-c" (str "cd " h/mcp-server-sample-path " && clojure -M:server")]}}})}))
   (eca/notify! (fixture/initialized-notification))
 
-  (Thread/sleep 5000) ;; wait MCP server start
+  (Thread/sleep 10000) ;; wait MCP server start TODO Improve this
 
   (testing "MCP prompts available when querying commands"
     (let [resp (eca/request! (fixture/chat-query-commands-request
