@@ -193,6 +193,79 @@
       ;; No completed tools at all - let the streaming response provide the actual finish_reason
       nil)))
 
+(defn ^:private process-text-think-aware
+  "Incremental thinking/content parser that supports tag splits across chunks
+   Strategy:
+   - Maintain a rolling buffer across chunks
+   - Outside a thinking block: search for thinking-start-tag; if not found, emit all but a small tail
+     of length (thinking-start-len - 1) to allow tags split across chunks (e.g., \"<th\", \"ink\", \">\", ...).
+   - Inside a thinking block: search for thinking-end-tag; if not found, emit all but a small tail
+     of length (thinking-end-len - 1) to allow end tags split across chunks.
+   - On stream end, flush remaining buffer and close any open reasoning block."
+  [text content-buffer* reasoning-type* current-reason-id*
+   reasoning-started* thinking-start-tag thinking-end-tag on-message-received on-reason]
+  (let [thinking-start-len (count thinking-start-tag)
+        thinking-end-len (count thinking-end-tag)]
+    (when (seq text)
+      (swap! content-buffer* str text)
+      (loop []
+        (let [buf @content-buffer*
+              inside-tag? (= @reasoning-type* :tag)
+              ;; Keep a small tail to detect tags split across chunk boundaries.
+              start-tail (max 0 (dec thinking-start-len))
+              end-tail   (max 0 (dec thinking-end-len))]
+          (if inside-tag?
+            ;; We are inside a thinking block; look for end tag
+            (let [idx (.indexOf ^String buf ^String thinking-end-tag)]
+              (if (>= idx 0)
+                (let [before (.substring ^String buf 0 idx)
+                      after (.substring ^String buf (+ idx thinking-end-len))]
+                  (when (pos? (count before))
+                    (on-reason {:status :thinking
+                                :id @current-reason-id*
+                                :text before}))
+                  ;; Close the thinking block
+                  (reset! content-buffer* after)
+                  (when @reasoning-started*
+                    (on-reason {:status :finished :id @current-reason-id*})
+                    (reset! reasoning-started* false)
+                    (reset! reasoning-type* nil))
+                  (recur))
+                ;; No end tag yet: emit most, keep small tail to match possible split tag
+                (let [emit-len (max 0 (- (count buf) end-tail))]
+                  (when (pos? emit-len)
+                    (let [to-emit (.substring ^String buf 0 emit-len)
+                          tail (.substring ^String buf emit-len)]
+                      (when (pos? (count to-emit))
+                        (on-reason {:status :thinking
+                                    :id @current-reason-id*
+                                    :text to-emit}))
+                      (reset! content-buffer* tail))))))
+            ;; We are outside a thinking block; look for start tag
+            (let [idx (.indexOf ^String buf ^String thinking-start-tag)]
+              (if (>= idx 0)
+                (let [before (.substring ^String buf 0 idx)
+                      after (.substring ^String buf (+ idx thinking-start-len))]
+                  (when (pos? (count before))
+                    (on-message-received {:type :text :text before}))
+                  ;; Open a new thinking block
+                  (when-not @reasoning-started*
+                    (let [new-id (str (random-uuid))]
+                      (reset! current-reason-id* new-id)
+                      (reset! reasoning-started* true)
+                      (reset! reasoning-type* :tag)
+                      (on-reason {:status :started :id new-id})))
+                  (reset! content-buffer* after)
+                  (recur))
+                ;; No start tag yet: emit most, keep small tail for possible split tag
+                (let [emit-len (max 0 (- (count buf) start-tail))]
+                  (when (pos? emit-len)
+                    (let [to-emit (.substring ^String buf 0 emit-len)
+                          tail (.substring ^String buf emit-len)]
+                      (when (pos? (count to-emit))
+                        (on-message-received {:type :text :text to-emit}))
+                      (reset! content-buffer* tail))))))))))))
+
 (defn completion!
   "Primary entry point for OpenAI chat completions with streaming support.
 
@@ -201,19 +274,17 @@
    Compatible with OpenRouter and other OpenAI-compatible providers."
   [{:keys [model user-messages instructions temperature api-key api-url max-output-tokens
            past-messages tools extra-payload extra-headers supports-image? parallel-tool-calls?
-           thinking-block]
+           thinking-tag]
     :or {temperature 1.0
          parallel-tool-calls? true
-         thinking-block "think"}}
+         thinking-tag "think"}}
    {:keys [on-message-received on-error on-prepare-tool-call on-tools-called on-reason]}]
-  (let [thinking-start-block (str "<" thinking-block ">")
-        thinking-end-block (str "</" thinking-block ">")
-        thinking-start-len (count thinking-start-block)
-        thinking-end-len (count thinking-end-block)
+  (let [thinking-start-tag (str "<" thinking-tag ">")
+        thinking-end-tag (str "</" thinking-tag ">")
         messages (vec (concat
                        (when instructions [{:role "system" :content instructions}])
-                       (normalize-messages past-messages supports-image? thinking-start-block thinking-end-block)
-                       (normalize-messages user-messages supports-image? thinking-start-block thinking-end-block)))
+                       (normalize-messages past-messages supports-image? thinking-start-tag thinking-end-tag)
+                       (normalize-messages user-messages supports-image? thinking-start-tag thinking-end-tag)))
 
         body (merge (assoc-some
                      {:model               model
@@ -239,66 +310,6 @@
         reasoning-type* (atom nil)
         ;; Incremental parser buffer for content to detect thinking tags across chunks
         content-buffer* (atom "")
-
-        ;; Incremental thinking/content parser that supports tag splits across chunks
-        process-content (fn [text]
-                          (when (seq text)
-                            (swap! content-buffer* str text)
-                            (loop []
-                              (let [buf @content-buffer*
-                                    inside-tag? (= @reasoning-type* :tag)]
-                                (if inside-tag?
-                                  ;; We are inside a thinking block; look for end tag
-                                  (let [idx (.indexOf ^String buf ^String thinking-end-block)]
-                                    (if (>= idx 0)
-                                      (let [before (.substring ^String buf 0 idx)
-                                            after (.substring ^String buf (+ idx thinking-end-len))]
-                                        (when (and on-reason (pos? (count before)))
-                                          (on-reason {:status :thinking
-                                                      :id @current-reason-id*
-                                                      :text before}))
-                                        ;; Close the thinking block
-                                        (reset! content-buffer* after)
-                                        (when (and on-reason @reasoning-started*)
-                                          (on-reason {:status :finished :id @current-reason-id*})
-                                          (reset! reasoning-started* false)
-                                          (reset! reasoning-type* nil))
-                                        (recur))
-                                      ;; No end tag yet: emit most, keep small tail to match possible split tag
-                                      (let [emit-len (max 0 (- (count buf) (dec thinking-end-len)))]
-                                        (when (pos? emit-len)
-                                          (let [to-emit (.substring ^String buf 0 emit-len)
-                                                tail (.substring ^String buf emit-len)]
-                                            (when (and on-reason (pos? (count to-emit)))
-                                              (on-reason {:status :thinking
-                                                          :id @current-reason-id*
-                                                          :text to-emit}))
-                                            (reset! content-buffer* tail))))))
-                                  ;; We are outside a thinking block; look for start tag
-                                  (let [idx (.indexOf ^String buf ^String thinking-start-block)]
-                                    (if (>= idx 0)
-                                      (let [before (.substring ^String buf 0 idx)
-                                            after (.substring ^String buf (+ idx thinking-start-len))]
-                                        (when (pos? (count before))
-                                          (on-message-received {:type :text :text before}))
-                                        ;; Open a new thinking block
-                                        (when on-reason
-                                          (when-not @reasoning-started*
-                                            (let [new-id (str (random-uuid))]
-                                              (reset! current-reason-id* new-id)
-                                              (reset! reasoning-started* true)
-                                              (reset! reasoning-type* :tag)
-                                              (on-reason {:status :started :id new-id}))))
-                                        (reset! content-buffer* after)
-                                        (recur))
-                                      ;; No start tag yet: emit most, keep small tail for possible split tag
-                                      (let [emit-len (max 0 (- (count buf) (dec thinking-start-len)))]
-                                        (when (pos? emit-len)
-                                          (let [to-emit (.substring ^String buf 0 emit-len)
-                                                tail (.substring ^String buf emit-len)]
-                                            (when (pos? (count to-emit))
-                                              (on-message-received {:type :text :text to-emit}))
-                                            (reset! content-buffer* tail)))))))))))
         handle-response (fn handle-response [event data tool-calls-atom rid]
                           (if (= event "stream-end")
                             (do
@@ -306,11 +317,10 @@
                               (let [buf @content-buffer*]
                                 (when (pos? (count buf))
                                   (if (= @reasoning-type* :tag)
-                                    (when on-reason
-                                      (on-reason {:status :thinking :id @current-reason-id* :text buf}))
+                                    (on-reason {:status :thinking :id @current-reason-id* :text buf})
                                     (on-message-received {:type :text :text buf}))
                                   (reset! content-buffer* "")))
-                              (when (and @reasoning-started* on-reason)
+                              (when @reasoning-started*
                                 (on-reason {:status :finished :id @current-reason-id*})
                                 (reset! reasoning-started* false)
                                 (reset! reasoning-type* nil))
@@ -324,8 +334,8 @@
                                 :api-key         api-key
                                 :on-tools-called on-tools-called
                                 :on-error        on-error
-                                :thinking-start-block thinking-start-block
-                                :thinking-end-block thinking-end-block
+                                :thinking-start-block thinking-start-tag
+                                :thinking-end-block thinking-end-tag
                                 :handle-response handle-response}))
                             (when (seq (:choices data))
                               (doseq [choice (:choices data)]
@@ -333,24 +343,22 @@
                                       finish-reason (:finish_reason choice)]
                                   ;; Process content if present (with thinking blocks support)
                                   (when-let [ct (:content delta)]
-                                    (if on-reason
-                                      (process-content ct)
-                                      (on-message-received {:type :text :text ct})))
+                                    (process-text-think-aware ct content-buffer* reasoning-type* current-reason-id* reasoning-started*
+                                                              thinking-start-tag thinking-end-tag on-message-received on-reason))
 
                                   ;; Process reasoning if present (o1 models and compatible providers)
                                   (when-let [reasoning-text (or (:reasoning delta)
                                                                 (:reasoning_content delta))]
-                                    (when on-reason
-                                      (when-not @reasoning-started*
+                                    (when-not @reasoning-started*
                                         ;; Generate new reason-id for each thinking block
-                                        (let [new-reason-id (str (random-uuid))]
-                                          (reset! current-reason-id* new-reason-id)
-                                          (reset! reasoning-started* true)
-                                          (reset! reasoning-type* :delta)
-                                          (on-reason {:status :started :id new-reason-id})))
-                                      (on-reason {:status :thinking
-                                                  :id     @current-reason-id*
-                                                  :text   reasoning-text})))
+                                      (let [new-reason-id (str (random-uuid))]
+                                        (reset! current-reason-id* new-reason-id)
+                                        (reset! reasoning-started* true)
+                                        (reset! reasoning-type* :delta)
+                                        (on-reason {:status :started :id new-reason-id})))
+                                    (on-reason {:status :thinking
+                                                :id     @current-reason-id*
+                                                :text   reasoning-text}))
 
                                   ;; Check if reasoning just stopped (delta-based)
                                   (when (and (= @reasoning-type* :delta)
@@ -390,12 +398,11 @@
                                     (let [buf @content-buffer*]
                                       (when (pos? (count buf))
                                         (if (= @reasoning-type* :tag)
-                                          (when on-reason
-                                            (on-reason {:status :thinking :id @current-reason-id* :text buf}))
+                                          (on-reason {:status :thinking :id @current-reason-id* :text buf})
                                           (on-message-received {:type :text :text buf}))
                                         (reset! content-buffer* "")))
                                     ;; Handle reasoning completion
-                                    (when (and @reasoning-started* on-reason)
+                                    (when @reasoning-started*
                                       (on-reason {:status :finished :id @current-reason-id*})
                                       (reset! reasoning-started* false)
                                       (reset! reasoning-type* nil))

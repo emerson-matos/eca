@@ -4,8 +4,8 @@
    [eca.llm-providers.openai-chat :as llm-providers.openai-chat]
    [matcher-combinators.test :refer [match?]]))
 
-(def thinking-start-block "<think>")
-(def thinking-end-block "</think>")
+(def thinking-start-tag "<think>")
+(def thinking-end-tag "</think>")
 
 (deftest normalize-messages-test
   (testing "With tool_call history"
@@ -33,8 +33,8 @@
                                                                     :text "file1.txt\nfile2.txt"}]}}}
            {:role "assistant" :content "I found 2 files"}]
           true
-          thinking-start-block
-          thinking-end-block))))
+          thinking-start-tag
+          thinking-end-tag))))
 
   (testing "Skips unsupported message types"
     (is (match?
@@ -47,8 +47,8 @@
                    {:role "reason" :content {:text "Thinking..."}}
                    {:role "assistant" :content "Hi"}]
                   true
-                  thinking-start-block
-                  thinking-end-block))))))
+                  thinking-start-tag
+                  thinking-end-tag))))))
 
 (deftest extract-content-test
   (testing "String input"
@@ -103,8 +103,8 @@
                      :name "get_weather"
                      :arguments {:location "NYC"}}}
           true
-          thinking-start-block
-          thinking-end-block))))
+          thinking-start-tag
+          thinking-end-tag))))
 
   (testing "Tool call output transformation"
     (is (match?
@@ -116,16 +116,16 @@
            :content {:id "call-123"
                      :output {:contents [{:type :text :text "Sunny, 75°F"}]}}}
           true
-          thinking-start-block
-          thinking-end-block))))
+          thinking-start-tag
+          thinking-end-tag))))
 
   (testing "Unsupported role returns nil"
     (is (nil?
          (#'llm-providers.openai-chat/transform-message
           {:role "unsupported" :content "test"}
           true
-          thinking-start-block
-          thinking-end-block)))))
+          thinking-start-tag
+          thinking-end-tag)))))
 
 (deftest accumulate-tool-calls-test
   (testing "Multiple sequential tool calls get grouped"
@@ -166,3 +166,94 @@
   (testing "Messages with valid content are kept"
     (is (#'llm-providers.openai-chat/valid-message?
          {:role "user" :content "Hello world"}))))
+
+(defn process-text-think-aware [texts]
+  (let [content-buffer* (atom "")
+        reasoning-type* (atom nil)
+        reasoning-started* (atom false)
+        current-reason-id* (atom nil)
+        callbacks-called* (atom [])]
+    (doseq [text texts]
+      (with-redefs [random-uuid (constantly "123")]
+        (#'llm-providers.openai-chat/process-text-think-aware
+         text
+         content-buffer*
+         reasoning-type*
+         current-reason-id*
+         reasoning-started*
+         thinking-start-tag
+         thinking-end-tag
+         (fn [{:keys [text]}]
+           (swap! callbacks-called* conj [:text text]))
+         (fn [{:keys [status text id]}]
+           (let [value (case status
+                         :thinking text
+                         status)]
+             (swap! callbacks-called* conj [:reason value id]))))))
+    {:callbacks-called @callbacks-called*
+     :content-buffer @content-buffer*}))
+
+(deftest process-text-think-aware-test
+  (testing "complete tag by chunk"
+    (is (match?
+         {:content-buffer " mate!"
+          :callbacks-called
+          [[:reason :started "123"]
+           [:reason "Hum..." "123"]
+           [:reason :finished "123"]
+           [:text "Hello "]
+           [:text "there"]]}
+         (process-text-think-aware
+          ["<think>" "Hum..." "</think>"
+           "Hello" " there " "mate!"]))))
+  (testing "thinking tag with content"
+    (is (match?
+         {:content-buffer " mate!"
+          :callbacks-called
+          [[:reason :started "123"]
+           [:reason "Hum..." "123"]
+           [:reason :finished "123"]
+           [:text "Hello there"]]}
+         (process-text-think-aware
+          ["<think>Hum..."
+           "</think>Hello there mate!"]))))
+  (testing "Single message with thinking and content"
+    (is (match?
+         {:content-buffer " mate!"
+          :callbacks-called
+          [[:reason :started "123"]
+           [:reason "Hum..." "123"]
+           [:reason :finished "123"]
+           [:text "Hello there"]]}
+         (process-text-think-aware
+          ["<think>Hum...</think>Hello there mate!"]))))
+  (testing "thinking tag splitted in chunks with content together"
+    (is (match?
+         {:content-buffer " mate!"
+          :callbacks-called
+          [[:reason :started "123"]
+           [:reason "Hu" "123"]
+           [:reason "m..." "123"]
+           [:reason :finished "123"]
+           [:text "Hello"]
+           [:text " the"]
+           [:text "re"]]}
+         (process-text-think-aware
+          ["<thi" "nk>" "Hu" "m..." "</t" "hink>"
+           "Hel" "lo " "there" " mat" "e!"]))))
+  (testing "thinking tag splitted in chunks with content together"
+    (is (match?
+         {:content-buffer " mate!"
+          :callbacks-called
+          [[:reason :started "123"]
+           [:reason "H" "123"]
+           [:reason "um." "123"]
+           [:reason ".." "123"]
+           [:reason :finished "123"]
+           [:text "Hel"]
+           [:text "lo "]
+           [:text "the"]
+           [:text "re"]]}
+         (process-text-think-aware
+          ["<" "thi" "nk>H" "um.." ".</" "thi" "nk>H"
+           "ello " "the" "re " "mat" "e!"])))))
