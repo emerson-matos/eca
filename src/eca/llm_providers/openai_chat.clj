@@ -85,23 +85,23 @@
   "Transform a single ECA message to OpenAI format. Returns nil for unsupported roles."
   [{:keys [role content] :as _msg} supports-image? thinking-start-block thinking-end-block]
   (case role
-    "tool_call"        {:type :tool-call  ; Special marker for accumulation
-                        :data {:id (:id content)
-                               :type "function"
-                               :function {:name (:name content)
-                                          :arguments (json/generate-string (:arguments content))}}}
+    "tool_call" {:type :tool-call ; Special marker for accumulation
+                 :data {:id (:id content)
+                        :type "function"
+                        :function {:name (:name content)
+                                   :arguments (json/generate-string (:arguments content))}}}
     "tool_call_output" {:role "tool"
                         :tool_call_id (:id content)
                         :content (llm-util/stringfy-tool-result content)}
-    "user"             {:role "user"
-                        :content (extract-content content supports-image?)}
-    "reason"           {:role "assistant"
-                        :content [{:type "text"
-                                   :text (str thinking-start-block (:text content) thinking-end-block)}]}
-    "assistant"        {:role "assistant"
-                        :content (extract-content content supports-image?)}
-    "system"           {:role "system"
-                        :content (extract-content content supports-image?)}
+    "user" {:role "user"
+            :content (extract-content content supports-image?)}
+    "reason" {:role "assistant"
+              :content [{:type "text"
+                         :text (str thinking-start-block (:text content) thinking-end-block)}]}
+    "assistant" {:role "assistant"
+                 :content (extract-content content supports-image?)}
+    "system" {:role "system"
+              :content (extract-content content supports-image?)}
     nil))
 
 (defn ^:private accumulate-tool-calls
@@ -131,8 +131,8 @@
   "Check if a message should be included in the final output."
   [{:keys [role content tool_calls] :as msg}]
   (and msg
-       (or (= role "tool")           ; Never remove tool messages
-           (seq tool_calls)          ; Keep messages with tool calls
+       (or (= role "tool") ; Never remove tool messages
+           (seq tool_calls) ; Keep messages with tool calls
            (and (string? content)
                 (not (string/blank? content)))
            (sequential? content))))
@@ -194,77 +194,67 @@
       nil)))
 
 (defn ^:private process-text-think-aware
-  "Incremental thinking/content parser that supports tag splits across chunks
-   Strategy:
-   - Maintain a rolling buffer across chunks
-   - Outside a thinking block: search for thinking-start-tag; if not found, emit all but a small tail
-     of length (thinking-start-len - 1) to allow tags split across chunks (e.g., \"<th\", \"ink\", \">\", ...).
-   - Inside a thinking block: search for thinking-end-tag; if not found, emit all but a small tail
-     of length (thinking-end-len - 1) to allow end tags split across chunks.
-   - On stream end, flush remaining buffer and close any open reasoning block."
+  "Incremental parser that splits streamed content into user text and thinking blocks.
+   - Maintains a rolling buffer across chunks to handle tags that may be split across chunks
+   - Outside thinking: emit user text up to <think> and keep a small tail to detect split tags
+   - Inside thinking: emit reasoning up to </think> and keep a small tail to detect split tags
+   - When a tag boundary is found, open/close the reasoning block accordingly"
   [text content-buffer* reasoning-type* current-reason-id*
    reasoning-started* thinking-start-tag thinking-end-tag on-message-received on-reason]
-  (let [thinking-start-len (count thinking-start-tag)
-        thinking-end-len (count thinking-end-tag)]
+  (let [start-len (count thinking-start-tag)
+        end-len (count thinking-end-tag)
+        ;; Keep a small tail to detect tags split across chunk boundaries.
+        start-tail (max 0 (dec start-len))
+        end-tail (max 0 (dec end-len))
+        emit-text! (fn [^String s]
+                     (when (pos? (count s))
+                       (on-message-received {:type :text :text s})))
+        emit-think! (fn [^String s]
+                      (when (pos? (count s))
+                        (on-reason {:status :thinking :id @current-reason-id* :text s})))
+        start-think! (fn []
+                       (when-not @reasoning-started*
+                         (let [new-id (str (random-uuid))]
+                           (reset! current-reason-id* new-id)
+                           (reset! reasoning-started* true)
+                           (reset! reasoning-type* :tag)
+                           (on-reason {:status :started :id new-id}))))
+        finish-think! (fn []
+                        (when @reasoning-started*
+                          (on-reason {:status :finished :id @current-reason-id*})
+                          (reset! reasoning-started* false)
+                          (reset! reasoning-type* nil)))]
     (when (seq text)
       (swap! content-buffer* str text)
       (loop []
-        (let [buf @content-buffer*
-              inside-tag? (= @reasoning-type* :tag)
-              ;; Keep a small tail to detect tags split across chunk boundaries.
-              start-tail (max 0 (dec thinking-start-len))
-              end-tail   (max 0 (dec thinking-end-len))]
-          (if inside-tag?
-            ;; We are inside a thinking block; look for end tag
-            (let [idx (.indexOf ^String buf ^String thinking-end-tag)]
+        (let [^String buf @content-buffer*]
+          (if (= @reasoning-type* :tag)
+            ;; Inside a thinking block; look for end tag
+            (let [idx (.indexOf buf ^String thinking-end-tag)]
               (if (>= idx 0)
-                (let [before (.substring ^String buf 0 idx)
-                      after (.substring ^String buf (+ idx thinking-end-len))]
-                  (when (pos? (count before))
-                    (on-reason {:status :thinking
-                                :id @current-reason-id*
-                                :text before}))
-                  ;; Close the thinking block
+                (let [before (.substring buf 0 idx)
+                      after (.substring buf (+ idx end-len))]
+                  (emit-think! before)
                   (reset! content-buffer* after)
-                  (when @reasoning-started*
-                    (on-reason {:status :finished :id @current-reason-id*})
-                    (reset! reasoning-started* false)
-                    (reset! reasoning-type* nil))
+                  (finish-think!)
                   (recur))
-                ;; No end tag yet: emit most, keep small tail to match possible split tag
                 (let [emit-len (max 0 (- (count buf) end-tail))]
                   (when (pos? emit-len)
-                    (let [to-emit (.substring ^String buf 0 emit-len)
-                          tail (.substring ^String buf emit-len)]
-                      (when (pos? (count to-emit))
-                        (on-reason {:status :thinking
-                                    :id @current-reason-id*
-                                    :text to-emit}))
-                      (reset! content-buffer* tail))))))
-            ;; We are outside a thinking block; look for start tag
-            (let [idx (.indexOf ^String buf ^String thinking-start-tag)]
+                    (emit-think! (.substring buf 0 emit-len))
+                    (reset! content-buffer* (.substring buf emit-len))))))
+            ;; Outside a thinking block; look for start tag
+            (let [idx (.indexOf buf ^String thinking-start-tag)]
               (if (>= idx 0)
-                (let [before (.substring ^String buf 0 idx)
-                      after (.substring ^String buf (+ idx thinking-start-len))]
-                  (when (pos? (count before))
-                    (on-message-received {:type :text :text before}))
-                  ;; Open a new thinking block
-                  (when-not @reasoning-started*
-                    (let [new-id (str (random-uuid))]
-                      (reset! current-reason-id* new-id)
-                      (reset! reasoning-started* true)
-                      (reset! reasoning-type* :tag)
-                      (on-reason {:status :started :id new-id})))
+                (let [before (.substring buf 0 idx)
+                      after (.substring buf (+ idx start-len))]
+                  (emit-text! before)
+                  (start-think!)
                   (reset! content-buffer* after)
                   (recur))
-                ;; No start tag yet: emit most, keep small tail for possible split tag
                 (let [emit-len (max 0 (- (count buf) start-tail))]
                   (when (pos? emit-len)
-                    (let [to-emit (.substring ^String buf 0 emit-len)
-                          tail (.substring ^String buf emit-len)]
-                      (when (pos? (count to-emit))
-                        (on-message-received {:type :text :text to-emit}))
-                      (reset! content-buffer* tail))))))))))))
+                    (emit-text! (.substring buf 0 emit-len))
+                    (reset! content-buffer* (.substring buf emit-len))))))))))))
 
 (defn completion!
   "Primary entry point for OpenAI chat completions with streaming support.
@@ -287,10 +277,10 @@
                        (normalize-messages user-messages supports-image? thinking-start-tag thinking-end-tag)))
 
         body (merge (assoc-some
-                     {:model               model
-                      :messages            messages
-                      :temperature         temperature
-                      :stream              true
+                     {:model model
+                      :messages messages
+                      :temperature temperature
+                      :stream true
                       :parallel_tool_calls parallel-tool-calls?}
                      :max_tokens max-output-tokens
                      :tools (when (seq tools) (->tools tools)))
@@ -326,20 +316,20 @@
                                 (reset! reasoning-type* nil))
                               (execute-accumulated-tools!
                                {:tool-calls-atom tool-calls-atom
-                                :instructions    instructions
+                                :instructions instructions
                                 :supports-image? supports-image?
-                                :extra-headers   extra-headers
-                                :body            body
-                                :api-url         api-url
-                                :api-key         api-key
+                                :extra-headers extra-headers
+                                :body body
+                                :api-url api-url
+                                :api-key api-key
                                 :on-tools-called on-tools-called
-                                :on-error        on-error
+                                :on-error on-error
                                 :thinking-start-block thinking-start-tag
                                 :thinking-end-block thinking-end-tag
                                 :handle-response handle-response}))
                             (when (seq (:choices data))
                               (doseq [choice (:choices data)]
-                                (let [delta         (:delta choice)
+                                (let [delta (:delta choice)
                                       finish-reason (:finish_reason choice)]
                                   ;; Process content if present (with thinking blocks support)
                                   (when-let [ct (:content delta)]
@@ -357,8 +347,8 @@
                                         (reset! reasoning-type* :delta)
                                         (on-reason {:status :started :id new-reason-id})))
                                     (on-reason {:status :thinking
-                                                :id     @current-reason-id*
-                                                :text   reasoning-text}))
+                                                :id @current-reason-id*
+                                                :text reasoning-text}))
 
                                   ;; Check if reasoning just stopped (delta-based)
                                   (when (and (= @reasoning-type* :delta)
@@ -374,20 +364,20 @@
                                   ;; Process tool calls if present
                                   (when (:tool_calls delta)
                                     (doseq [tool-call (:tool_calls delta)]
-                                      (let [{:keys [index id function]}  tool-call
+                                      (let [{:keys [index id function]} tool-call
                                             {name :name args :arguments} function
                                             ;; Use RID as key to avoid collisions between API requests
-                                            tool-key                     (str rid "-" index)
+                                            tool-key (str rid "-" index)
                                             ;; Create globally unique tool call ID for client
-                                            unique-id                    (when id (str rid "-" id))]
+                                            unique-id (when id (str rid "-" id))]
                                         (when (and name unique-id)
                                           (on-prepare-tool-call {:id unique-id :name name :arguments-text ""}))
                                         (swap! tool-calls-atom update tool-key
                                                (fn [existing]
                                                  (cond-> (or existing {:index index})
                                                    unique-id (assoc :id unique-id)
-                                                   name      (assoc :name name)
-                                                   args      (update :arguments-text (fnil str "") args))))
+                                                   name (assoc :name name)
+                                                   args (update :arguments-text (fnil str "") args))))
                                         (when-let [updated-tool-call (get @tool-calls-atom tool-key)]
                                           (when (and (:id updated-tool-call) (:name updated-tool-call)
                                                      (not (string/blank? (:arguments-text updated-tool-call))))
@@ -411,11 +401,11 @@
                                       (on-message-received {:type :finish :finish-reason finish-reason}))))))))
         rid (llm-util/gen-rid)]
     (base-request!
-     {:rid         rid
-      :body        body
+     {:rid rid
+      :body body
       :extra-headers extra-headers
-      :api-url     api-url
-      :api-key     api-key
+      :api-url api-url
+      :api-key api-key
       :tool-calls* tool-calls*
-      :on-error    on-error
+      :on-error on-error
       :on-response (fn [event data] (handle-response event data tool-calls* rid))})))
