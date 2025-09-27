@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+
 - More tolerant whitespace handling after `data:`.
 
 ## 0.61.0
