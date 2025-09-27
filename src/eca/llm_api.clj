@@ -180,6 +180,7 @@
           :supports-image? supports-image?
           :past-messages past-messages
           :tools tools
+          :thinking-block "thought"
           :extra-payload (merge {}
                                 (when reason?
                                   {:extra_body {:google {:thinking_config {:include_thoughts true}}}})

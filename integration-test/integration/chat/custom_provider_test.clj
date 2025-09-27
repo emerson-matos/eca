@@ -160,8 +160,8 @@
         (match-content chat-id "user" {:type "text" :text "Tell me a joke!\n"})
         (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
         (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id "assistant" {:type "text" :text "Knock"})
-        (match-content chat-id "assistant" {:type "text" :text " knock!"})
+        (match-content chat-id "assistant" {:type "text" :text "Knock "})
+        (match-content chat-id "assistant" {:type "text" :text "knock!"})
         (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:input [{:role "user" :content [{:type "input_text" :text "Tell me a joke!"}]}]
@@ -210,10 +210,10 @@
         (match-content chat-id "user" {:type "text" :text "What foo?\n"})
         (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
         (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
-        (match-content chat-id "assistant" {:type "text" :text "Foo"})
-        (match-content chat-id "assistant" {:type "text" :text " bar!"})
-        (match-content chat-id "assistant" {:type "text" :text "\n\n"})
-        (match-content chat-id "assistant" {:type "text" :text "Ha!"})
+        (match-content chat-id "assistant" {:type "text" :text "Fo"})
+        (match-content chat-id "assistant" {:type "text" :text "o "})
+        (match-content chat-id "assistant" {:type "text" :text "bar"})
+        (match-content chat-id "assistant" {:type "text" :text "!\n\nHa!"})
         (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
              {:input [{:role "user" :content [{:type "input_text" :text "Tell me a joke!"}]}
