@@ -29,7 +29,7 @@
 
                   ;; data: <data>
                   (string/starts-with? line "data:")
-                  (let [data-str (subs line 6)]
+                  (let [data-str (string/triml (subs line 5))]
                     (if (= data-str "[DONE]")
                       (recur event-line) ; skip [DONE]
                       (let [event-type (if event-line

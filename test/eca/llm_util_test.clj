@@ -42,4 +42,14 @@
       (is (match?
            [["foo.bar" {:type "foo.bar"}]
             ["foo.baz" {:type "foo.baz"}]]
+           (llm-util/event-data-seq r)))))
+  (testing "when no extra space after data:"
+    (with-open [r (io/reader (ByteArrayInputStream. (.getBytes (str "data:{\"type\": \"foo.bar\"}\n"
+                                                                    "\n"
+                                                                    "data:{\"type\": \"foo.baz\"}\n"
+                                                                    "\n"
+                                                                    "data:[DONE]\n"))))]
+      (is (match?
+           [["foo.bar" {:type "foo.bar"}]
+            ["foo.baz" {:type "foo.baz"}]]
            (llm-util/event-data-seq r))))))
