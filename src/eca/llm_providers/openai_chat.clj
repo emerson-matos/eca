@@ -83,7 +83,7 @@
 
 (defn ^:private transform-message
   "Transform a single ECA message to OpenAI format. Returns nil for unsupported roles."
-  [{:keys [role content] :as _msg} supports-image?]
+  [{:keys [role content] :as _msg} supports-image? thinking-start-block thinking-end-block]
   (case role
     "tool_call"        {:type :tool-call  ; Special marker for accumulation
                         :data {:id (:id content)
@@ -95,6 +95,9 @@
                         :content (llm-util/stringfy-tool-result content)}
     "user"             {:role "user"
                         :content (extract-content content supports-image?)}
+    "reason"           {:role "assistant"
+                        :content [{:type "text"
+                                   :text (str thinking-start-block (:text content) thinking-end-block)}]}
     "assistant"        {:role "assistant"
                         :content (extract-content content supports-image?)}
     "system"           {:role "system"
@@ -147,16 +150,17 @@
    'assistant' role message, not as separate messages. This function ensures compliance
    with that requirement by accumulating tool calls and flushing them into assistant
    messages when a non-tool_call message is encountered."
-  [messages supports-image?]
+  [messages supports-image? thinking-start-block thinking-end-block]
   (->> messages
-       (map #(transform-message % supports-image?))
+       (map #(transform-message % supports-image? thinking-start-block thinking-end-block))
        (remove nil?)
        accumulate-tool-calls
        (filter valid-message?)))
 
 (defn ^:private execute-accumulated-tools!
   [{:keys [tool-calls-atom instructions extra-headers body api-url api-key
-           on-tools-called on-error handle-response supports-image?]}]
+           on-tools-called on-error handle-response supports-image?
+           thinking-start-block thinking-end-block]}]
   (let [all-accumulated (vals @tool-calls-atom)
         completed-tools (->> all-accumulated
                              (filter #(every? % [:id :name :arguments-text]))
@@ -175,7 +179,7 @@
       (when-let [{:keys [new-messages]} (on-tools-called valid-tools)]
         (let [new-messages-list (vec (concat
                                       (when instructions [{:role "system" :content instructions}])
-                                      (normalize-messages new-messages supports-image?)))]
+                                      (normalize-messages new-messages supports-image? thinking-start-block thinking-end-block)))]
           (reset! tool-calls-atom {})
           (let [new-rid (llm-util/gen-rid)]
             (base-request!
@@ -208,8 +212,8 @@
         thinking-end-len (count thinking-end-block)
         messages (vec (concat
                        (when instructions [{:role "system" :content instructions}])
-                       (normalize-messages past-messages supports-image?)
-                       (normalize-messages user-messages supports-image?)))
+                       (normalize-messages past-messages supports-image? thinking-start-block thinking-end-block)
+                       (normalize-messages user-messages supports-image? thinking-start-block thinking-end-block)))
 
         body (merge (assoc-some
                      {:model               model
@@ -320,6 +324,8 @@
                                 :api-key         api-key
                                 :on-tools-called on-tools-called
                                 :on-error        on-error
+                                :thinking-start-block thinking-start-block
+                                :thinking-end-block thinking-end-block
                                 :handle-response handle-response}))
                             (when (seq (:choices data))
                               (doseq [choice (:choices data)]

@@ -4,6 +4,9 @@
    [eca.llm-providers.openai-chat :as llm-providers.openai-chat]
    [matcher-combinators.test :refer [match?]]))
 
+(def thinking-start-block "<think>")
+(def thinking-end-block "</think>")
+
 (deftest normalize-messages-test
   (testing "With tool_call history"
     (is (match?
@@ -29,18 +32,23 @@
                                                                     :error false
                                                                     :text "file1.txt\nfile2.txt"}]}}}
            {:role "assistant" :content "I found 2 files"}]
-          true))))
+          true
+          thinking-start-block
+          thinking-end-block))))
 
   (testing "Skips unsupported message types"
     (is (match?
          [{:role "user" :content [{:type "text" :text "Hello"}]}
+          {:role "assistant" :content [{:type "text" :text "<think>Thinking...</think>"}]}
           {:role "assistant" :content [{:type "text" :text "Hi"}]}]
          (remove nil?
                  (#'llm-providers.openai-chat/normalize-messages
                   [{:role "user" :content "Hello"}
                    {:role "reason" :content {:text "Thinking..."}}
                    {:role "assistant" :content "Hi"}]
-                  true))))))
+                  true
+                  thinking-start-block
+                  thinking-end-block))))))
 
 (deftest extract-content-test
   (testing "String input"
@@ -94,7 +102,9 @@
            :content {:id "call-123"
                      :name "get_weather"
                      :arguments {:location "NYC"}}}
-          true))))
+          true
+          thinking-start-block
+          thinking-end-block))))
 
   (testing "Tool call output transformation"
     (is (match?
@@ -105,13 +115,17 @@
           {:role "tool_call_output"
            :content {:id "call-123"
                      :output {:contents [{:type :text :text "Sunny, 75°F"}]}}}
-          true))))
+          true
+          thinking-start-block
+          thinking-end-block))))
 
   (testing "Unsupported role returns nil"
     (is (nil?
          (#'llm-providers.openai-chat/transform-message
           {:role "unsupported" :content "test"}
-          true)))))
+          true
+          thinking-start-block
+          thinking-end-block)))))
 
 (deftest accumulate-tool-calls-test
   (testing "Multiple sequential tool calls get grouped"
