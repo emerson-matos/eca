@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.61.0
+
 - Fix chat titles not working for some providers.
 - Enable reasoning for google models.
 - Support reasoning blocks in models who use openai-chat api.
