@@ -90,4 +90,4 @@
   (swap! db* assoc-in [:chats chat-id :login-provider] nil)
   (swap! db* assoc-in [:chats chat-id :status] :idle)
   (when-not silent?
-    (send-msg! (format "Login successful! You can now use the '%s' models." provider))))
+    (send-msg! (format "\nLogin successful! You can now use the '%s' models." provider))))

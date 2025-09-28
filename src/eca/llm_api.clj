@@ -7,6 +7,7 @@
    [eca.llm-providers.azure]
    [eca.llm-providers.copilot]
    [eca.llm-providers.deepseek]
+   [eca.llm-providers.google]
    [eca.llm-providers.ollama :as llm-providers.ollama]
    [eca.llm-providers.openai :as llm-providers.openai]
    [eca.llm-providers.openai-chat :as llm-providers.openai-chat]
