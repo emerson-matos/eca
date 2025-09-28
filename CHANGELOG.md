@@ -2,8 +2,10 @@
 
 ## Unreleased
 
+## 0.61.1
+
 - More tolerant whitespace handling after `data:`.
-- Fix login for google provider.
+- Fix login for google provider. #134
 
 ## 0.61.0
 
