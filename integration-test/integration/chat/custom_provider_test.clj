@@ -161,6 +161,7 @@
         (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
         (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
         (match-content chat-id "assistant" {:type "text" :text "Knock "})
+        (match-content chat-id "system" {:type "usage"})
         (match-content chat-id "assistant" {:type "text" :text "knock!"})
         (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -184,6 +185,7 @@
 
         (match-content chat-id "user" {:type "text" :text "Who's there?\n"})
         (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "usage"})
         (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
         (match-content chat-id "assistant" {:type "text" :text "Foo"})
         (match-content chat-id "system" {:type "progress" :state "finished"})
@@ -213,6 +215,7 @@
         (match-content chat-id "assistant" {:type "text" :text "Fo"})
         (match-content chat-id "assistant" {:type "text" :text "o "})
         (match-content chat-id "assistant" {:type "text" :text "bar"})
+        (match-content chat-id "system" {:type "usage"})
         (match-content chat-id "assistant" {:type "text" :text "!\n\nHa!"})
         (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?

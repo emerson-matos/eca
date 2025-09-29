@@ -34,6 +34,7 @@
         (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
         (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
         (match-content chat-id "assistant" {:type "text" :text "Knoc"})
+        (match-content chat-id "system" {:type "usage"})
         (match-content chat-id "assistant" {:type "text" :text "k knock!"})
         (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -57,6 +58,7 @@
 
         (match-content chat-id "user" {:type "text" :text "Who's there?\n"})
         (match-content chat-id "system" {:type "progress" :state "running" :text "Waiting model"})
+        (match-content chat-id "system" {:type "usage"})
         (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
         (match-content chat-id "assistant" {:type "text" :text "Foo"})
         (match-content chat-id "system" {:type "progress" :state "finished"})
@@ -87,6 +89,7 @@
         (match-content chat-id "system" {:type "progress" :state "running" :text "Generating"})
         (match-content chat-id "assistant" {:type "text" :text "Fo"})
         (match-content chat-id "assistant" {:type "text" :text "o b"})
+        (match-content chat-id "system" {:type "usage"})
         (match-content chat-id "assistant" {:type "text" :text "ar!\n\nHa!"})
         (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -127,6 +130,7 @@
         (match-content chat-id "assistant" {:type "reasonText" :id (m/pred string?) :text "say hello"})
         (match-content chat-id "assistant" {:type "reasonFinished" :id (m/pred string?) :totalTimeMs (m/pred number?)})
         (match-content chat-id "assistant" {:type "text" :text "hell"})
+        (match-content chat-id "system" {:type "usage"})
         (match-content chat-id "assistant" {:type "text" :text "o there!"})
         (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?
@@ -157,6 +161,7 @@
         (match-content chat-id "assistant" {:type "reasonText" :id (m/pred string?) :text " say fine"})
         (match-content chat-id "assistant" {:type "reasonFinished" :id (m/pred string?) :totalTimeMs (m/pred number?)})
         (match-content chat-id "assistant" {:type "text" :text "I"})
+        (match-content chat-id "system" {:type "usage"})
         (match-content chat-id "assistant" {:type "text" :text "'m  fine"})
         (match-content chat-id "system" {:type "progress" :state "finished"})
         (is (match?

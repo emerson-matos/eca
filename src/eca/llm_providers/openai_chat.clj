@@ -301,13 +301,6 @@
         ;; Incremental parser buffer for content to detect thinking tags across chunks
         content-buffer* (atom "")
         handle-response (fn handle-response [event data tool-calls-atom rid]
-                          (when-let [usage (:usage data)]
-                            (on-usage-updated (let [input-cache-read-tokens (-> usage :prompt_tokens_details :cached_tokens)]
-                                                {:input-tokens (if input-cache-read-tokens
-                                                                 (- (:prompt_tokens usage) input-cache-read-tokens)
-                                                                 (:prompt_tokens usage))
-                                                 :output-tokens (:completion_tokens usage)
-                                                 :input-cache-read-tokens input-cache-read-tokens})))
                           (if (= event "stream-end")
                             (do
                               ;; Flush any leftover buffered content and finish reasoning if needed
@@ -405,7 +398,14 @@
                                       (reset! reasoning-type* nil))
                                     ;; Handle regular finish
                                     (when (not= finish-reason "tool_calls")
-                                      (on-message-received {:type :finish :finish-reason finish-reason}))))))))
+                                      (on-message-received {:type :finish :finish-reason finish-reason})))))))
+                          (when-let [usage (:usage data)]
+                            (on-usage-updated (let [input-cache-read-tokens (-> usage :prompt_tokens_details :cached_tokens)]
+                                                {:input-tokens (if input-cache-read-tokens
+                                                                 (- (:prompt_tokens usage) input-cache-read-tokens)
+                                                                 (:prompt_tokens usage))
+                                                 :output-tokens (:completion_tokens usage)
+                                                 :input-cache-read-tokens input-cache-read-tokens}))))
         rid (llm-util/gen-rid)]
     (base-request!
      {:rid rid
