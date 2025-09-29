@@ -282,7 +282,7 @@
                       :temperature temperature
                       :stream true
                       :parallel_tool_calls parallel-tool-calls?}
-                     :max_tokens max-output-tokens
+                     :max_tokens (or max-output-tokens 32000)
                      :tools (when (seq tools) (->tools tools)))
                     extra-payload)
 

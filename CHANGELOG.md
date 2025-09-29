@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Use a default of 32k tokens for max_tokens in openai-chat API.
+
 ## 0.61.1
 
 - More tolerant whitespace handling after `data:`.
