@@ -30,6 +30,7 @@
     "openai/gpt-5"
     "openai/gpt-5-mini"
     "openai/gpt-5-nano"
+    "anthropic/claude-sonnet-4-5-20250929"
     "anthropic/claude-sonnet-4-20250514"
     "anthropic/claude-opus-4-20250514"
     "anthropic/claude-opus-4-1-20250805"

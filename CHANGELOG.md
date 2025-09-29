@@ -6,6 +6,7 @@
 - Improve rejection prompt for tool calls.
 - Use `max_completion_tokens` instead of `max_tokens` in openai-chat API.
 - Support context/tokens usage/cost for openai-chat API.
+- Support `anthropic/claude-sonnet-4.5` by default.
 
 ## 0.61.1
 

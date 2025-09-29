@@ -16,6 +16,7 @@
                 "anthropic/claude-opus-4-1-20250805"
                 "anthropic/claude-opus-4-20250514"
                 "anthropic/claude-sonnet-4-20250514"
+                "anthropic/claude-sonnet-4-5-20250929"
                 "github-copilot/claude-sonnet-4"
                 "github-copilot/gemini-2.5-pro"
                 "github-copilot/gpt-4.1"
@@ -32,7 +33,7 @@
     (testing "initialize request with default config"
       (is (match?
            {:models models
-            :chatDefaultModel "anthropic/claude-sonnet-4-20250514"
+            :chatDefaultModel "anthropic/claude-sonnet-4-5-20250929"
             :chatBehaviors ["agent" "plan"]
             :chatDefaultBehavior "plan"
             :chatWelcomeMessage (m/pred #(string/includes? % "Welcome to ECA!"))}
@@ -46,7 +47,7 @@
     (testing "config updated"
       (is (match?
            {:chat {:models models
-                   :selectModel "anthropic/claude-sonnet-4-20250514"
+                   :selectModel "anthropic/claude-sonnet-4-5-20250929"
                    :behaviors ["agent" "plan"]
                    :selectBehavior "plan"
                    :welcomeMessage (m/pred #(string/includes? % "Welcome to ECA!"))}}
@@ -74,6 +75,7 @@
                 "anthropic/claude-opus-4-1-20250805"
                 "anthropic/claude-opus-4-20250514"
                 "anthropic/claude-sonnet-4-20250514"
+                "anthropic/claude-sonnet-4-5-20250929"
                 "github-copilot/claude-sonnet-4"
                 "github-copilot/gemini-2.5-pro"
                 "github-copilot/gpt-4.1"

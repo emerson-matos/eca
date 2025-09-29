@@ -43,7 +43,8 @@
                             :url "https://api.anthropic.com"
                             :key nil
                             :keyEnv "ANTHROPIC_API_KEY"
-                            :models {"claude-sonnet-4-20250514" {}
+                            :models {"claude-sonnet-4-5-20250929" {}
+                                     "claude-sonnet-4-20250514" {}
                                      "claude-opus-4-1-20250805" {}
                                      "claude-opus-4-20250514" {}
                                      "claude-3-5-haiku-20241022" {}}}
