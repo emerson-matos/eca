@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.62.0
+
 - Use a default of 32k tokens for max_tokens in openai-chat API.
 - Improve rejection prompt for tool calls.
 - Use `max_completion_tokens` instead of `max_tokens` in openai-chat API.
