@@ -268,7 +268,7 @@
     :or {temperature 1.0
          parallel-tool-calls? true
          thinking-tag "think"}}
-   {:keys [on-message-received on-error on-prepare-tool-call on-tools-called on-reason]}]
+   {:keys [on-message-received on-error on-prepare-tool-call on-tools-called on-reason on-usage-updated]}]
   (let [thinking-start-tag (str "<" thinking-tag ">")
         thinking-end-tag (str "</" thinking-tag ">")
         messages (vec (concat
@@ -301,6 +301,13 @@
         ;; Incremental parser buffer for content to detect thinking tags across chunks
         content-buffer* (atom "")
         handle-response (fn handle-response [event data tool-calls-atom rid]
+                          (when-let [usage (:usage data)]
+                            (on-usage-updated (let [input-cache-read-tokens (-> usage :prompt_tokens_details :cached_tokens)]
+                                                {:input-tokens (if input-cache-read-tokens
+                                                                 (- (:prompt_tokens usage) input-cache-read-tokens)
+                                                                 (:prompt_tokens usage))
+                                                 :output-tokens (:completion_tokens usage)
+                                                 :input-cache-read-tokens input-cache-read-tokens})))
                           (if (= event "stream-end")
                             (do
                               ;; Flush any leftover buffered content and finish reasoning if needed
