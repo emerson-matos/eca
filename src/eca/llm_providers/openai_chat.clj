@@ -262,7 +262,7 @@
    Handles the full conversation flow including tool calls, streaming responses,
    and message normalization. Supports both single and parallel tool execution.
    Compatible with OpenRouter and other OpenAI-compatible providers."
-  [{:keys [model user-messages instructions temperature api-key api-url max-output-tokens
+  [{:keys [model user-messages instructions temperature api-key api-url
            past-messages tools extra-payload extra-headers supports-image? parallel-tool-calls?
            thinking-tag]
     :or {temperature 1.0
@@ -281,8 +281,8 @@
                       :messages messages
                       :temperature temperature
                       :stream true
-                      :parallel_tool_calls parallel-tool-calls?}
-                     :max_tokens (or max-output-tokens 32000)
+                      :parallel_tool_calls parallel-tool-calls?
+                      :max_completion_tokens 32000}
                      :tools (when (seq tools) (->tools tools)))
                     extra-payload)
 
