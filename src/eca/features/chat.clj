@@ -645,7 +645,9 @@
                              (do
                                (send-content! chat-ctx :system
                                               {:type :text
-                                               :text "Tell ECA what to do differently for the rejected tool"})
+                                               :text "Tell ECA what to do differently for the rejected tool(s)"})
+                               (add-to-history! {:role "user" :content [{:type :text
+                                                                         :text "I rejected one or more tool calls with the following reason"}]})
                                (finish-chat-prompt! :idle chat-ctx)
                                nil)
                              {:new-messages (get-in @db* [:chats chat-id :messages])})))
