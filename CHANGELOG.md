@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add `claude-sonnet-4.5` for github-copilot provider.
+
 ## 0.62.0
 
 - Use a default of 32k tokens for max_tokens in openai-chat API.
